@@ -379,7 +379,7 @@ public class WiiMenuActivity extends Activity implements WiiMenuView.Listener {
     }
 
     private void refreshWeather() {
-        prefs.edit().putLong(Weather.KEY_CACHE_TIME, 0).apply();
+        prefs.edit().putLong(Weather.KEY_CACHE_TIME, 0).putLong(Weather.KEY_WORLD_TIME, 0).apply();
         menu.refreshSettings();
         Weather.refresh(this, (r, error) -> {
             if (isFinishing()) return;

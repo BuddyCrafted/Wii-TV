@@ -134,11 +134,16 @@ Every build is signed with the same key (`launcher/keys/`), so updates always in
 
 ## Forecast Channel
 
-The first channel is the **Forecast Channel**. Its tile shows the temperature and sky right now; open it for today's details and the next five days. Press **OK** to refresh.
+The first channel is the **Forecast Channel**, modelled on the Wii's. Its tile shows the temperature and sky right now.
 
-- **Weather data:** [Open-Meteo](https://open-meteo.com), which is free and needs no account or API key.
-- **Location:** found automatically from your internet connection. To pick a city instead, go to **wiiOS Settings → Weather → Location → Search for a city**.
-- **Units:** °F or °C, under Settings → Weather → Units.
+- **Opening it** shows the channel preview: a **CURRENT** card with **Wii Menu** and **Start**, as on the console.
+- **Start** opens the channel's pages: grey button bars, a green title tab and city pill, the blue board, and the red "As of" strip. **▲ / ▼** (or ◀ / ▶) turn the pages:
+  - **CURRENT**: temperature and conditions now.
+  - **TODAY** and **TOMORROW**: high, low, chance of rain, plus humidity and wind for today.
+  - **5-DAY FORECAST**: five columns with the day, an icon, the high (yellow) and the low (blue).
+  - **GLOBE**: a spinning Earth (NASA's Blue Marble) with the current weather in about 45 cities worldwide. Arrows spin and tilt it, **OK** is *Next* (flies to the next city and shows its card), **⏪ / ⏩** zoom, **☰** is *Restore* (back to your city), and **Back** is *End*.
+- **Data:** [Open-Meteo](https://open-meteo.com), free with no account or key. The Earth image downloads once (about 240 KB) the first time you open the channel, then stays on the device.
+- **Location:** found automatically from your internet connection. To choose a city instead, go to **wiiOS Settings → Weather → Location → Search for a city**. Units (°F / °C) are on the same page.
 - Like any channel, you can move it or hide it (hold OK).
 
 ## Language

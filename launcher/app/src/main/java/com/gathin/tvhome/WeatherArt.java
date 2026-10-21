@@ -77,16 +77,25 @@ final class WeatherArt {
         }
     }
 
+    /** The console's sun: a soft glow, a starburst of thin rays, and a bright disc. */
     private static void sun(Canvas c, float cx, float cy, float r) {
-        P.setColor(0xFFFFC928);
+        P.setColor(0xFFFFFFFF);
+        P.setShader(new RadialGradient(cx, cy, r * 1.9f, new int[] {0xCCFFE680, 0x55FFB300, 0x00FFB300},
+                new float[] {0.3f, 0.6f, 1f}, Shader.TileMode.CLAMP));
+        c.drawCircle(cx, cy, r * 1.9f, P);
+        P.setShader(null);
         P.setStrokeCap(Paint.Cap.ROUND);
-        P.setStrokeWidth(r * 0.16f);
-        for (int i = 0; i < 8; i++) {
-            double a = Math.PI * i / 4;
-            c.drawLine(cx + (float) Math.cos(a) * r * 1.25f, cy + (float) Math.sin(a) * r * 1.25f,
-                    cx + (float) Math.cos(a) * r * 1.6f, cy + (float) Math.sin(a) * r * 1.6f, P);
+        for (int i = 0; i < 24; i++) {
+            double a = Math.PI * 2 * i / 24;
+            float len = i % 2 == 0 ? 1.75f : 1.38f;
+            P.setColor(i % 2 == 0 ? 0xFFFFC21A : 0xFFFFD95A);
+            P.setStrokeWidth(r * (i % 2 == 0 ? 0.075f : 0.05f));
+            c.drawLine(cx + (float) Math.cos(a) * r * 0.9f, cy + (float) Math.sin(a) * r * 0.9f,
+                    cx + (float) Math.cos(a) * r * len, cy + (float) Math.sin(a) * r * len, P);
         }
-        P.setShader(new RadialGradient(cx - r * 0.3f, cy - r * 0.3f, r * 1.3f, 0xFFFFF3A0, 0xFFFFB300, Shader.TileMode.CLAMP));
+        P.setColor(0xFFFFFFFF);
+        P.setShader(new RadialGradient(cx - r * 0.25f, cy - r * 0.25f, r * 1.2f,
+                new int[] {0xFFFFFDE8, 0xFFFFD84A, 0xFFFF9F00}, new float[] {0f, 0.45f, 1f}, Shader.TileMode.CLAMP));
         c.drawCircle(cx, cy, r, P);
         P.setShader(null);
     }
