@@ -1,1 +1,0 @@
--keepclassmembers class com.example.wiitv.WiiBridge { @android.webkit.JavascriptInterface <methods>; }
