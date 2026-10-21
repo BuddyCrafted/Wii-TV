@@ -225,6 +225,8 @@
     <string name="games_count">games to play</string>
     <string name="games_web">Web</string>
     <string name="games_play">Play</string>
+    <string name="games_mine">My Games</string>
+    <string name="games_on_device">on this device</string>
     <string name="games_from_web">the web</string>
     <string name="games_account">Sign in with your %1$s account</string>
     <string name="games_no_web">This device can\'t show web pages right now. Update Android System WebView and try again.</string>

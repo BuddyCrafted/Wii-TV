@@ -46,6 +46,8 @@ final class ShopView extends View {
     enum Action { OPEN, STORE, DOWNLOAD, WEB }
 
     static final String INSTALLED = "installed";
+    /** Games channel: the games already on the device, opened straight from the list. */
+    static final String MY_GAMES = "my_games";
     private static final int ROWS = 4;
     private static final int BLUE = 0xFF3FC0EC, EDGE = 0xFFB9E9F8, TEXT = 0xFF555555, CYAN_TEXT = 0xFF34B5E5;
 
@@ -129,6 +131,7 @@ final class ShopView extends View {
 
     private List<HomeItem> homeItems() {
         List<HomeItem> out = new ArrayList<>();
+        if (store.games()) out.add(new HomeItem(MY_GAMES, ctx.getString(R.string.games_mine)));
         for (ShopCatalog.Category c : catalog.categories) out.add(new HomeItem(c.id, c.name));
         out.add(new HomeItem(INSTALLED, ctx.getString(R.string.shop_installed)));
         return out;
@@ -144,6 +147,7 @@ final class ShopView extends View {
     }
 
     private List<ShopCatalog.App> listFor(String cat) {
+        if (MY_GAMES.equals(cat)) return ShopCatalog.installedGames(ctx, catalog);
         if (!INSTALLED.equals(cat)) return catalog.in(cat);
         List<ShopCatalog.App> out = new ArrayList<>();
         for (ShopCatalog.App a : catalog.apps) if (ShopCatalog.installed(ctx, a) != null) out.add(a);
@@ -160,6 +164,7 @@ final class ShopView extends View {
 
     private String status(ShopCatalog.App a) {
         if (a.web()) return ctx.getString(R.string.games_web);
+        if (MY_GAMES.equals(category)) return ctx.getString(R.string.games_play);
         String v = ShopCatalog.installed(ctx, a);
         if (v == null) return a.price.isEmpty() ? ctx.getString(R.string.shop_free) : a.price;
         if (a == app && latestVersion != null && !latestVersion.isEmpty() && !latestVersion.equals(v)) {
@@ -193,6 +198,7 @@ final class ShopView extends View {
             case "github": return "GitHub";
             case "url": return ctx.getString(R.string.shop_from_web);
             case "web": return ctx.getString(R.string.games_from_web);
+            case "device": return ctx.getString(R.string.games_on_device);
             default: return DeviceProfile.fireTv() ? "Amazon Appstore" : "Google Play";
         }
     }
@@ -249,6 +255,7 @@ final class ShopView extends View {
                     listener.onPlaySound(WiiSounds.SELECT);
                     if (listFocus == BACK_BTN) screen = Screen.HOME;
                     else if (listFocus == NEXT_BTN) listFocus = Math.min(list.size() - 1, (page() + 1) * ROWS);
+                    else if (listFocus >= 0 && MY_GAMES.equals(category)) listener.onAction(list.get(listFocus), Action.OPEN);
                     else if (listFocus >= 0) openDetail(list.get(listFocus));
                     invalidate();
                     return true;
@@ -465,7 +472,7 @@ final class ShopView extends View {
             c.drawText(a.name, th.right + 30, row.top + 50, text);
             paint.setColor(0xFFDDEFF5);
             c.drawRect(th.right + 30, row.top + 66, row.right - 30, row.top + 69, paint);
-            label(c, a.publisher + "  \u00B7  " + sourceLabel(a), th.right + 30, row.top + 112, 32, 0xFF888888, Paint.Align.LEFT);
+            label(c, a.publisher.isEmpty() ? sourceLabel(a) : a.publisher + "  \u00B7  " + sourceLabel(a), th.right + 30, row.top + 112, 32, 0xFF888888, Paint.Align.LEFT);
             label(c, status(a), row.right - 30, row.bottom - 20, 40, TEXT, Paint.Align.RIGHT);
             if (listFocus == i) h = new float[] {row.right - 160, row.bottom - 20};
         }

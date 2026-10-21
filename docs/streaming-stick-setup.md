@@ -182,6 +182,7 @@ The second channel is the **Shop**, a Wii Shop-style app store that sits in fron
 
 The third channel is **Games**. It works like the Shop, with its own tune, and lists games instead of apps:
 
+- **My Games** lists the games already on the device (anything Android marks as a game, plus installed titles from the catalog). Pressing OK starts the game straight away, with no store page in between.
 - **Party Games:** the **Jackbox Party Packs** (paid, on Google Play for Google TV; the TV runs the game and everyone plays on their phone at jackbox.tv), **AirConsole** (phones as controllers, opens from the web), and **SuperTuxKart**.
 - **Cloud Gaming:** **GeForce NOW** (NVIDIA account, free tier), **Boosteroid** (subscription), **Xbox Cloud Gaming** and **Amazon Luna** (both from the web). These need a fast connection (25 Mbps or more; 5 GHz Wi-Fi or Ethernet) and a controller.
 - **Retro & Emulators:** **RetroArch**, **Lemuroid** and **PPSSPP**, with several controllers on one TV and online play through RetroArch's Netplay. No games are included; use games you own or homebrew.

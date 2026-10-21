@@ -187,6 +187,39 @@ final class ShopCatalog {
         return null;
     }
 
+    /**
+     * Games on the device: apps Android marks as games (or that predate the category and set the game flag), plus
+     * any installed title from the catalog, each opened straight from the Games channel. Sorted by name.
+     */
+    static List<App> installedGames(Context c, ShopCatalog catalog) {
+        PackageManager pm = c.getPackageManager();
+        java.util.Map<String, App> out = new java.util.TreeMap<>(String.CASE_INSENSITIVE_ORDER);
+        java.util.Set<String> seen = new java.util.HashSet<>();
+        for (String category : new String[] {Intent.CATEGORY_LEANBACK_LAUNCHER, Intent.CATEGORY_LAUNCHER}) {
+            Intent main = new Intent(Intent.ACTION_MAIN).addCategory(category);
+            for (android.content.pm.ResolveInfo ri : pm.queryIntentActivities(main, 0)) {
+                android.content.pm.ApplicationInfo ai = ri.activityInfo.applicationInfo;
+                if (!seen.add(ai.packageName) || ai.packageName.equals(c.getPackageName())) continue;
+                boolean game = (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O && ai.category == android.content.pm.ApplicationInfo.CATEGORY_GAME)
+                        || (ai.flags & android.content.pm.ApplicationInfo.FLAG_IS_GAME) != 0;
+                App known = null;
+                for (App a : catalog.apps) {
+                    if (!a.web() && (a.prefix() ? ai.packageName.startsWith(a.pkg.substring(0, a.pkg.length() - 1)) : a.pkg.equals(ai.packageName))) known = a;
+                }
+                if (!game && known == null) continue;
+                App a = new App();
+                a.pkg = ai.packageName;
+                a.name = String.valueOf(ai.loadLabel(pm));
+                a.publisher = known != null ? known.publisher : "";
+                a.about = known != null ? known.about : "";
+                a.color = known != null ? known.color : a.color;
+                a.source = "device";
+                out.put(a.name + "|" + a.pkg, a);
+            }
+        }
+        return new ArrayList<>(out.values());
+    }
+
     /** Installed versionName of the app, or null. */
     static String installed(Context c, App a) {
         String pkg = installedPkg(c, a);
