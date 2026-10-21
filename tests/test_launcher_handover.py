@@ -48,6 +48,8 @@ state = load()
 
 
 def run(command):
+    if "getprop ro.product.manufacturer" in command:
+        return state.get("manufacturer", "") + "\n"
     if "pm install" in command:
         return "Success\n"
     if "am start" in command:
@@ -216,6 +218,23 @@ class HandoverTest(unittest.TestCase):
         self.assertIn("recovery is incomplete", result.stderr)
         self.assertTrue(any("pm enable --user 0" in c for c in state["commands"]))
         self.assertIsNotNone(self.record())
+
+    def test_fire_tv_redirects_home_and_leaves_amazon_launcher_alone(self):
+        result, state = self.handover(manufacturer="Amazon")
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertIn("Fire TV detected", result.stdout)
+        self.assertIn("Installed.", result.stdout)
+        commands = state["commands"]
+        self.assertFalse(any("pm disable-user" in c for c in commands), "Fire OS launcher is never disabled")
+        self.assertFalse(any("set-home-activity" in c for c in commands))
+        self.assertTrue(any("FireTvHomeService" in c and "accessibility_enabled 1" in c for c in commands))
+        self.assertFalse(state["stock_disabled"])
+
+    def test_fire_tv_launcher_that_does_not_start_enables_nothing(self):
+        result, state = self.handover(manufacturer="Amazon", start_fails=True)
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn("did not start", result.stderr)
+        self.assertFalse(any("FireTvHomeService" in c for c in state["commands"]))
 
 
 if __name__ == "__main__":

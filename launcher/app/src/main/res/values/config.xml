@@ -27,6 +27,9 @@
         <item>com.android.tv.settings</item>
         <!-- MediaTek's media player: the channel menu's SD button already opens it. -->
         <item>com.mediatek.wwtv.mediaplayer</item>
+        <!-- Fire TV: system screens that are not apps to open. -->
+        <item>com.amazon.tv.launcher</item>
+        <item>com.amazon.tv.settings.v2</item>
     </string-array>
 
     <!-- The TV's Live TV / tuner app, offered at the end of the Inputs menu. Leave empty to omit. -->
@@ -181,4 +184,22 @@
     <string name="wii_settings_label" translatable="false">wiiOS</string>
     <!-- Interface sounds when moving, choosing, turning the page and opening menus (res/raw/wii_*.wav). -->
     <bool name="wii_sounds">true</bool>
+    <!-- Background music on the channel menu (res/raw/wii_bgm.wav, tools/sounds/make_music.py). The menu's
+         wiiOS button can switch it, and the sounds, on and off; that choice is kept on the device. -->
+    <bool name="wii_music">true</bool>
+    <!-- Also give channels to apps with only a phone-style launcher entry (many sideloaded apps on Fire TV
+         and Google TV). TV apps are preferred when an app has both. -->
+    <bool name="wii_phone_apps">true</bool>
+    <!-- What the SD button opens: the first of these that is installed. TVs have their own media player;
+         on a streaming stick a media or file app stands in. -->
+    <string-array name="sd_apps" translatable="false">
+        <item>com.mediatek.wwtv.mediaplayer</item>
+        <item>org.xbmc.kodi</item>
+        <item>org.videolan.vlc</item>
+        <item>com.lonelycatgames.Xplore</item>
+        <item>com.google.android.apps.nbu.files</item>
+        <item>com.amazon.photos</item>
+        <item>com.google.android.apps.photos</item>
+        <item>com.plexapp.android</item>
+    </string-array>
 </resources>

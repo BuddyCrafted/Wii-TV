@@ -1,194 +1,112 @@
 # wii-tv
 
-El menú de canales de la Wii como pantalla de inicio de tu Android TV.
+The Wii channel menu as the home screen of your Android TV.
 
-![wiiOS en una Philips 65PUD7906](docs/wii-menu.jpg)
+![wiiOS on a Philips 65PUD7906](docs/wii-menu.jpg)
 
-wii-tv cambia la pantalla de inicio de un Android TV por un menú al estilo del Menú Wii: doce canales por página, el reloj de segmentos, la fecha, los botones redondos, la manito que sigue a lo que elegís y sonidos al moverte. Cada canal es una de tus apps, con su propio banner. Al prender la TV aparece una pantalla de aviso blanca, como en la consola, y con OK pasás al menú.
+wii-tv replaces the home screen of an Android TV with a menu in the style of the Wii Menu: twelve channels to a page, the segment clock, the date, the round buttons, a pointing hand that follows your selection and sounds as you move. Each channel is one of your apps, with its own banner. When the TV turns on, a white notice screen comes up, as on the console, and OK takes you to the menu.
 
-English: [README.en.md](README.en.md)
+Español: [README.es.md](README.es.md)
 
-## Aviso
+## This edition: streaming sticks and extra features
 
-wii-tv es un proyecto de fans. No está afiliado a Nintendo ni tiene su aprobación. "Wii" es una marca de Nintendo.
+This repository is [MauroProto/wii-tv](https://github.com/MauroProto/wii-tv) with the same look, extended for **streaming sticks and boxes** (Fire TV Stick, onn. 4K / 4K Pro, Chromecast with Google TV and other Google TV / Android TV devices), plus a few features of its own.
 
-El repositorio no trae nada de Nintendo: ni logos, ni tipografías, ni imágenes, ni sonidos. Todo lo que se ve está dibujado por código (`WiiMenuView`, `WiiBase`, `WiiPalette`) y los sonidos se sintetizan con `tools/sounds/make_sounds.py`.
+**→ Step-by-step setup for making it your home screen: [docs/streaming-stick-setup.md](docs/streaming-stick-setup.md)**
 
-## Qué trae
+What's added on top of upstream:
 
-- **Canales**: 4 columnas por 3 filas por página. La primera columna de la página siguiente asoma a la derecha y las flechas cambian de página. Tus apps llenan los canales y los que sobran quedan vacíos.
-- **Reloj y fecha**: reloj de segmentos de 12 horas con AM/PM, y la fecha corta en el idioma de la TV.
-- **Botones de abajo**:
-  - **wiiOS** (izquierda) abre los Ajustes de Android TV.
-  - **SD** abre el reproductor multimedia de la TV (pendrive o disco USB).
-  - **Sobre** (derecha) abre la lista de entradas HDMI y la TV en vivo.
-- **Manito** que sigue al canal o botón elegido.
-- **Sonidos** al moverte, al abrir algo, al cambiar de página, al abrir las entradas y al continuar desde el aviso. Usan el volumen de la TV.
-- **Pantalla de aviso** al prender la TV. La cierran OK o las flechas, o se va sola a los 12 segundos. No vuelve a aparecer cuando salís de una app.
-- **Siempre arranca en el menú**: al prender la TV vuelve al menú aunque hayas dejado otra app abierta.
-- Protector de pantalla con reloj (opcional).
+- **Fire TV support.** Fire OS won't hand Home to another app, so the `FireTvHomeService` accessibility service takes the Home button (hold it for Settings) and puts the menu back whenever the Amazon home appears. The install script detects a Fire TV and sets this up without disabling anything.
+- **Rearrange and hide channels from the remote.** Hold OK on a channel (or press ☰ on a Fire TV remote) for **Move**, **Hide channel** and **App info**. In Move the channel lifts and follows the arrows until you press OK. The order and hidden list are saved on the device.
+- **wiiOS menu.** The round button opens a menu instead of going straight to Settings: Settings, Network & Wi-Fi, Remotes & Bluetooth, Music and Sounds on/off, Hidden channels and Reset channel order. All of these open the device's own screens, so Wi-Fi and Bluetooth work as before.
+- **Background music.** An original, gentle menu loop that's synthesised on the device (`MenuMusic.java`), so the APK carries no audio file and stays under 800 KB. Can be switched off in the wiiOS menu.
+- **Message Board.** On a stick, which has no HDMI inputs, the envelope lists the channels you opened most recently. On a TV they follow the inputs.
+- **Stick-friendly SD button.** Opens the first installed media or file app (Kodi, VLC, X-plore, Files…; `sd_apps` in `config.xml`).
+- **Sideloaded apps get channels too.** Apps with only a phone-style launcher entry are included, and TV banners are used when an app has one.
+- **Install without building.** CI attaches a ready APK to every run; `APK_FILE=app-release.apk TV_HOST=<ip> launcher/build-and-install.sh` installs it with no JDK or Android SDK.
 
-Probado en una Philips 65PUD7906/77 (Android TV 11, 1920 x 1080). Debería andar en cualquier Android TV 8.0 o posterior con pantalla 16:9.
+## Disclaimer
 
-![Pantalla de aviso al prender la TV](docs/wii-intro.jpg)
+wii-tv is a fan project. It is not affiliated with or endorsed by Nintendo. "Wii" is a trademark of Nintendo.
 
-## Qué necesitás
+The repository contains nothing from Nintendo: no logos, fonts, images or sounds. Everything on screen is drawn in code (`WiiMenuView`, `WiiBase`, `WiiPalette`), and the sounds are synthesised by `tools/sounds/make_sounds.py`.
 
-- Una computadora con macOS o Linux en la misma red que la TV. En Windows también se puede instalar (ver el paso 5).
-- Python 3.10 o posterior.
-- JDK 17 y el Android SDK con `platforms;android-34` y `build-tools;34.0.0`. Android Studio trae los dos. En macOS también sirve `brew install openjdk@17 android-commandlinetools`.
-- La depuración activada en la TV (paso 1).
+## Features
 
-## Instalación paso a paso
+- **Channels**: 4 columns by 3 rows per page. The first column of the next page shows at the right edge, and the arrows turn the page. Your apps fill the channels; the rest stay empty.
+- **Clock and date**: a 12-hour segment clock with AM/PM, and the short date in the TV's language.
+- **Bottom buttons**:
+  - **wiiOS** (left) opens Android TV Settings.
+  - **SD** opens the TV's media player (USB drives).
+  - **Envelope** (right) lists the HDMI inputs and live TV.
+- **Pointing hand** that follows the selected channel or button.
+- **Sounds** for moving, opening, turning the page, opening the inputs list and leaving the notice screen. They follow the TV volume.
+- **Notice screen** at power-on. OK or the arrows close it, or it leaves by itself after 12 seconds. It does not come back when you leave an app.
+- **Always starts on the menu**: turning the TV on brings the menu back even if another app was open.
+- Clock screensaver (optional).
 
-Corré todos los comandos desde la carpeta del repositorio. Cambiá `192.168.1.50` por la IP de tu TV.
+Tested on a Philips 65PUD7906/77 (Android TV 11, 1920 x 1080). It should work on any Android TV 8.0 or later with a 16:9 screen.
 
-### 1. Activar la depuración en la TV
+## Requirements
 
-1. Ajustes → Preferencias del dispositivo → Información: tocá **Compilación** siete veces, hasta que diga que ya sos desarrollador.
-2. Ajustes → Preferencias del dispositivo → Opciones para desarrolladores: activá **Depuración por USB**, y también **Depuración por red** o **ADB por red** si tu TV lo muestra.
-3. Anotá la IP de la TV: Ajustes → Red e Internet → tu red.
+- A macOS or Linux computer on the same network as the TV. Windows works for the install too (see step 5).
+- Python 3.10 or later.
+- JDK 17 and the Android SDK with `platforms;android-34` and `build-tools;34.0.0`. Android Studio ships both; on macOS, `brew install openjdk@17 android-commandlinetools` also works.
+- Debugging turned on on the TV (step 1).
 
-### 2. Preparar las herramientas
+## Install
 
-```sh
-git clone https://github.com/MauroProto/wii-tv.git
-cd wii-tv
-python3 -m venv tools/venv
-tools/venv/bin/pip install -r tools/requirements.txt
-TV_HOST=192.168.1.50 tools/venv/bin/python tools/tv.py --probe
-```
+Run every command from the repository folder, and replace `192.168.1.50` with your TV's IP address.
 
-La primera vez la TV pregunta si permitís la depuración. Marcá "Permitir siempre desde esta computadora" y aceptá. `--probe` muestra el modelo y la versión de Android.
+1. **Turn on debugging.** Settings → Device Preferences → About: select **Build** seven times. Then Settings → Device Preferences → Developer options: turn on **USB debugging**, and **Network debugging** or **ADB over network** if your TV has it. Note the TV's IP address under Settings → Network & Internet.
+2. **Set up the tools.**
+   ```sh
+   git clone https://github.com/MauroProto/wii-tv.git
+   cd wii-tv
+   python3 -m venv tools/venv
+   tools/venv/bin/pip install -r tools/requirements.txt
+   TV_HOST=192.168.1.50 tools/venv/bin/python tools/tv.py --probe
+   ```
+   The first time, the TV asks whether to allow debugging. Tick "Always allow from this computer" and accept. The key that authorises your computer is kept in `tools/adbkey/`; git ignores it. Do not share it.
+3. **Back up.** `TV_HOST=192.168.1.50 tools/backup.sh` saves the app lists, the current home screen, the settings and a screenshot to `backups/<model>/<date>/`. Git ignores that folder because it holds the TV's serial number and network names.
+4. **(Optional) Disable vendor apps.** `TV_HOST=192.168.1.50 tools/disable.sh examples/philips-65pud7906/debloat.txt`. Apps are disabled, not uninstalled. Review the list first and put `#` in front of anything you want to keep. For other brands, [cleanyourtv](https://github.com/Gathin23/cleanyourtv/tree/main/examples) has more than a hundred tested lists.
+5. **Install the menu.** `TV_HOST=192.168.1.50 launcher/build-and-install.sh` builds the app, installs it, checks that it starts, disables the stock launcher and makes **wiiOS** the home screen. If anything goes wrong, it turns the stock launcher back on. On Windows: `powershell -ExecutionPolicy Bypass -File launcher\build-and-install.ps1 -TvHost 192.168.1.50`.
+6. **Close debugging when you are done.** Turn USB and network debugging off in Developer options (optionally "Revoke USB debugging authorisations"), restart the TV, and check with `tools/venv/bin/python tools/adb-closed.py 192.168.1.50`.
 
-La clave que autoriza a tu computadora queda en `tools/adbkey/`. Git la ignora; no la compartas, porque da acceso a la TV.
+## Remote
 
-### 3. Hacer un respaldo
-
-```sh
-TV_HOST=192.168.1.50 tools/backup.sh
-```
-
-Guarda en `backups/<modelo>/<fecha>/` la lista de apps (activas, desactivadas, de sistema y las que instalaste vos), cuál es la pantalla de inicio, los ajustes y una captura de pantalla. Git ignora esa carpeta: tiene el número de serie y los nombres de red de tu TV.
-
-### 4. (Opcional) Desactivar apps del fabricante
-
-Las apps se **desactivan**, no se desinstalan, y se pueden volver a activar (ver "Deshacer todo").
-
-```sh
-TV_HOST=192.168.1.50 tools/disable.sh examples/philips-65pud7906/debloat.txt
-```
-
-- `examples/philips-65pud7906/debloat.txt` es la lista que se usó en la Philips 65PUD7906. Revisala y poné `#` adelante de lo que quieras conservar.
-- Para otras marcas y modelos, [cleanyourtv](https://github.com/Gathin23/cleanyourtv/tree/main/examples) tiene más de cien listas probadas. Copiá la de tu TV a `examples/<tu-tv>/debloat.txt`.
-- `disable.sh` guarda lo necesario para deshacer en `~/.cleanyourtv/`, y no desactiva la app dueña de tu red Wi-Fi.
-
-### 5. Instalar el menú
-
-```sh
-TV_HOST=192.168.1.50 launcher/build-and-install.sh
-```
-
-El script:
-
-1. compila la app de `launcher/`,
-2. la instala y comprueba que abre,
-3. desactiva el launcher original (`com.google.android.tvlauncher` en Android TV, `com.google.android.apps.tv.launcherx` en Google TV),
-4. deja **wiiOS** como pantalla de inicio y verifica que Home lo abra. Si algo sale mal, vuelve a activar el launcher original.
-
-Apretá Home en el control para verlo. Si preferís no desactivar el launcher original, usá `STOCK_LAUNCHER=none`. Ojo: en muchas TVs el launcher original tiene prioridad, y mientras siga activo Home lo va a seguir abriendo.
-
-En Windows, con PowerShell:
-
-```powershell
-python -m venv tools\venv
-tools\venv\Scripts\pip install -r tools\requirements.txt
-powershell -ExecutionPolicy Bypass -File launcher\build-and-install.ps1 -TvHost 192.168.1.50
-```
-
-### 6. Cerrar la depuración al terminar
-
-Mientras la depuración esté activada, cualquier computadora que ya autorizaste puede manejar la TV por la red. Cuando termines:
-
-1. Ajustes → Opciones para desarrolladores: desactivá la depuración por USB y por red. Si querés, tocá también "Revocar autorizaciones de depuración".
-2. Reiniciá la TV.
-3. Comprobá que quedó cerrada: `tools/venv/bin/python tools/adb-closed.py 192.168.1.50`
-
-## Usarlo con el control
-
-| Tecla | Qué hace |
+| Key | Action |
 | --- | --- |
-| Flechas | Mueven la manito. Desde la última columna, la flecha derecha pasa de página. Desde la fila de abajo, la flecha abajo baja a los botones. |
-| OK | Abre el canal o el botón elegido. |
-| Atrás | Cierra la lista de entradas o la pantalla de aviso. |
-| Home | Vuelve al menú. |
+| Arrows | Move the hand. Right from the last column turns the page; down from the bottom row goes to the buttons. |
+| OK | Opens the selected channel or button. |
+| Hold OK (or ☰ Menu) on a channel | Move, Hide channel, App info. In Move, the arrows carry the channel and OK drops it. |
+| Back | Closes the open menu or the notice screen, or drops a channel being moved. |
+| Home | Back to the menu. On Fire TV, hold Home for Settings. |
 
-## Personalizar
+## Customise
 
-Cambiá lo que quieras y volvé a correr `launcher/build-and-install.sh` para aplicarlo.
+Change what you like and run `launcher/build-and-install.sh` again.
 
-| Qué | Dónde |
+| What | Where |
 | --- | --- |
-| Qué apps van primero y en qué orden | `dock_apps` en `launcher/app/src/main/res/values/config.xml`. Son nombres de paquete; las demás apps siguen en orden alfabético. |
-| Apps que no aparecen como canal | `hidden_apps`, en el mismo archivo. |
-| Texto del botón izquierdo | `wii_settings_label` (por defecto `wiiOS`). |
-| Sonidos sí o no | `wii_sounds`. |
-| App de TV en vivo de la lista de entradas | `live_tv_package`. |
-| Textos de la pantalla de aviso | `wii_intro_title`, `wii_intro_body` y `wii_intro_continue` en `res/values*/strings.xml`. `values-es-rAR` usa voseo. |
-| Cómo suenan los sonidos | `tools/sounds/make_sounds.py`. Cambiá notas y duraciones y corré `python3 tools/sounds/make_sounds.py` (necesita numpy). |
-| Colores, tamaños y posiciones | Constantes al principio de `WiiMenuView.java`. El fondo y los paneles están en `WiiBase.java` y `WiiPalette.java`. |
-| App del botón SD | `MEDIA_PLAYER` en `WiiMenuActivity.java`. |
+| Which apps come first, in what order | `dock_apps` in `launcher/app/src/main/res/values/config.xml` (package names; the rest follow alphabetically) |
+| Apps that never get a channel | `hidden_apps`, same file |
+| Left button text | `wii_settings_label` (default `wiiOS`) |
+| Sounds / music on or off by default | `wii_sounds`, `wii_music` (the wiiOS menu switches them too) |
+| Live TV app in the inputs list | `live_tv_package` |
+| Notice screen text | `wii_intro_title`, `wii_intro_body`, `wii_intro_continue` in `res/values*/strings.xml` |
+| How the sounds sound | `tools/sounds/make_sounds.py`; edit it and run `python3 tools/sounds/make_sounds.py` (needs numpy) |
+| Colours, sizes, positions | Constants at the top of `WiiMenuView.java`; backdrop and panels in `WiiBase.java` and `WiiPalette.java` |
+| App behind the SD button | `sd_apps` in `config.xml` (the first one installed) |
 
-Para ver los nombres de paquete de tus apps:
+## Undo
 
-```sh
-TV_HOST=192.168.1.50 tools/venv/bin/python tools/tv.py 'pm list packages -3'
-```
+`TV_HOST=192.168.1.50 tools/restore.sh examples/philips-65pud7906/debloat.txt com.google.android.tvlauncher` turns the disabled apps back on and returns Home to the stock launcher (on Google TV the last argument is `com.google.android.apps.tv.launcherx`). Then `tools/venv/bin/python tools/tv.py 'pm uninstall com.gathin.tvhome'` removes wiiOS.
 
-Protector de pantalla con reloj:
+## Credits and licence
 
-```sh
-TV_HOST=192.168.1.50 tools/venv/bin/python tools/tv.py 'settings put secure screensaver_components com.gathin.tvhome/.ClockDream'
-```
-
-## Deshacer todo
-
-Para reactivar las apps que desactivaste y volver al launcher original, pasá la misma lista que usaste:
-
-```sh
-TV_HOST=192.168.1.50 tools/restore.sh examples/philips-65pud7906/debloat.txt com.google.android.tvlauncher
-```
-
-En Google TV el último argumento es `com.google.android.apps.tv.launcherx`. Después podés desinstalar wiiOS:
-
-```sh
-TV_HOST=192.168.1.50 tools/venv/bin/python tools/tv.py 'pm uninstall com.gathin.tvhome'
-```
-
-Si solo querés volver al launcher original, sin tocar las demás apps:
-
-```sh
-TV_HOST=192.168.1.50 tools/venv/bin/python tools/tv.py 'pm enable --user 0 com.google.android.tvlauncher'
-TV_HOST=192.168.1.50 tools/venv/bin/python tools/tv.py 'cmd package set-home-activity --user 0 com.google.android.tvlauncher/.MainActivity'
-```
-
-## Problemas comunes
-
-- **Home sigue abriendo el launcher viejo.** En Google TV, el asistente de configuración (`com.google.android.tungsten.setupwraith`) también puede reclamar Home. Mirá la [guía de problemas de cleanyourtv](https://github.com/Gathin23/cleanyourtv/blob/main/docs/TROUBLESHOOTING.md) antes de desactivarlo: en algunas TVs es el dueño del Wi-Fi.
-- **Falta una app.** El menú muestra las apps hechas para TV. Fijate que no esté en `hidden_apps`.
-- **El botón SD dice "No disponible".** Tu TV no tiene el reproductor de MediaTek; poné el de tu TV en `MEDIA_PLAYER`.
-- **No se escuchan los sonidos.** Suben y bajan con el volumen de la TV. Fijate que `wii_sounds` sea `true`.
-- **`tv.py` no conecta.** La TV y la computadora tienen que estar en la misma red, con la depuración activada, y tenés que aceptar el aviso en la pantalla de la TV.
-
-## Cómo está hecho
-
-- `launcher/` es una app Android en Java. `WiiMenuActivity` es la pantalla de inicio y `WiiMenuView` dibuja todo: canales, reloj, botones, manito, aviso y la lista de entradas. `WiiBase` y `WiiPalette` calculan el fondo rayado y los paneles píxel por píxel, en un hilo aparte. `WiiSounds` reproduce los sonidos.
-- La app también trae el launcher de cleanyourtv (`MainActivity`). Ya no es la pantalla de inicio, pero sigue en el código.
-- `tools/` tiene un cliente ADB por red en Python (`tv.py`, no hace falta instalar `adb`), los scripts para desactivar y restaurar apps, el respaldo y el generador de sonidos.
-- `tests/` prueba los scripts contra una TV simulada: `python3 -m unittest discover -s tests`.
-
-## Créditos y licencia
-
-- Basado en [cleanyourtv](https://github.com/Gathin23/cleanyourtv) de Gathin (licencia MIT): las herramientas ADB, los scripts para desactivar y restaurar apps y la base del launcher.
-- Tipografía Outfit, con licencia SIL Open Font License 1.1 (`launcher/FONT-LICENSE-OFL.txt`).
-- Licencia MIT: ver [LICENSE](LICENSE).
+- [wii-tv](https://github.com/MauroProto/wii-tv) by MauroProto (MIT): the channel menu this edition is based on.
+- The Fire TV Home redirect follows the approach of [firetv-glass-launcher](https://github.com/ivantrj/firetv-glass-launcher) by ivantrj (MIT).
+- Built on [cleanyourtv](https://github.com/Gathin23/cleanyourtv) by Gathin (MIT): the ADB tools, the disable and restore scripts, and the base of the launcher.
+- Outfit typeface, SIL Open Font License 1.1 (`launcher/FONT-LICENSE-OFL.txt`).
+- MIT licence: see [LICENSE](LICENSE).

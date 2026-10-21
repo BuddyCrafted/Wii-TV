@@ -7,34 +7,67 @@
 #        [-InputKeyService]   remote's Input button opens the input switcher (Google TV), plus config.xml
 #                             input_key_keycodes and app_keys; re-pass on every install
 #        [-HomeKeyService]    remotes whose Home button sends KEYCODE_ALL_APPS (Xiaomi sticks)
+#        Fire TV is detected automatically (see build-and-install.sh): the Amazon launcher is left alone and
+#        the FireTvHomeService accessibility service takes the Home button instead.
 param(
     [string]$TvHost = $env:TV_HOST,
     [string]$StockLauncher = '',
     [switch]$InputKeyService,
-    [switch]$HomeKeyService
+    [switch]$HomeKeyService,
+    # A ready-made APK (e.g. the one CI attaches to each run): skips the build, no JDK or SDK needed.
+    [string]$ApkFile = ''
 )
 $ErrorActionPreference = 'Stop'
 # Pipe plain UTF-8 to native commands; the default here prepends a BOM that corrupts the first command.
 $OutputEncoding = New-Object System.Text.UTF8Encoding $false
 if (-not $TvHost) { throw 'pass -TvHost <tv ip> or set $env:TV_HOST' }
 $env:TV_HOST = $TvHost
+if ($ApkFile) { $ApkFile = (Resolve-Path $ApkFile).Path }
 Set-Location $PSScriptRoot
 
-if (-not $env:JAVA_HOME -or -not (Test-Path "$env:JAVA_HOME\bin\java.exe")) {
-    $jbr = Get-ChildItem 'C:\Program Files\Android' -Directory -ErrorAction SilentlyContinue |
-        ForEach-Object { Join-Path $_.FullName 'jbr' } | Where-Object { Test-Path "$_\bin\java.exe" } | Select-Object -First 1
-    if (-not $jbr) { throw 'Set JAVA_HOME to a JDK 17+ (Android Studio ships one in its jbr folder)' }
-    $env:JAVA_HOME = $jbr
-}
-$sdk = if ($env:ANDROID_HOME) { $env:ANDROID_HOME } else { "$env:LOCALAPPDATA\Android\Sdk" }
-if (-not (Test-Path local.properties)) {
-    "sdk.dir=$($sdk -replace '\\', '\\')" | Out-File -Encoding ascii local.properties
-}
+if (-not $ApkFile) {
+    if (-not $env:JAVA_HOME -or -not (Test-Path "$env:JAVA_HOME\bin\java.exe")) {
+        $jbr = Get-ChildItem 'C:\Program Files\Android' -Directory -ErrorAction SilentlyContinue |
+            ForEach-Object { Join-Path $_.FullName 'jbr' } | Where-Object { Test-Path "$_\bin\java.exe" } | Select-Object -First 1
+        if (-not $jbr) { throw 'Set JAVA_HOME to a JDK 17+ (Android Studio ships one in its jbr folder)' }
+        $env:JAVA_HOME = $jbr
+    }
+    $sdk = if ($env:ANDROID_HOME) { $env:ANDROID_HOME } else { "$env:LOCALAPPDATA\Android\Sdk" }
+    if (-not (Test-Path local.properties)) {
+        "sdk.dir=$($sdk -replace '\\', '\\')" | Out-File -Encoding ascii local.properties
+    }
 
-.\gradlew.bat assembleRelease -q --console=plain
-if ($LASTEXITCODE -ne 0) { throw 'Gradle build failed' }
+    .\gradlew.bat assembleRelease -q --console=plain
+    if ($LASTEXITCODE -ne 0) { throw 'Gradle build failed' }
+}
 
 $py = '..\tools\venv\Scripts\python.exe'
+$apk = if ($ApkFile) { $ApkFile } else { 'app\build\outputs\apk\release\app-release.apk' }
+if (-not (Test-Path $apk)) { throw "APK not found: $apk" }
+
+# Fire TV: Fire OS protects its launcher, so leave it alone and redirect the Home button instead.
+$maker = "$(& $py -I ..\tools\tv.py 'getprop ro.product.manufacturer' | Select-Object -Last 1)".Trim()
+if ($maker -like 'Amazon*') {
+    Write-Host 'Fire TV detected: installing with the Home button redirect (the Amazon launcher is left alone).'
+    & $py -I ..\tools\b64push.py $apk /data/local/tmp/tvhome.apk
+    if ($LASTEXITCODE -ne 0) { throw 'APK upload failed' }
+    $out = & $py -I ..\tools\tv.py 'pm install -r /data/local/tmp/tvhome.apk; rm -f /data/local/tmp/tvhome.apk'
+    Write-Host $out
+    if ("$out" -notmatch 'Success') { throw 'pm install failed' }
+    $start = (& $py -I ..\tools\tv.py 'am start -W -n com.gathin.tvhome/.WiiMenuActivity') -join "`n"
+    Write-Host $start
+    if ($start -notmatch 'Status: ok' -or $start -match '(?m)^Error') { throw 'the launcher did not start (see above); the Home button was not redirected' }
+    $svc = 'com.gathin.tvhome/.FireTvHomeService'
+    @(
+        'pm grant com.gathin.tvhome android.permission.ACCESS_FINE_LOCATION 2>/dev/null; echo location-granted',
+        'cmd package compile -m speed -f com.gathin.tvhome',
+        "s=`$(settings get secure enabled_accessibility_services); case `"`$s`" in *FireTvHomeService*) ;; null|'') settings put secure enabled_accessibility_services $svc ;; *) settings put secure enabled_accessibility_services `"`$s:$svc`" ;; esac; settings put secure accessibility_enabled 1; echo FireTvHomeService enabled",
+        'am start -n com.gathin.tvhome/.WiiMenuActivity'
+    ) | & $py -I ..\tools\tv.py --batch
+    Write-Host 'Installed. Press Home on the remote to see it; hold Home for Settings.'
+    exit 0
+}
+
 # Which app owns Home differs by build; ask the TV, but only accept a launcher we recognise (the answer
 # can also be Android's chooser "android", the setup wizard, or another third-party launcher).
 $knownStock = @('com.google.android.tvlauncher', 'com.google.android.apps.tv.launcherx', 'com.google.android.leanbacklauncher', 'com.mitv.tvhome')
@@ -57,7 +90,6 @@ if (-not $StockLauncher) {
 Write-Host "Stock launcher: $StockLauncher"
 $disableStock = if ($StockLauncher -eq 'none') { 'echo stock launcher left alone' } else { "pm disable-user --user 0 $StockLauncher" }
 
-$apk = 'app\build\outputs\apk\release\app-release.apk'
 & $py -I ..\tools\b64push.py $apk /data/local/tmp/tvhome.apk
 if ($LASTEXITCODE -ne 0) { throw 'APK upload failed' }
 $out = & $py -I ..\tools\tv.py 'pm install -r /data/local/tmp/tvhome.apk; rm -f /data/local/tmp/tvhome.apk'

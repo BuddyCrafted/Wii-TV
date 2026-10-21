@@ -53,6 +53,8 @@
     <string name="enable">Enable</string>
     <string name="input_key_service_description">Opens the input switcher when the remote\'s Input button is pressed.</string>
     <string name="home_key_name">Home button</string>
+    <string name="fire_home_name">Wii menu as Fire TV home</string>
+    <string name="fire_home_description">Makes the remote\'s Home button open the channel menu and keeps it in front of the Amazon home screen. Hold Home for Settings.</string>
     <string name="home_key_description">Makes the remote\'s Home button open this launcher.</string>
     <string name="card_prompt_title">New card from %1$s</string>
     <string name="card_prompt_body">%1$s can show a card on your home screen. Keeping it hidden leaves the app\'s normal tile as it is.</string>
@@ -109,6 +111,26 @@
     <string name="last_opened">Last opened %1$s</string>
     <!-- Welcome screen of the channel-menu home (WiiMenuActivity), shown at power-on. -->
     <string name="wii_intro_title">Before you start</string>
-    <string name="wii_intro_body">Sit at a comfortable distance from the screen and rest your eyes now and then. Your apps, the HDMI inputs and live TV are where they always were.</string>
+    <string name="wii_intro_body">Sit at a comfortable distance from the screen and rest your eyes now and then. Your apps, settings and network are where they always were.</string>
     <string name="wii_intro_continue">Press OK to continue.</string>
+    <string name="wii_menu_title">%1$s Menu</string>
+    <string name="wii_settings">Settings</string>
+    <string name="wii_network">Network &amp; Wi-Fi</string>
+    <string name="wii_bluetooth">Remotes &amp; Bluetooth</string>
+    <string name="wii_music_on">Music: On</string>
+    <string name="wii_music_off">Music: Off</string>
+    <string name="wii_sounds_on">Sounds: On</string>
+    <string name="wii_sounds_off">Sounds: Off</string>
+    <string name="wii_hidden">Hidden channels (%1$d)</string>
+    <string name="wii_hidden_title">Show a channel again</string>
+    <string name="wii_reset_order">Reset channel order</string>
+    <string name="wii_order_reset">Channels are back in their original order</string>
+    <string name="wii_move">Move</string>
+    <string name="wii_hide">Hide channel</string>
+    <string name="wii_hidden_toast">%1$s hidden. Bring it back from the %2$s menu.</string>
+    <string name="wii_move_hint">Use the arrows to move it, then press OK</string>
+    <string name="wii_message_board">Message Board</string>
+    <string name="wii_board_empty">No messages yet. Channels you open will show up here.</string>
+    <string name="wii_recent">Last opened: %1$s</string>
+    <string name="wii_no_media">Install Kodi, VLC or a file manager to use the SD button</string>
 </resources>

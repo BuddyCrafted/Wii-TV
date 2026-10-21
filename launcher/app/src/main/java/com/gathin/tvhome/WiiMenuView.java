@@ -28,6 +28,7 @@ import android.view.View;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Calendar;
+import java.util.Collections;
 import java.util.List;
 import java.util.Locale;
 
@@ -47,6 +48,10 @@ public class WiiMenuView extends View {
         void onSettingsButton();
         void onSdButton();
         void onInputsButton();
+        /** OK held (or Menu pressed) on a channel. */
+        void onChannelOptions(Channel channel);
+        /** A move started with startMove() was dropped; the list is the new channel order. */
+        void onOrderChanged(List<Channel> order);
     }
 
     static final class Channel {
@@ -83,6 +88,8 @@ public class WiiMenuView extends View {
     static final int BTN_SD = -2;
     static final int BTN_INPUTS = -3;
     private static final long INTRO_AUTO_MS = 12_000L;
+    /** Menu rows shown at once; longer menus scroll with the focus. */
+    private static final int MENU_ROWS = 6;
 
     // Channel frames: the box through the corner arcs' ends; the sides bow out by TILE_BULGE in the middle.
     private static final float TILE_X0 = 163f;
@@ -171,6 +178,13 @@ public class WiiMenuView extends View {
     private float menuAlpha;
     private boolean menuOpen;
     private float[] menuLift = new float[0];
+    private int menuFirst;
+
+    /** OK went down on a channel; it opens on release, or shows the options if held. */
+    private boolean okPending;
+    /** Move mode: the focused channel travels with the arrows until OK or Back drops it. */
+    private boolean moving;
+    private long moveStartMs;
 
     private float s = 1f;
     private int w = 1, h = 1;
@@ -317,10 +331,16 @@ public class WiiMenuView extends View {
     }
 
     void showMenu(String title, List<MenuItem> items) {
+        showMenu(title, items, 0);
+    }
+
+    /** Opens the menu with row `selected` focused (kept on screen), e.g. to reopen it on a switch just flipped. */
+    void showMenu(String title, List<MenuItem> items, int selected) {
         if (items.isEmpty()) return;
         menuTitle = title;
         menuItems = new ArrayList<>(items);
-        menuFocus = 0;
+        menuFocus = Math.max(0, Math.min(items.size() - 1, selected));
+        menuFirst = Math.max(0, menuFocus - MENU_ROWS + 1);
         menuLift = new float[menuItems.size()];
         menuOpen = true;
         invalidate();
@@ -331,8 +351,28 @@ public class WiiMenuView extends View {
         invalidate();
     }
 
+    /** Picks up the focused channel; the arrows then carry it and OK or Back puts it down. */
+    void startMove() {
+        if (focus < 0 || focus >= channels.size()) return;
+        moving = true;
+        moveStartMs = SystemClock.uptimeMillis();
+        lastFrameNanos = 0;
+        invalidate();
+    }
+
+    private void endMove() {
+        moving = false;
+        sound(WiiSounds.SELECT);
+        listener.onOrderChanged(new ArrayList<>(channels));
+        invalidate();
+    }
+
     /** Back: closes the menu or the welcome screen. False when there was nothing to close. */
     boolean back() {
+        if (moving) {
+            endMove();
+            return true;
+        }
         if (introAlpha > 0f) {
             dismissIntro();
             return true;
@@ -365,6 +405,43 @@ public class WiiMenuView extends View {
                 || keyCode == KeyEvent.KEYCODE_DPAD_LEFT || keyCode == KeyEvent.KEYCODE_DPAD_RIGHT;
     }
 
+    /** Key down from the activity; the event's repeat count tells a held OK apart from a press. */
+    boolean handleKey(int keyCode, KeyEvent event) {
+        if (!isOk(keyCode)) okPending = false;
+        if (moving || menuOpen || introAlpha > 0f || refPose) {
+            if (event.getRepeatCount() > 0 && isOk(keyCode)) return true;
+            return handleKey(keyCode);
+        }
+        boolean onChannel = focus >= 0 && focus < channels.size();
+        if (onChannel && keyCode == KeyEvent.KEYCODE_MENU) {
+            if (event.getRepeatCount() == 0) {
+                sound(WiiSounds.MENU);
+                listener.onChannelOptions(channels.get(focus));
+            }
+            return true;
+        }
+        if (onChannel && isOk(keyCode)) {
+            if (event.getRepeatCount() == 0) {
+                okPending = true;
+            } else if (okPending) {
+                okPending = false;
+                sound(WiiSounds.MENU);
+                listener.onChannelOptions(channels.get(focus));
+            }
+            return true;
+        }
+        if (isOk(keyCode) && event.getRepeatCount() > 0) return true;
+        return handleKey(keyCode);
+    }
+
+    /** Key up: a short press of OK on a channel opens it. */
+    boolean handleKeyUp(int keyCode) {
+        if (!isOk(keyCode) || !okPending) return false;
+        okPending = false;
+        if (focus >= 0 && focus < channels.size() && !menuOpen && !moving) activate();
+        return true;
+    }
+
     boolean handleKey(int keyCode) {
         if (keyCode == KeyEvent.KEYCODE_VOLUME_UP || keyCode == KeyEvent.KEYCODE_VOLUME_DOWN
                 || keyCode == KeyEvent.KEYCODE_VOLUME_MUTE || keyCode == KeyEvent.KEYCODE_BACK) {
@@ -390,6 +467,7 @@ public class WiiMenuView extends View {
             return true;
         }
         if (menuOpen) return menuKey(keyCode);
+        if (moving) return moveKey(keyCode);
         switch (keyCode) {
             case KeyEvent.KEYCODE_DPAD_LEFT:
                 move(-1, 0);
@@ -453,6 +531,35 @@ public class WiiMenuView extends View {
         }
     }
 
+    private boolean moveKey(int keyCode) {
+        if (isOk(keyCode) || keyCode == KeyEvent.KEYCODE_MENU) {
+            endMove();
+            return true;
+        }
+        int dx = 0, dy = 0;
+        if (keyCode == KeyEvent.KEYCODE_DPAD_LEFT) dx = -1;
+        else if (keyCode == KeyEvent.KEYCODE_DPAD_RIGHT) dx = 1;
+        else if (keyCode == KeyEvent.KEYCODE_DPAD_UP) dy = -1;
+        else if (keyCode == KeyEvent.KEYCODE_DPAD_DOWN) dy = 1;
+        else return false;
+        int from = focus, pageBefore = page;
+        move(dx, dy);
+        if (focus < 0 || focus >= channels.size()) {
+            // Only onto other channels: not the buttons, not past the last one.
+            focus = from;
+            page = pageBefore;
+            invalidate();
+            return true;
+        }
+        if (focus != from) {
+            Collections.swap(channels, from, focus);
+            float l = lift[from];
+            lift[from] = lift[focus];
+            lift[focus] = l;
+        }
+        return true;
+    }
+
     private void activate() {
         sound(focus == BTN_INPUTS ? WiiSounds.MENU : WiiSounds.SELECT);
         if (focus == BTN_SETTINGS) listener.onSettingsButton();
@@ -465,6 +572,7 @@ public class WiiMenuView extends View {
         if (keyCode == KeyEvent.KEYCODE_DPAD_UP) {
             if (menuFocus > 0) {
                 menuFocus--;
+                if (menuFocus < menuFirst) menuFirst = menuFocus;
                 sound(WiiSounds.MOVE);
                 invalidate();
             }
@@ -473,6 +581,7 @@ public class WiiMenuView extends View {
         if (keyCode == KeyEvent.KEYCODE_DPAD_DOWN) {
             if (menuFocus < menuItems.size() - 1) {
                 menuFocus++;
+                if (menuFocus >= menuFirst + MENU_ROWS) menuFirst = menuFocus - MENU_ROWS + 1;
                 sound(WiiSounds.MOVE);
                 invalidate();
             }
@@ -738,7 +847,7 @@ public class WiiMenuView extends View {
         long now = System.nanoTime();
         float dt = lastFrameNanos == 0 ? 1f / 60f : Math.min(0.05f, (now - lastFrameNanos) / 1e9f);
         lastFrameNanos = now;
-        boolean moving = step(dt);
+        boolean animating = step(dt);
 
         if (base != null) c.drawBitmap(base, 0f, 0f, null);
         else c.drawColor(0xFFE9E9E9);
@@ -753,7 +862,7 @@ public class WiiMenuView extends View {
         if (menuAlpha > 0f) drawMenu(c);
         if (introAlpha > 0f) drawIntro(c);
 
-        if (moving || introAlpha > 0f) postInvalidateOnAnimation();
+        if (animating || introAlpha > 0f || moving) postInvalidateOnAnimation();
         else lastFrameNanos = 0;
     }
 
@@ -767,7 +876,21 @@ public class WiiMenuView extends View {
         }
         if (focus >= 0) {
             slotRect(focus, pagePos, rect);
-            if (rect.right >= 0 && rect.left <= w) drawTile(c, focus, rect, lift[focus]);
+            if (moving) {
+                // Picked up: bigger, raised and gently bobbing, with a shadow under it.
+                float t = (SystemClock.uptimeMillis() - moveStartMs) / 1000f;
+                float bob = (float) Math.sin(t * Math.PI * 2 / 1.2f) * 5f * s;
+                fill.setColor(0x30000000);
+                tmp.set(rect.left + 10f * s, rect.bottom - 6f * s, rect.right - 10f * s, rect.bottom + 18f * s);
+                c.drawOval(tmp, fill);
+                rect.offset(0f, -14f * s + bob);
+                int sv = c.save();
+                c.scale(1.08f, 1.08f, rect.centerX(), rect.centerY());
+                drawTile(c, focus, rect, 1f);
+                c.restoreToCount(sv);
+            } else if (rect.right >= 0 && rect.left <= w) {
+                drawTile(c, focus, rect, lift[focus]);
+            }
         }
     }
 
@@ -1072,7 +1195,7 @@ public class WiiMenuView extends View {
         int save = a < 255 ? c.saveLayerAlpha(0, 0, w, h, a) : c.save();
         fill.setColor(0x78000000);
         c.drawRect(0, 0, w, h, fill);
-        int n = menuItems.size();
+        int n = Math.min(MENU_ROWS, menuItems.size());
         float pw = 1000f * s, itemH = 92f * s, gap = 22f * s, head = 150f * s, pad = 56f * s;
         float ph = head + n * itemH + (n - 1) * gap + pad;
         float px = (w - pw) / 2f, py = (h - ph) / 2f;
@@ -1099,8 +1222,9 @@ public class WiiMenuView extends View {
         c.drawText(menuTitle, w / 2f, py + 92f * s, text);
 
         text.setTextSize(40f * s);
-        for (int i = 0; i < n; i++) {
-            float iy = py + head + i * (itemH + gap);
+        for (int row = 0; row < n; row++) {
+            int i = menuFirst + row;
+            float iy = py + head + row * (itemH + gap);
             tmp.set(px + 90f * s, iy, px + pw - 90f * s, iy + itemH);
             float lf = i < menuLift.length ? menuLift[i] : 0f;
             float ir = itemH / 2f;
@@ -1123,7 +1247,21 @@ public class WiiMenuView extends View {
                     TextUtils.TruncateAt.END);
             c.drawText(label, 0, label.length(), tmp.centerX(), tmp.centerY() + 14f * s, text);
         }
+        // More rows above or below: small blue arrows at the panel's edge.
+        fill.setColor(BLUE);
+        if (menuFirst > 0) drawChevron(c, w / 2f, py + head - 26f * s, true);
+        if (menuFirst + n < menuItems.size()) drawChevron(c, w / 2f, py + ph - 22f * s, false);
         c.restoreToCount(save);
+    }
+
+    private void drawChevron(Canvas c, float cx, float cy, boolean up) {
+        float hw = 18f * s, hh = 10f * s * (up ? -1f : 1f);
+        path.reset();
+        path.moveTo(cx - hw, cy - hh);
+        path.lineTo(cx + hw, cy - hh);
+        path.lineTo(cx, cy + hh);
+        path.close();
+        c.drawPath(path, fill);
     }
 
     private void drawIntro(Canvas c) {

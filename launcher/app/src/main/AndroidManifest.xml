@@ -112,6 +112,21 @@
                 android:resource="@xml/home_key_service" />
         </service>
 
+        <!-- Fire TV: Fire OS will not hand Home to another app, so this service takes the Home button and
+             covers the Amazon launcher whenever it shows. build-and-install.sh enables it on Fire TV. -->
+        <service
+            android:name=".FireTvHomeService"
+            android:label="@string/fire_home_name"
+            android:exported="true"
+            android:permission="android.permission.BIND_ACCESSIBILITY_SERVICE">
+            <intent-filter>
+                <action android:name="android.accessibilityservice.AccessibilityService" />
+            </intent-filter>
+            <meta-data
+                android:name="android.accessibilityservice"
+                android:resource="@xml/fire_tv_home_service" />
+        </service>
+
         <!-- Screensaver: pick it in Settings, or `settings put secure screensaver_components
              com.gathin.tvhome/.ClockDream` over adb. -->
         <service

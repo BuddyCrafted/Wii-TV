@@ -24,19 +24,30 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashSet;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Locale;
 import java.util.Set;
 
 /** Home screen in the style of the old console menu; all of the drawing is in WiiMenuView. */
 public class WiiMenuActivity extends Activity implements WiiMenuView.Listener {
 
-    private static final String MEDIA_PLAYER = "com.mediatek.wwtv.mediaplayer";
+    private static final String PREFS = "wii_menu";
+    private static final String KEY_ORDER = "order";
+    private static final String KEY_HIDDEN = "hidden";
+    private static final String KEY_RECENT = "recent";
+    private static final String KEY_SOUNDS = "sounds";
+    private static final String KEY_MUSIC = "music";
     /** Debug: freeze the menu in the reference capture's state, for comparing screenshots against it. */
     static final String EXTRA_REF_POSE = "ref_pose";
 
     private WiiMenuView menu;
     private WiiSounds sounds;
+    private WiiMusic music;
+    private SharedPreferences prefs;
+    /** Every channel found on the last reload, hidden ones included, by package. */
+    private final Map<String, WiiMenuView.Channel> allChannels = new LinkedHashMap<>();
     /** The welcome screen plays once per boot and whenever the screen comes back on, as at power-on. */
     private boolean introPending;
     private boolean appsDirty = true;
@@ -78,7 +89,9 @@ public class WiiMenuActivity extends Activity implements WiiMenuView.Listener {
         menu = new WiiMenuView(this, this);
         menu.setIntroText(getString(R.string.wii_intro_title), getString(R.string.wii_intro_body),
                 getString(R.string.wii_intro_continue));
-        sounds = new WiiSounds(this, getResources().getBoolean(R.bool.wii_sounds));
+        prefs = getSharedPreferences(PREFS, MODE_PRIVATE);
+        sounds = new WiiSounds(this, prefs.getBoolean(KEY_SOUNDS, getResources().getBoolean(R.bool.wii_sounds)));
+        music = new WiiMusic(prefs.getBoolean(KEY_MUSIC, getResources().getBoolean(R.bool.wii_music)));
         menu.setSounds(sounds);
         menu.setSettingsLabel(getString(R.string.wii_settings_label));
         setContentView(menu);
@@ -111,6 +124,7 @@ public class WiiMenuActivity extends Activity implements WiiMenuView.Listener {
         resumed = true;
         if (appsDirty) reloadApps();
         menu.start();
+        music.resume();
         if (introPending) {
             introPending = false;
             menu.playIntro();
@@ -122,6 +136,7 @@ public class WiiMenuActivity extends Activity implements WiiMenuView.Listener {
         super.onPause();
         resumed = false;
         menu.stop();
+        music.pause();
     }
 
     @Override
@@ -130,6 +145,7 @@ public class WiiMenuActivity extends Activity implements WiiMenuView.Listener {
         unregisterReceiver(screenReceiver);
         unregisterReceiver(packageReceiver);
         sounds.release();
+        music.release();
     }
 
     @Override
@@ -144,8 +160,14 @@ public class WiiMenuActivity extends Activity implements WiiMenuView.Listener {
 
     @Override
     public boolean onKeyDown(int keyCode, KeyEvent event) {
-        if (menu.handleKey(keyCode)) return true;
+        if (menu.handleKey(keyCode, event)) return true;
         return super.onKeyDown(keyCode, event);
+    }
+
+    @Override
+    public boolean onKeyUp(int keyCode, KeyEvent event) {
+        if (menu.handleKeyUp(keyCode)) return true;
+        return super.onKeyUp(keyCode, event);
     }
 
     @Override
@@ -161,7 +183,6 @@ public class WiiMenuActivity extends Activity implements WiiMenuView.Listener {
     private boolean firstStartThisBoot() {
         int boot = Settings.Global.getInt(getContentResolver(), Settings.Global.BOOT_COUNT, -1);
         if (boot < 0) return true;
-        SharedPreferences prefs = getSharedPreferences("wii_menu", MODE_PRIVATE);
         if (prefs.getInt("intro_boot", -1) == boot) return false;
         prefs.edit().putInt("intro_boot", boot).apply();
         return true;
@@ -170,35 +191,42 @@ public class WiiMenuActivity extends Activity implements WiiMenuView.Listener {
     private void reloadApps() {
         appsDirty = false;
         PackageManager pm = getPackageManager();
-        Intent query = new Intent(Intent.ACTION_MAIN).addCategory(Intent.CATEGORY_LEANBACK_LAUNCHER);
-        List<ResolveInfo> found = pm.queryIntentActivities(query, 0);
         Set<String> hidden = new HashSet<>(Arrays.asList(getResources().getStringArray(R.array.hidden_apps)));
-        final List<String> dock = Arrays.asList(getResources().getStringArray(R.array.dock_apps));
-        Set<String> seen = new HashSet<>();
+        allChannels.clear();
+        // TV entries first so an app's banner wins; then phone-style entries for sideloaded apps.
+        addChannels(pm, Intent.CATEGORY_LEANBACK_LAUNCHER, hidden);
+        if (getResources().getBoolean(R.bool.wii_phone_apps)) addChannels(pm, Intent.CATEGORY_LAUNCHER, hidden);
+
+        Set<String> userHidden = userHidden();
         List<WiiMenuView.Channel> channels = new ArrayList<>();
-        for (ResolveInfo ri : found) {
+        for (WiiMenuView.Channel ch : allChannels.values()) {
+            if (!userHidden.contains(ch.key)) channels.add(ch);
+        }
+        ChannelOrder.sort(channels, c -> c.key, c -> c.label,
+                ChannelOrder.split(prefs.getString(KEY_ORDER, "")),
+                Arrays.asList(getResources().getStringArray(R.array.dock_apps)));
+        menu.setChannels(channels);
+    }
+
+    private void addChannels(PackageManager pm, String category, Set<String> hidden) {
+        Intent query = new Intent(Intent.ACTION_MAIN).addCategory(category);
+        for (ResolveInfo ri : pm.queryIntentActivities(query, 0)) {
             String pkg = ri.activityInfo.packageName;
-            if (pkg.equals(getPackageName()) || hidden.contains(pkg) || !seen.add(pkg)) continue;
+            if (pkg.equals(getPackageName()) || hidden.contains(pkg) || allChannels.containsKey(pkg)) continue;
             CharSequence label = ri.loadLabel(pm);
             Drawable banner = ri.activityInfo.loadBanner(pm);
             if (banner == null) banner = ri.activityInfo.applicationInfo.loadBanner(pm);
             Drawable icon = banner == null ? ri.loadIcon(pm) : null;
             Intent launch = new Intent(Intent.ACTION_MAIN)
-                    .addCategory(Intent.CATEGORY_LEANBACK_LAUNCHER)
+                    .addCategory(category)
                     .setClassName(pkg, ri.activityInfo.name)
                     .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_RESET_TASK_IF_NEEDED);
-            channels.add(new WiiMenuView.Channel(pkg, label == null ? pkg : label.toString(), banner, icon, launch));
+            allChannels.put(pkg, new WiiMenuView.Channel(pkg, label == null ? pkg : label.toString(), banner, icon, launch));
         }
-        Collections.sort(channels, (a, b) -> {
-            int da = dock.indexOf(a.key), db = dock.indexOf(b.key);
-            if (da >= 0 || db >= 0) {
-                if (da < 0) return 1;
-                if (db < 0) return -1;
-                return Integer.compare(da, db);
-            }
-            return a.label.compareToIgnoreCase(b.label);
-        });
-        menu.setChannels(channels);
+    }
+
+    private Set<String> userHidden() {
+        return new HashSet<>(ChannelOrder.split(prefs.getString(KEY_HIDDEN, "")));
     }
 
     private void open(Intent intent) {
@@ -212,23 +240,112 @@ public class WiiMenuActivity extends Activity implements WiiMenuView.Listener {
 
     @Override
     public void onChannel(WiiMenuView.Channel channel) {
+        List<String> recent = ChannelOrder.touchRecent(ChannelOrder.split(prefs.getString(KEY_RECENT, "")), channel.key);
+        prefs.edit().putString(KEY_RECENT, ChannelOrder.join(recent)).apply();
         open(channel.intent);
     }
 
+    /** The round button bottom left: a menu of the system's own settings screens and the menu's switches. */
     @Override
     public void onSettingsButton() {
-        open(new Intent(Settings.ACTION_SETTINGS).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK));
+        showWiiMenu(0);
+    }
+
+    private void showWiiMenu(int selected) {
+        List<WiiMenuView.MenuItem> items = new ArrayList<>();
+        items.add(new WiiMenuView.MenuItem(getString(R.string.wii_settings), () -> openSetting(Settings.ACTION_SETTINGS)));
+        items.add(new WiiMenuView.MenuItem(getString(R.string.wii_network), () -> openSetting(Settings.ACTION_WIFI_SETTINGS)));
+        items.add(new WiiMenuView.MenuItem(getString(R.string.wii_bluetooth), () -> openSetting(Settings.ACTION_BLUETOOTH_SETTINGS)));
+        items.add(new WiiMenuView.MenuItem(getString(music.isEnabled() ? R.string.wii_music_on : R.string.wii_music_off), () -> {
+            music.setEnabled(!music.isEnabled());
+            prefs.edit().putBoolean(KEY_MUSIC, music.isEnabled()).apply();
+            showWiiMenu(3);
+        }));
+        items.add(new WiiMenuView.MenuItem(getString(sounds.isEnabled() ? R.string.wii_sounds_on : R.string.wii_sounds_off), () -> {
+            sounds.setEnabled(!sounds.isEnabled());
+            prefs.edit().putBoolean(KEY_SOUNDS, sounds.isEnabled()).apply();
+            showWiiMenu(4);
+        }));
+        int hiddenCount = 0;
+        for (String key : userHidden()) if (allChannels.containsKey(key)) hiddenCount++;
+        if (hiddenCount > 0) {
+            items.add(new WiiMenuView.MenuItem(getString(R.string.wii_hidden, hiddenCount), this::showHiddenChannels));
+        }
+        if (!prefs.getString(KEY_ORDER, "").isEmpty()) {
+            items.add(new WiiMenuView.MenuItem(getString(R.string.wii_reset_order), () -> {
+                prefs.edit().remove(KEY_ORDER).apply();
+                reloadApps();
+                Toast.makeText(this, R.string.wii_order_reset, Toast.LENGTH_SHORT).show();
+            }));
+        }
+        menu.showMenu(getString(R.string.wii_menu_title, getString(R.string.wii_settings_label)), items, selected);
+    }
+
+    /** A settings screen, falling back to the main Settings where a build lacks that page (Fire OS). */
+    private void openSetting(String action) {
+        Intent intent = new Intent(action).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+        if (!Settings.ACTION_SETTINGS.equals(action) && intent.resolveActivity(getPackageManager()) == null) {
+            intent = new Intent(Settings.ACTION_SETTINGS).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+        }
+        open(intent);
+    }
+
+    private void showHiddenChannels() {
+        List<WiiMenuView.MenuItem> items = new ArrayList<>();
+        for (String key : userHidden()) {
+            WiiMenuView.Channel ch = allChannels.get(key);
+            if (ch == null) continue;
+            items.add(new WiiMenuView.MenuItem(ch.label, () -> {
+                Set<String> hidden = userHidden();
+                hidden.remove(key);
+                prefs.edit().putString(KEY_HIDDEN, ChannelOrder.join(new ArrayList<>(hidden))).apply();
+                reloadApps();
+            }));
+        }
+        menu.showMenu(getString(R.string.wii_hidden_title), items);
     }
 
     @Override
+    public void onChannelOptions(WiiMenuView.Channel channel) {
+        List<WiiMenuView.MenuItem> items = new ArrayList<>();
+        items.add(new WiiMenuView.MenuItem(getString(R.string.wii_move), () -> {
+            menu.startMove();
+            Toast.makeText(this, R.string.wii_move_hint, Toast.LENGTH_SHORT).show();
+        }));
+        items.add(new WiiMenuView.MenuItem(getString(R.string.wii_hide), () -> {
+            Set<String> hidden = userHidden();
+            hidden.add(channel.key);
+            prefs.edit().putString(KEY_HIDDEN, ChannelOrder.join(new ArrayList<>(hidden))).apply();
+            reloadApps();
+            Toast.makeText(this, getString(R.string.wii_hidden_toast, channel.label,
+                    getString(R.string.wii_settings_label)), Toast.LENGTH_LONG).show();
+        }));
+        items.add(new WiiMenuView.MenuItem(getString(R.string.library_app_info), () ->
+                open(new Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS, Uri.parse("package:" + channel.key))
+                        .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))));
+        menu.showMenu(channel.label, items);
+    }
+
+    @Override
+    public void onOrderChanged(List<WiiMenuView.Channel> order) {
+        List<String> keys = new ArrayList<>();
+        for (WiiMenuView.Channel ch : order) keys.add(ch.key);
+        prefs.edit().putString(KEY_ORDER, ChannelOrder.join(keys)).apply();
+    }
+
+    /** SD: the TV's media player, or on a streaming stick the first media or file app installed. */
+    @Override
     public void onSdButton() {
-        Intent media = getPackageManager().getLeanbackLaunchIntentForPackage(MEDIA_PLAYER);
-        if (media == null) media = getPackageManager().getLaunchIntentForPackage(MEDIA_PLAYER);
-        if (media == null) {
-            Toast.makeText(this, R.string.not_available, Toast.LENGTH_SHORT).show();
-            return;
+        PackageManager pm = getPackageManager();
+        for (String pkg : getResources().getStringArray(R.array.sd_apps)) {
+            Intent media = pm.getLeanbackLaunchIntentForPackage(pkg);
+            if (media == null) media = pm.getLaunchIntentForPackage(pkg);
+            if (media != null) {
+                open(media.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK));
+                return;
+            }
         }
-        open(media.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK));
+        Toast.makeText(this, R.string.wii_no_media, Toast.LENGTH_LONG).show();
     }
 
     @Override
@@ -264,11 +381,19 @@ public class WiiMenuActivity extends Activity implements WiiMenuView.Listener {
             final Intent tv = liveTv.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
             items.add(new WiiMenuView.MenuItem(getString(R.string.live_tv), () -> open(tv)));
         }
+        // On a TV the envelope lists the inputs; a streaming stick has none, so it is the Message Board:
+        // the channels opened last, newest first. A TV gets those after its inputs.
+        boolean board = items.isEmpty();
+        for (String key : ChannelOrder.split(prefs.getString(KEY_RECENT, ""))) {
+            WiiMenuView.Channel ch = allChannels.get(key);
+            if (ch == null) continue;
+            items.add(new WiiMenuView.MenuItem(getString(R.string.wii_recent, ch.label), () -> onChannel(ch)));
+        }
         if (items.isEmpty()) {
-            Toast.makeText(this, R.string.no_inputs, Toast.LENGTH_SHORT).show();
+            Toast.makeText(this, R.string.wii_board_empty, Toast.LENGTH_LONG).show();
             return;
         }
-        menu.showMenu(getString(R.string.inputs), items);
+        menu.showMenu(getString(board ? R.string.wii_message_board : R.string.inputs), items);
     }
 
     private void openInput(String inputId) {

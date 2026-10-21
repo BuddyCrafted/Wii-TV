@@ -20,7 +20,7 @@ final class WiiSounds {
 
     private final SoundPool pool;
     private final int[] ids = new int[6];
-    private final boolean enabled;
+    private boolean enabled;
 
     WiiSounds(Context context, boolean enabled) {
         this.enabled = enabled;
@@ -29,7 +29,7 @@ final class WiiSounds {
                 .setContentType(AudioAttributes.CONTENT_TYPE_SONIFICATION)
                 .build();
         pool = new SoundPool.Builder().setMaxStreams(4).setAudioAttributes(attrs).build();
-        if (!enabled) return;
+        // Loaded even when off, so the menu's Sounds switch can turn them on without a restart.
         ids[MOVE] = pool.load(context, R.raw.wii_move, 1);
         ids[SELECT] = pool.load(context, R.raw.wii_select, 1);
         ids[PAGE] = pool.load(context, R.raw.wii_page, 1);
@@ -40,6 +40,14 @@ final class WiiSounds {
 
     void play(int which) {
         if (enabled && ids[which] != 0) pool.play(ids[which], VOLUME, VOLUME, 1, 0, 1f);
+    }
+
+    void setEnabled(boolean on) {
+        enabled = on;
+    }
+
+    boolean isEnabled() {
+        return enabled;
     }
 
     void release() {

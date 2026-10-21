@@ -1,6 +1,8 @@
 #!/usr/bin/env bash
 # Build the launcher APK and install it on the TV as the default home screen.
 set -euo pipefail
+# Resolve APK_FILE (see below) before leaving the caller's directory.
+if [ -n "${APK_FILE:-}" ] && [ -f "$APK_FILE" ]; then APK_FILE="$(cd "$(dirname "$APK_FILE")" && pwd)/$(basename "$APK_FILE")"; fi
 cd "$(dirname "$0")"
 : "${TV_HOST:?set TV_HOST to the TV IP address, e.g. TV_HOST=192.168.1.50 $0}"
 # macOS: java_home or Homebrew; Linux: the java on PATH.
@@ -9,12 +11,57 @@ export JAVA_HOME="${JAVA_HOME:-$(/usr/libexec/java_home -v 17 2>/dev/null || { [
 export ANDROID_HOME="${ANDROID_HOME:-$(for d in ~/Library/Android/sdk ~/Android/Sdk; do [ -d "$d" ] && echo "$d" && break; done)}"
 export ANDROID_HOME="${ANDROID_HOME:-/opt/homebrew/share/android-commandlinetools}"
 export PATH="$JAVA_HOME/bin:$PATH"
-[ -f local.properties ] || echo "sdk.dir=$ANDROID_HOME" > local.properties
-./gradlew assembleRelease -q --console=plain
+# APK_FILE=<path> installs a ready-made APK (e.g. the one CI attaches to each run) and skips the build,
+# so no JDK or Android SDK is needed.
+if [ -n "${APK_FILE:-}" ]; then
+  [ -f "$APK_FILE" ] || { echo "ERROR: APK_FILE=$APK_FILE does not exist." >&2; exit 1; }
+else
+  [ -f local.properties ] || echo "sdk.dir=$ANDROID_HOME" > local.properties
+  ./gradlew assembleRelease -q --console=plain
+fi
 TOOLS="$(cd ../tools && pwd)"   # absolute, so the venv's Python doesn't warn about "../" in its prefix
 PY=$TOOLS/venv/bin/python
 [ -x "$PY" ] || PY=$TOOLS/venv/Scripts/python.exe
 export MSYS_NO_PATHCONV=1
+APK="${APK_FILE:-app/build/outputs/apk/release/app-release.apk}"
+
+# Fire TV: Fire OS protects its launcher (pm disable-user is refused, set-home-activity is accepted
+# but ignored), so the stock Home is never touched there. Instead the FireTvHomeService accessibility
+# service takes the Home button and covers the Amazon launcher whenever it shows. Nothing is disabled,
+# so there is nothing to roll back: uninstalling the app gives the TV its own Home again.
+# FIRE_TV=1 or FIRE_TV=0 overrides the detection.
+if [ -z "${FIRE_TV:-}" ]; then
+  MAKER=$("$PY" -I ../tools/tv.py 'getprop ro.product.manufacturer' 2>/dev/null | tail -n 1 | tr -d '\r' || true)
+  case "$MAKER" in Amazon*) FIRE_TV=1 ;; *) FIRE_TV=0 ;; esac
+fi
+if [ "$FIRE_TV" = 1 ]; then
+  echo "Fire TV detected: installing with the Home button redirect (the Amazon launcher is left alone)."
+  "$PY" -I ../tools/b64push.py "$APK" /data/local/tmp/tvhome.apk
+  OUT=$("$PY" -I ../tools/tv.py 'pm install -r /data/local/tmp/tvhome.apk; rm -f /data/local/tmp/tvhome.apk')
+  echo "$OUT"
+  case "$OUT" in
+    *Success*) ;;
+    *) echo "ERROR: pm install failed." >&2; exit 1 ;;
+  esac
+  START_OUT=$("$PY" -I ../tools/tv.py 'am start -W -n com.gathin.tvhome/.WiiMenuActivity')
+  echo "$START_OUT"
+  if ! printf '%s' "$START_OUT" | grep -qF 'Status: ok' || printf '%s' "$START_OUT" | grep -qi '^Error'; then
+    echo "ERROR: the launcher did not start (see above); the Home button was not redirected." >&2
+    exit 1
+  fi
+  SVC=com.gathin.tvhome/.FireTvHomeService
+  # Appends to enabled_accessibility_services without dropping other services. Android switches the
+  # service off on every reinstall, so this runs each time.
+  printf '%s\n' \
+    "pm grant com.gathin.tvhome android.permission.ACCESS_FINE_LOCATION 2>/dev/null; echo location-granted" \
+    "cmd package compile -m speed -f com.gathin.tvhome" \
+    "s=\$(settings get secure enabled_accessibility_services); case \"\$s\" in *FireTvHomeService*) ;; null|'') settings put secure enabled_accessibility_services $SVC ;; *) settings put secure enabled_accessibility_services \"\$s:$SVC\" ;; esac; settings put secure accessibility_enabled 1; echo FireTvHomeService enabled" \
+    "am start -n com.gathin.tvhome/.WiiMenuActivity" \
+    | "$PY" -I ../tools/tv.py --batch
+  echo "Installed. Press Home on the remote to see it; hold Home for Settings."
+  exit 0
+fi
+
 # Which app owns Home differs by build (com.google.android.tvlauncher on Android TV,
 # com.google.android.apps.tv.launcherx on newer Google TV), so ask the TV instead of guessing.
 # Only a launcher we recognise is accepted: the answer can also be Android's chooser ("android"),
@@ -60,7 +107,6 @@ echo "Stock launcher: $STOCK_LAUNCHER"
 HOME_QUERY='cmd package resolve-activity --brief -a android.intent.action.MAIN -c android.intent.category.HOME'
 if [ "$STOCK_LAUNCHER" = none ]; then DISABLE_STOCK="echo stock launcher left alone"
 else DISABLE_STOCK="pm disable-user --user 0 $STOCK_LAUNCHER"; fi
-APK=app/build/outputs/apk/release/app-release.apk
 "$PY" -I ../tools/b64push.py "$APK" /data/local/tmp/tvhome.apk
 # Install on its own: in the batch below a failed install (e.g. "not enough space" on a full /data)
 # would not stop the stock launcher from being disabled.
