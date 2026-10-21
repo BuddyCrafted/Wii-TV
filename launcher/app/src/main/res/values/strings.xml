@@ -197,9 +197,9 @@
     <string name="wx_globe_tag">CURRENT WEATHER</string>
     <string name="wx_globe_loading">Loading the globe…</string>
     <string name="wx_globe_keys">Arrows spin · OK next city · ⏪ ⏩ zoom · ☰ restore</string>
-    <string name="shop_title">Shop Channel</string>
-    <string name="shop_channel">Shop Channel</string>
-    <string name="shop_welcome">Welcome! Every app here is free. Pick a category to start shopping.</string>
+    <string name="shop_title">Shop</string>
+    <string name="shop_channel">Shop</string>
+    <string name="shop_welcome">Welcome to the Shop! Every app here is free. Pick a category to start.</string>
     <string name="shop_installed">Installed &amp; Updates</string>
     <string name="shop_installed_tag">Installed</string>
     <string name="shop_free">Free</string>

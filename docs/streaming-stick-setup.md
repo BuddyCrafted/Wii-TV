@@ -166,9 +166,9 @@ The first channel is the **Forecast Channel**, modelled on the Wii's. Its tile s
 - **Location:** found automatically from your internet connection. To choose a city instead, go to **wiiOS Settings → Weather → Location → Search for a city**. Units (°F / °C) are on the same page.
 - Like any channel, you can move it or hide it (hold OK).
 
-## Shop Channel
+## Shop
 
-The second channel is the **Shop Channel**, a Wii Shop-style app store that sits in front of the real stores.
+The second channel is the **Shop**, a Wii Shop-style app store that sits in front of the real stores.
 
 - **Home:** categories (Popular Titles, Movies & TV, Music & Podcasts, Games & Emulators, Tools & App Stores) and **Installed & Updates**. It plays its own original background tune.
 - **Lists** look like the console's: picture, name, publisher, where the app comes from, and "Free" / "Installed" / "Update", with the scroll bar and page arrow.
