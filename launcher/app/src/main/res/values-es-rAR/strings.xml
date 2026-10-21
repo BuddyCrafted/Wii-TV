@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Spanish (Argentina): only the strings worded differently from values-es. -->
+<resources>
+    <string name="wii_intro_body">Ponete a una distancia cómoda de la pantalla y descansá la vista de vez en cuando. Tus apps, las entradas HDMI y la TV en vivo están donde siempre.</string>
+    <string name="wii_intro_continue">Presioná OK para continuar.</string>
+</resources>

@@ -1,0 +1,33 @@
+# Philips 65PUD7906/77 (TP Vision "2020/2021 UHD Android TV", device PH0M_EA_T32, MediaTek), Latin America
+# Android TV 11 (API 30), firmware RTM2.210929.098, ro.adb.secure=1, 1.3 GB RAM
+# Different platform from the European Philips lists (no org.droidtv.xtv / playtv): Live TV is
+# com.mediatek.wwtv.tvcenter, the TV engine is org.droidtv (TPVTvService, persistent).
+#
+# Apply:   TV_HOST=<tv ip> tools/disable.sh examples/philips-65pud7906/debloat.txt
+# Undo:    TV_HOST=<tv ip> tools/restore.sh examples/philips-65pud7906/debloat.txt com.google.android.tvlauncher
+#
+# DO NOT DISABLE: com.google.android.tungsten.setupwraith owns the saved Wi-Fi network on this unit.
+
+# Batch 1: telemetry, retail demo, first-setup leftovers
+org.droidtv.candeebug                     # "DAC" analytics uploader; bound by org.droidtv, tvcenter, icp, frameworklogger
+org.droidtv.gel                           # metrics GatheringService, INTERNET
+org.droidtv.tv.frameworklogger            # FrameworkLogger, client of candeebug, ~38 MB
+org.droidtv.tv.packageinfo                # InstalledPkgListService: reports the installed app list
+fusion.android.tv.demo                    # RetailDisplay shop demo
+com.tpv.xmic.ots.cms.client               # "TPV Cloud CMS" signage templates
+com.google.android.feedback               # Market Feedback Agent
+com.google.android.partnersetup           # partner referrer / attribution
+com.google.android.onetimeinitializer     # runs once at first setup
+com.google.android.syncadapters.calendar  # Calendar sync, no calendar app
+com.google.android.sss.authbridge         # set-up-from-phone helper
+# Batch 2: apps and features this owner does not use. Comment out whatever you do use.
+org.droidtv.nettv.market                  # Philips app gallery / widget, TvApkInstaller
+org.droidtv.android.fitness               # "Acondicionamiento fisico" (Fitness Buddy), ~40 MB at idle
+com.ted.android.tv                        # TED
+com.google.android.videos                 # Google Play Peliculas
+com.hbo.hbonow                            # old HBO Max app; the new Max (com.wbd.stream) stays
+com.google.android.play.games             # Play Juegos
+com.google.android.marvin.talkback        # TalkBack screen reader
+com.google.android.backdrop               # Google photo screensaver (Ambient mode)
+# Batch 3: Philips firmware updates (owner's choice). Persistent, bound by org.droidtv.icp.
+com.android.tv.ota                        # TVUpdateService, SilentUpgradeService, remote firmware update
