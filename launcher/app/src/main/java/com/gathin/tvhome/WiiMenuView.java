@@ -188,6 +188,8 @@ public class WiiMenuView extends View {
     private static final int[] SEGMENTS = {0x3F, 0x06, 0x5B, 0x4F, 0x66, 0x6D, 0x7D, 0x27, 0x7F, 0x6F};
     /** The previous version's hand was drawn in units of 1/1024 of the width. */
     private static final float HAND_UNIT = 1920f / 1024f;
+    /** The console's cursor is a little smaller than the previous hand. */
+    private static final float HAND_SCALE = 0.8f;
 
     private final Listener listener;
     private final List<Channel> channels = new ArrayList<>();
@@ -936,31 +938,26 @@ public class WiiMenuView extends View {
     }
 
     /**
-     * The pointing hand, fingertip at (0, 0): index finger up, three curled fingers, palm and thumb, in hand
-     * units of HAND_UNIT ref px.
+     * The pointing hand, after the console's cursor: upright, index finger up, three folded fingers to its right,
+     * thumb on the left, a thick dark outline, and the player number on the palm. Fingertip at (0, 0), in
+     * hand units of HAND_UNIT ref px.
      */
     private void buildHand() {
-        float u = HAND_UNIT * s;
+        float u = HAND_UNIT * s * HAND_SCALE;
         Path p = new Path();
-        p.addRoundRect(new RectF(0f, 0f, 11f * u, 34f * u), 5.5f * u, 5.5f * u, Path.Direction.CW);
-        union(p, u, 10f, 16f, 19f, 34f, 4.5f);
-        union(p, u, 18f, 19f, 26f, 36f, 4f);
-        union(p, u, 25f, 22f, 32f, 38f, 3.5f);
-        union(p, u, -3f, 26f, 32f, 50f, 9f);
-        union(p, u, -11f, 25f, 4f, 37f, 6f);
+        p.addRoundRect(new RectF(-5.5f * u, 0f, 5.5f * u, 36f * u), 5.5f * u, 5.5f * u, Path.Direction.CW);
+        union(p, u, 4.5f, 17f, 12.5f, 34f, 4f);     // middle finger, folded
+        union(p, u, 11.5f, 19f, 19f, 35f, 3.8f);    // ring finger
+        union(p, u, 18f, 21f, 24.5f, 36f, 3.3f);    // little finger
+        union(p, u, -9f, 27f, 24.5f, 55f, 8.5f);    // palm
+        union(p, u, -15.5f, 25.5f, -3f, 41f, 6f);   // thumb
         Path lines = new Path();
-        lines.moveTo(10.6f * u, 23f * u);
-        lines.lineTo(10.6f * u, 31f * u);
-        lines.moveTo(18.4f * u, 25f * u);
-        lines.lineTo(18.4f * u, 33f * u);
-        lines.moveTo(25.6f * u, 28f * u);
-        lines.lineTo(25.6f * u, 35f * u);
-        lines.moveTo(3f * u, 32f * u);
-        lines.lineTo(9f * u, 34f * u);
-        Matrix m = new Matrix();
-        m.setTranslate(-5.5f * u, 0f);
-        p.transform(m);
-        lines.transform(m);
+        lines.moveTo(5f * u, 24f * u);
+        lines.lineTo(5f * u, 32f * u);
+        lines.moveTo(12f * u, 25f * u);
+        lines.lineTo(12f * u, 33f * u);
+        lines.moveTo(18.5f * u, 27f * u);
+        lines.lineTo(18.5f * u, 34f * u);
         handPath = p;
         handLines = lines;
     }
@@ -1367,32 +1364,30 @@ public class WiiMenuView extends View {
     }
 
     private void drawHand(Canvas c) {
-        float u = HAND_UNIT * s;
+        float u = HAND_UNIT * s * HAND_SCALE;
         int save = c.save();
         c.translate(handX, handY);
-        c.rotate(-8f);
+        // Soft shadow down and to the right.
         c.translate(2.5f * u, 3.5f * u);
-        fill.setColor(0x38000000);
+        fill.setColor(0x40000000);
         c.drawPath(handPath, fill);
         c.translate(-2.5f * u, -3.5f * u);
+        // White hand, turning light blue over the lower palm.
         fill.setColor(0xFFFFFFFF);
+        fill.setShader(new LinearGradient(0f, 30f * u, 0f, 55f * u, 0xFFFFFFFF, 0xFFA9D8F6, Shader.TileMode.CLAMP));
         c.drawPath(handPath, fill);
-        stroke.setColor(0xFF3A3A3A);
-        stroke.setStrokeWidth(2.2f * u);
+        fill.setShader(null);
+        stroke.setColor(0xFF161616);
+        stroke.setStrokeWidth(2.8f * u);
         c.drawPath(handPath, stroke);
-        stroke.setStrokeWidth(1.5f * u);
-        c.drawPath(handLines, stroke);
-        tmp.set(-4.5f * u, 47f * u, 23.5f * u, 60f * u);
-        fill.setColor(0xFF47B6EA);
-        c.drawRoundRect(tmp, 4f * u, 4f * u, fill);
-        stroke.setColor(0xFF2C86BA);
         stroke.setStrokeWidth(1.6f * u);
-        c.drawRoundRect(tmp, 4f * u, 4f * u, stroke);
+        c.drawPath(handLines, stroke);
+        // The player number on the palm.
         text.setTypeface(sansBold);
-        text.setTextSize(10.5f * u);
+        text.setTextSize(19f * u);
         text.setTextAlign(Paint.Align.CENTER);
-        text.setColor(0xFFFFFFFF);
-        c.drawText("1", tmp.centerX(), tmp.centerY() + 3.8f * u, text);
+        text.setColor(0xFF1C8CE3);
+        c.drawText("1", 9f * u, 50.5f * u, text);
         c.restoreToCount(save);
     }
 

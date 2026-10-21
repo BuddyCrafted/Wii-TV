@@ -307,8 +307,7 @@ public class WiiMenuActivity extends Activity implements WiiMenuView.Listener {
                     menu.pushSettings(getString(R.string.set_weather), this::weatherSettings)));
         }
         items.add(new WiiMenuView.MenuItem(getString(R.string.set_language),
-                AppLanguage.displayName(AppLanguage.current(this)), () ->
-                menu.pushSettings(getString(R.string.set_language), this::languageSettings)));
+                AppLanguage.displayName(AppLanguage.current(this)), this::showLanguages));
         if (!inputItems().isEmpty()) {
             items.add(item(R.string.set_inputs, () -> menu.showMenu(getString(R.string.inputs), inputItems())));
         }
@@ -470,18 +469,23 @@ public class WiiMenuActivity extends Activity implements WiiMenuView.Listener {
         return getString(on ? R.string.set_on : R.string.set_off);
     }
 
-    private List<WiiMenuView.MenuItem> languageSettings() {
+    /** Language: a pop-up list that scrolls, opened on the current language. */
+    private void showLanguages() {
         List<WiiMenuView.MenuItem> items = new ArrayList<>();
         String current = AppLanguage.current(this);
-        for (String tag : AppLanguage.tags()) {
-            items.add(new WiiMenuView.MenuItem(AppLanguage.displayName(tag),
-                    tag.equals(current) ? getString(R.string.set_selected) : null, () -> {
+        int selected = 0;
+        List<String> tags = AppLanguage.tags();
+        for (int i = 0; i < tags.size(); i++) {
+            String tag = tags.get(i);
+            boolean on = tag.equals(current);
+            if (on) selected = i;
+            items.add(new WiiMenuView.MenuItem(AppLanguage.displayName(tag) + (on ? "  \u2713" : ""), () -> {
                 if (tag.equals(AppLanguage.current(this))) return;
                 AppLanguage.set(this, tag);
                 recreate();   // reloads every string in the new language; the menu opens fresh
             }));
         }
-        return items;
+        menu.showMenu(getString(R.string.set_language), items, selected);
     }
 
     // ---- screensaver and sleep ---------------------------------------------------------------------
