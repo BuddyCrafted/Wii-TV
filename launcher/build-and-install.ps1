@@ -63,6 +63,7 @@ if ($maker -like 'Amazon*') {
         'pm grant com.gathin.tvhome android.permission.WRITE_SECURE_SETTINGS 2>/dev/null; echo secure-settings-granted',
         'appops set com.gathin.tvhome WRITE_SETTINGS allow 2>/dev/null; echo write-settings-allowed',
         'cmd notification allow_listener com.gathin.tvhome/com.gathin.tvhome.MediaListener 2>/dev/null; echo media-listener-allowed',
+        'appops set com.gathin.tvhome REQUEST_INSTALL_PACKAGES allow 2>/dev/null; echo updates-allowed',
         'cmd package compile -m speed -f com.gathin.tvhome',
         "s=`$(settings get secure enabled_accessibility_services); case `"`$s`" in *FireTvHomeService*) ;; null|'') settings put secure enabled_accessibility_services $svc ;; *) settings put secure enabled_accessibility_services `"`$s:$svc`" ;; esac; settings put secure accessibility_enabled 1; echo FireTvHomeService enabled",
         'am start -n com.gathin.tvhome/.WiiMenuActivity'
@@ -112,6 +113,7 @@ if ($start -notmatch 'Status: ok' -or $start -match '(?m)^Error') { throw "the n
     'pm grant com.gathin.tvhome android.permission.WRITE_SECURE_SETTINGS 2>/dev/null; echo secure-settings-granted',
     'appops set com.gathin.tvhome WRITE_SETTINGS allow 2>/dev/null; echo write-settings-allowed',
     'cmd notification allow_listener com.gathin.tvhome/com.gathin.tvhome.MediaListener 2>/dev/null; echo media-listener-allowed',
+    'appops set com.gathin.tvhome REQUEST_INSTALL_PACKAGES allow 2>/dev/null; echo updates-allowed',
     'cmd package compile -m speed -f com.gathin.tvhome',
     $disableStock,
     'cmd package set-home-activity --user 0 com.gathin.tvhome/.WiiMenuActivity',

@@ -9,6 +9,7 @@ import android.content.IntentFilter;
 import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
 import android.content.pm.ResolveInfo;
+import android.graphics.Typeface;
 import android.graphics.drawable.Drawable;
 import android.media.tv.TvContract;
 import android.media.tv.TvInputInfo;
@@ -39,6 +40,8 @@ public class WiiMenuActivity extends Activity implements WiiMenuView.Listener {
     private static final String KEY_RECENT = "recent";
     private static final String KEY_SOUNDS = "sounds";
     private static final String KEY_MUSIC = "music";
+    /** Built-in channels have keys no package can have. */
+    static final String FORECAST_KEY = "wiios.forecast";
     /** Debug: freeze the menu in the reference capture's state, for comparing screenshots against it. */
     static final String EXTRA_REF_POSE = "ref_pose";
 
@@ -132,6 +135,13 @@ public class WiiMenuActivity extends Activity implements WiiMenuView.Listener {
         if (appsDirty) reloadApps();
         menu.start();
         music.resume();
+        UpdateReceiver.ensureFireTvHome(this);
+        if (getResources().getBoolean(R.bool.forecast_channel) && !Weather.fresh(this)) {
+            Weather.refresh(this, (r, error) -> {
+                if (r != null && !isFinishing()) reloadApps();   // new temperature on the tile
+            });
+        }
+        maybeCheckForUpdate();
         if (introPending) {
             introPending = false;
             menu.playIntro();
@@ -204,14 +214,29 @@ public class WiiMenuActivity extends Activity implements WiiMenuView.Listener {
         addChannels(pm, Intent.CATEGORY_LEANBACK_LAUNCHER, hidden);
         if (getResources().getBoolean(R.bool.wii_phone_apps)) addChannels(pm, Intent.CATEGORY_LAUNCHER, hidden);
 
+        if (getResources().getBoolean(R.bool.forecast_channel)) {
+            Typeface face;
+            try {
+                face = getResources().getFont(R.font.outfit_medium);
+            } catch (RuntimeException e) {
+                face = Typeface.DEFAULT_BOLD;
+            }
+            allChannels.put(FORECAST_KEY, new WiiMenuView.Channel(FORECAST_KEY, getString(R.string.wx_channel),
+                    new WeatherBanner(Weather.cached(this), getString(R.string.wx_channel), face), null,
+                    new Intent(this, ForecastActivity.class)));
+        }
+
         Set<String> userHidden = userHidden();
         List<WiiMenuView.Channel> channels = new ArrayList<>();
         for (WiiMenuView.Channel ch : allChannels.values()) {
             if (!userHidden.contains(ch.key)) channels.add(ch);
         }
+        // The Forecast Channel comes first until it is moved, like the console's own channels.
+        List<String> dock = new ArrayList<>();
+        dock.add(FORECAST_KEY);
+        dock.addAll(Arrays.asList(getResources().getStringArray(R.array.dock_apps)));
         ChannelOrder.sort(channels, c -> c.key, c -> c.label,
-                ChannelOrder.split(prefs.getString(KEY_ORDER, "")),
-                Arrays.asList(getResources().getStringArray(R.array.dock_apps)));
+                ChannelOrder.split(prefs.getString(KEY_ORDER, "")), dock);
         menu.setChannels(channels);
     }
 
@@ -277,6 +302,10 @@ public class WiiMenuActivity extends Activity implements WiiMenuView.Listener {
         items.add(item(R.string.set_captions, () -> openSetting(Settings.ACTION_CAPTIONING_SETTINGS)));
         items.add(new WiiMenuView.MenuItem(getString(R.string.set_sleep), screensaverName(), () ->
                 menu.pushSettings(getString(R.string.set_sleep), this::sleepSettings)));
+        if (getResources().getBoolean(R.bool.forecast_channel)) {
+            items.add(new WiiMenuView.MenuItem(getString(R.string.set_weather), weatherPlaceName(), () ->
+                    menu.pushSettings(getString(R.string.set_weather), this::weatherSettings)));
+        }
         items.add(new WiiMenuView.MenuItem(getString(R.string.set_language),
                 AppLanguage.displayName(AppLanguage.current(this)), () ->
                 menu.pushSettings(getString(R.string.set_language), this::languageSettings)));
@@ -314,8 +343,123 @@ public class WiiMenuActivity extends Activity implements WiiMenuView.Listener {
             }));
         }
         items.add(item(R.string.set_all, () -> openSetting(Settings.ACTION_SETTINGS)));
+        items.add(new WiiMenuView.MenuItem(getString(R.string.set_update), "build " + BuildConfig.WIIOS_BUILD, () ->
+                menu.pushSettings(getString(R.string.set_update), this::updateSettings)));
         items.add(item(R.string.set_about, () -> openSetting(Settings.ACTION_DEVICE_INFO_SETTINGS)));
         return items;
+    }
+
+    // ---- weather ------------------------------------------------------------------------------------
+
+    private String weatherPlaceName() {
+        String saved = prefs.getString(Weather.KEY_PLACE, "");
+        return saved.isEmpty() ? getString(R.string.set_wx_auto) : saved.split("\\|")[0];
+    }
+
+    private List<WiiMenuView.MenuItem> weatherSettings() {
+        List<WiiMenuView.MenuItem> items = new ArrayList<>();
+        items.add(new WiiMenuView.MenuItem(getString(R.string.set_wx_location), weatherPlaceName(), () -> {
+            List<WiiMenuView.MenuItem> choices = new ArrayList<>();
+            choices.add(new WiiMenuView.MenuItem(getString(R.string.set_wx_auto), () -> setPlace("")));
+            choices.add(new WiiMenuView.MenuItem(getString(R.string.set_wx_search), this::searchPlace));
+            menu.showMenu(getString(R.string.set_wx_location), choices);
+        }));
+        boolean f = Weather.fahrenheit(this);
+        items.add(new WiiMenuView.MenuItem(getString(R.string.set_wx_units), f ? "\u00B0F" : "\u00B0C", () -> {
+            prefs.edit().putString(Weather.KEY_UNITS, Weather.fahrenheit(this) ? "c" : "f").apply();
+            refreshWeather();
+        }));
+        items.add(item(R.string.wx_title, () -> open(new Intent(this, ForecastActivity.class))));
+        return items;
+    }
+
+    private void setPlace(String place) {
+        prefs.edit().putString(Weather.KEY_PLACE, place).apply();
+        refreshWeather();
+    }
+
+    private void refreshWeather() {
+        prefs.edit().putLong(Weather.KEY_CACHE_TIME, 0).apply();
+        menu.refreshSettings();
+        Weather.refresh(this, (r, error) -> {
+            if (isFinishing()) return;
+            reloadApps();
+            menu.refreshSettings();
+            if (r == null) Toast.makeText(this, R.string.wx_offline, Toast.LENGTH_SHORT).show();
+        });
+    }
+
+    /** Types a city name with the TV's on-screen keyboard, then picks one of the matches. */
+    private void searchPlace() {
+        android.widget.EditText field = new android.widget.EditText(this);
+        field.setSingleLine(true);
+        field.setHint(R.string.set_wx_search);
+        new android.app.AlertDialog.Builder(this, android.R.style.Theme_DeviceDefault_Dialog_Alert)
+                .setTitle(R.string.set_wx_search)
+                .setView(field)
+                .setPositiveButton(android.R.string.search_go, (d, which) -> {
+                    String q = field.getText().toString().trim();
+                    if (q.isEmpty()) return;
+                    Weather.search(q, (found, error) -> {
+                        if (isFinishing()) return;
+                        if (found == null || found.isEmpty()) {
+                            Toast.makeText(this, R.string.set_wx_none, Toast.LENGTH_SHORT).show();
+                            return;
+                        }
+                        List<WiiMenuView.MenuItem> items = new ArrayList<>();
+                        for (String[] p : found) items.add(new WiiMenuView.MenuItem(p[0], () -> setPlace(p[1])));
+                        menu.showMenu(getString(R.string.set_wx_location), items);
+                    });
+                })
+                .setNegativeButton(android.R.string.cancel, null)
+                .show();
+        field.requestFocus();
+    }
+
+    // ---- over-the-air updates -----------------------------------------------------------------------
+
+    private List<WiiMenuView.MenuItem> updateSettings() {
+        List<WiiMenuView.MenuItem> items = new ArrayList<>();
+        items.add(new WiiMenuView.MenuItem(getString(R.string.set_upd_version), "build " + BuildConfig.WIIOS_BUILD, () -> { }));
+        items.add(item(R.string.set_upd_check, () -> checkForUpdate(true)));
+        items.add(new WiiMenuView.MenuItem(getString(R.string.set_upd_auto), onOff(prefs.getBoolean(Updater.KEY_AUTO, true)), () -> {
+            prefs.edit().putBoolean(Updater.KEY_AUTO, !prefs.getBoolean(Updater.KEY_AUTO, true)).apply();
+            menu.refreshSettings();
+        }));
+        return items;
+    }
+
+    /** Once a day while automatic updates are on: look for a newer release and offer it. */
+    private void maybeCheckForUpdate() {
+        if (!prefs.getBoolean(Updater.KEY_AUTO, true)) return;
+        long last = prefs.getLong(Updater.KEY_LAST_CHECK, 0);
+        if (System.currentTimeMillis() - last < Updater.CHECK_EVERY_MS) return;
+        checkForUpdate(false);
+    }
+
+    private void checkForUpdate(boolean asked) {
+        prefs.edit().putLong(Updater.KEY_LAST_CHECK, System.currentTimeMillis()).apply();
+        if (asked) Toast.makeText(this, R.string.upd_checking, Toast.LENGTH_SHORT).show();
+        Updater.latest(this, (release, error) -> {
+            if (isFinishing()) return;
+            if (release == null) {
+                if (asked) Toast.makeText(this, getString(R.string.upd_error, error), Toast.LENGTH_LONG).show();
+                return;
+            }
+            if (!Updater.isNewer(release)) {
+                if (asked) Toast.makeText(this, R.string.upd_latest, Toast.LENGTH_SHORT).show();
+                return;
+            }
+            List<WiiMenuView.MenuItem> items = new ArrayList<>();
+            items.add(new WiiMenuView.MenuItem(getString(R.string.upd_now, release.build), () -> {
+                Toast.makeText(this, R.string.upd_downloading, Toast.LENGTH_LONG).show();
+                Updater.install(this, release, (v, err) -> {
+                    if (err != null) Toast.makeText(this, getString(R.string.upd_failed, err), Toast.LENGTH_LONG).show();
+                });
+            }));
+            items.add(new WiiMenuView.MenuItem(getString(R.string.upd_later), () -> { }));
+            menu.showMenu(getString(R.string.upd_title), items);
+        });
     }
 
     private WiiMenuView.MenuItem item(int label, Runnable action) {
@@ -472,9 +616,11 @@ public class WiiMenuActivity extends Activity implements WiiMenuView.Listener {
             Toast.makeText(this, getString(R.string.wii_hidden_toast, channel.label,
                     getString(R.string.set_title, getString(R.string.wii_settings_label))), Toast.LENGTH_LONG).show();
         }));
-        items.add(new WiiMenuView.MenuItem(getString(R.string.library_app_info), () ->
-                open(new Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS, Uri.parse("package:" + channel.key))
-                        .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))));
+        if (!channel.key.startsWith("wiios.")) {
+            items.add(new WiiMenuView.MenuItem(getString(R.string.library_app_info), () ->
+                    open(new Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS, Uri.parse("package:" + channel.key))
+                            .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))));
+        }
         menu.showMenu(channel.label, items);
     }
 

@@ -190,6 +190,11 @@
     <!-- Also give channels to apps with only a phone-style launcher entry (many sideloaded apps on Fire TV
          and Google TV). TV apps are preferred when an app has both. -->
     <bool name="wii_phone_apps">true</bool>
+    <!-- Over-the-air updates: the GitHub repository whose releases (tag build-N, APK attached) are installed
+         when newer. Settings > System Update; checked once a day while automatic updates are on. -->
+    <string name="update_repo" translatable="false">BuddyCrafted/Wii-TV</string>
+    <!-- The Forecast Channel: a built-in channel with today's weather on its tile. -->
+    <bool name="forecast_channel">true</bool>
     <!-- What the SD button opens: the first of these that is installed. TVs have their own media player;
          on a streaming stick a media or file app stands in. -->
     <string-array name="sd_apps" translatable="false">

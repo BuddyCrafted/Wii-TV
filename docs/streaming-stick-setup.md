@@ -120,6 +120,27 @@ The round buttons and the SD card:
 - **SD**: opens your media or file app. That's the first one installed of Kodi, VLC, X-plore, Files, Photos or Plex (list: `sd_apps` in `launcher/app/src/main/res/values/config.xml`).
 - **Envelope** (bottom right): the **Message Board**, with the channels you opened most recently, newest first. On a TV with HDMI ports, the inputs come first.
 
+## Updates over the air
+
+You only need the computer for the first install. After that, wiiOS updates itself from this repository's GitHub releases:
+
+1. Every push to `main` builds a new APK in GitHub Actions and publishes it as release **build-N**. To publish from another branch: **Actions → CI → Run workflow**, then tick **Publish**.
+2. Once a day (while **wiiOS Settings → System Update → Automatic updates** is On), the menu checks the latest release. If it's newer, it asks **Update now / Later**. You can also choose **Check for updates** there at any time.
+3. **Update now** downloads the APK and installs it. On Android 12+ (onn. / Google TV) it installs silently from the second update on; Fire OS shows one **Install** confirmation. On Fire TV, the Home redirect is switched back on automatically after each update.
+
+Every build is signed with the same key (`launcher/keys/`), so updates always install over the previous version. That key is public in the repo on purpose, and the updater only downloads from this repository's own releases. If you'd rather use a private key, see the comment in `launcher/app/build.gradle`. Devices installed with the old key then need one uninstall.
+
+> A local build from your computer is "build 0", so any published release counts as newer and gets offered. To reinstall a local build over a newer release, uninstall wiiOS first, or build with `-PwiiosBuild=<higher number>`.
+
+## Forecast Channel
+
+The first channel is the **Forecast Channel**. Its tile shows the temperature and sky right now; open it for today's details and the next five days. Press **OK** to refresh.
+
+- **Weather data:** [Open-Meteo](https://open-meteo.com), which is free and needs no account or API key.
+- **Location:** found automatically from your internet connection. To pick a city instead, go to **wiiOS Settings → Weather → Location → Search for a city**.
+- **Units:** °F or °C, under Settings → Weather → Units.
+- Like any channel, you can move it or hide it (hold OK).
+
 ## Language
 
 The menu is **English**, whatever language the device itself is set to. To change it, go to **wiiOS Settings → Language** and pick any of the 20+ languages. The menu reloads in that language right away. Only wiiOS changes; the device's own menus keep their language. The new screens (Settings, Screensaver & Sleep and so on) are written in English so far, so other languages show English for those words until they're translated.
@@ -140,7 +161,7 @@ Go to **wiiOS Settings → Screensaver & Sleep**:
 
 | Setting | What it does |
 | --- | --- |
-| **Screensaver** | **Now Playing** (artwork, title, artist and progress of whatever's playing in Spotify, YouTube Music, a podcast app…, plus the clock), **Clock**, or the device's own. |
+| **Screensaver** | **Now Playing** (blurred album colours fill the screen behind the artwork, title, artist and progress of whatever's playing in Spotify, YouTube Music, a podcast app…, plus the clock), **Clock**, or the device's own. |
 | **Start screensaver after** | How long without a key press before the screensaver comes on (5 min to 1 hr, or Never). |
 | **Turn screen off after** | How long before the device goes to sleep and the TV turns off (30 min to 8 hr, or Never). |
 | **Screensaver goes dark after** | The Now Playing screensaver fades to a **black screen** after this long, while the music or podcast keeps playing. Any key brings the picture back. |

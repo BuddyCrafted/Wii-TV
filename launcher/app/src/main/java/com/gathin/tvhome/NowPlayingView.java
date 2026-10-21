@@ -52,6 +52,8 @@ final class NowPlayingView extends View {
     private MediaController controller;
     private Bitmap art;
     private BitmapShader artShader;
+    /** The artwork shrunk to a few pixels: drawn screen-sized with filtering it is a soft blur of its colours. */
+    private Bitmap blur;
     private String appLabel = "";
     private float driftX, driftY;
     private long lastDrift;
@@ -187,6 +189,11 @@ final class NowPlayingView extends View {
         if (b == null) b = md.getBitmap(MediaMetadata.METADATA_KEY_DISPLAY_ICON);
         art = b;
         if (b != null) artShader = new BitmapShader(b, Shader.TileMode.CLAMP, Shader.TileMode.CLAMP);
+        makeBlur();
+    }
+
+    private void makeBlur() {
+        blur = art == null ? null : Bitmap.createScaledBitmap(art, 16, 9, true);
     }
 
     /** Shows this track instead of reading media sessions. */
@@ -194,6 +201,7 @@ final class NowPlayingView extends View {
         fixed = t;
         art = t.art;
         artShader = art == null ? null : new BitmapShader(art, Shader.TileMode.CLAMP, Shader.TileMode.CLAMP);
+        makeBlur();
         invalidate();
     }
 
@@ -237,6 +245,14 @@ final class NowPlayingView extends View {
         }
         if (alpha <= 0f) return;
         int save = c.saveLayerAlpha(0, 0, w, h, Math.round(alpha * 255));
+        Track playingNow = track();
+        if (playingNow != null && blur != null) {
+            // Like a TV's music splash: the artwork's colours, blurred and dimmed, fill the screen.
+            paint.setFilterBitmap(true);
+            c.drawBitmap(blur, null, new RectF(-w * 0.05f, -h * 0.05f, w * 1.05f, h * 1.05f), paint);
+            paint.setColor(0xA6000000);
+            c.drawRect(0, 0, w, h, paint);
+        }
         c.translate(driftX * s, driftY * s);
 
         Locale locale = getResources().getConfiguration().getLocales().get(0);

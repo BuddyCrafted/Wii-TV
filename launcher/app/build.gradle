@@ -2,6 +2,8 @@ plugins {
     id 'com.android.application'
 }
 
+def wiiosBuild = (providers.gradleProperty('wiiosBuild').getOrElse('0')) as int
+
 android {
     namespace 'com.gathin.tvhome'
     compileSdk 34
@@ -11,8 +13,28 @@ android {
         applicationId providers.gradleProperty('launcherApplicationId').getOrElse('com.gathin.tvhome')
         minSdk 26
         targetSdk 34
-        versionCode 5
-        versionName '2.4'
+        // CI passes -PwiiosBuild=<run number>; the in-app updater installs a release whose build is higher.
+        versionCode 100 + wiiosBuild
+        versionName "wiiOS build ${wiiosBuild}"
+        buildConfigField 'int', 'WIIOS_BUILD', "${wiiosBuild}"
+    }
+
+    buildFeatures {
+        buildConfig true
+    }
+
+    // One fixed key for every build, so the in-app updater can install a newer release over an older one
+    // (Android refuses an update signed by a different key). The key in keys/ is public on purpose: the updater
+    // only ever downloads from this repository's own GitHub releases. To use a private key instead, set
+    // WIIOS_KEYSTORE (path), WIIOS_KEYSTORE_PASSWORD, WIIOS_KEY_ALIAS and WIIOS_KEY_PASSWORD; installs signed
+    // with the other key then have to be uninstalled once.
+    signingConfigs {
+        wiios {
+            storeFile file(System.getenv('WIIOS_KEYSTORE') ?: rootProject.file('keys/wiios-release.jks').path)
+            storePassword System.getenv('WIIOS_KEYSTORE_PASSWORD') ?: 'wiios-public'
+            keyAlias System.getenv('WIIOS_KEY_ALIAS') ?: 'wiios'
+            keyPassword System.getenv('WIIOS_KEY_PASSWORD') ?: 'wiios-public'
+        }
     }
 
     buildTypes {
@@ -21,8 +43,7 @@ android {
             minifyEnabled true
             shrinkResources true
             proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
-            // Sideloaded over ADB, never published: sign with the debug key so it installs over a debug build.
-            signingConfig signingConfigs.debug
+            signingConfig signingConfigs.wiios
         }
     }
 
