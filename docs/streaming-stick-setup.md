@@ -178,6 +178,37 @@ The second channel is the **Shop**, a Wii Shop-style app store that sits in fron
   - Already installed: **Open**, or **Update** when the source has a newer version.
 - **Adding or removing apps:** edit `launcher/app/src/main/res/raw/shop_catalog.json` and push to `main`. Devices pick up the new catalog within six hours, with no app update needed. The copy inside the APK is used offline.
 
+## Games
+
+The third channel is **Games**. It works like the Shop, with its own tune, and lists games instead of apps:
+
+- **Party Games:** the **Jackbox Party Packs** (paid, on Google Play for Google TV; the TV runs the game and everyone plays on their phone at jackbox.tv), **AirConsole** (phones as controllers, opens from the web), and **SuperTuxKart**.
+- **Cloud Gaming:** **GeForce NOW** (NVIDIA account, free tier), **Boosteroid** (subscription), **Xbox Cloud Gaming** and **Amazon Luna** (both from the web). These need a fast connection (25 Mbps or more; 5 GHz Wi-Fi or Ethernet) and a controller.
+- **Retro & Emulators:** **RetroArch**, **Lemuroid** and **PPSSPP**, with several controllers on one TV and online play through RetroArch's Netplay. No games are included; use games you own or homebrew.
+- **Play from Your PC:** **Moonlight** and **Steam Link** stream your own PC's games to the TV.
+- **Web Games** open full screen inside wiiOS, because Google TV has no web browser. Sign-ins are kept, so you only sign in once. **Back** goes back a page and leaves from the first one.
+- A title that needs an account says so on its page (for example *Sign in with your NVIDIA account*), and anything that isn't free shows its price instead of "Free". You sign in inside each game or service the first time you open it.
+- **Adding games:** edit `launcher/app/src/main/res/raw/games_catalog.json`, just like the Shop's catalog. Besides `play`, `fdroid`, `github` and `url`, it supports `"source": "web"` with a `url` for web games, `price`, `account`, and `query` (a store search, for a series like Jackbox where each pack is its own app; then `pkg` can end in `*` to match any of them).
+
+## Accounts & Sign-in
+
+**wiiOS Settings → Accounts & Sign-in** is a Wii-style page for your accounts:
+
+- **Add a Google account** (Google TV / onn.) opens Google's own sign-in, which can also show a code to finish on your phone. **Your accounts** opens the list of accounts on the device.
+- **Amazon account** (Fire TV) opens Fire TV Settings, where Amazon keeps your account.
+
+The sign-in form itself is always Google's (or Amazon's). That's on purpose: a home screen must never see your password, and Android only lets Google's own screens add a Google account. Once you're signed in, Play, YouTube and the rest use that account.
+
+## Your own music
+
+wiiOS plays its own original tunes on the menu, in the Shop and in Games. To play your own music instead, put files named **menu**, **shop** and/or **games** (`.mp3`, `.ogg`, `.m4a`, `.flac` or `.wav`) in a folder and install with `MUSIC_DIR` (or `-MusicDir` on Windows):
+
+```sh
+MUSIC_DIR=~/wiios-music TV_HOST=192.168.1.50 launcher/build-and-install.sh
+```
+
+They're copied to `Android/data/com.gathin.tvhome/files/music/` on the device and loop on their screen, at the same low volume as the built-in tunes. Any screen without a file keeps the built-in tune. The files never go into the APK or this repository, so use music you have the right to play.
+
 ## Language
 
 The menu is **English**, whatever language the device itself is set to. To change it, go to **wiiOS Settings → Language** and pick any of the 20+ languages. The menu reloads in that language right away. Only wiiOS changes; the device's own menus keep their language. The new screens (Settings, Screensaver & Sleep and so on) are written in English so far, so other languages show English for those words until they're translated.

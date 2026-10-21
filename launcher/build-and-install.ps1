@@ -7,6 +7,7 @@
 #        [-InputKeyService]   remote's Input button opens the input switcher (Google TV), plus config.xml
 #                             input_key_keycodes and app_keys; re-pass on every install
 #        [-HomeKeyService]    remotes whose Home button sends KEYCODE_ALL_APPS (Xiaomi sticks)
+#        [-MusicDir <folder>] your own menu / shop / games music (.mp3, .ogg, .m4a, .flac, .wav), copied to the TV
 #        Fire TV is detected automatically (see build-and-install.sh): the Amazon launcher is left alone and
 #        the FireTvHomeService accessibility service takes the Home button instead.
 param(
@@ -15,7 +16,9 @@ param(
     [switch]$InputKeyService,
     [switch]$HomeKeyService,
     # A ready-made APK (e.g. the one CI attaches to each run): skips the build, no JDK or SDK needed.
-    [string]$ApkFile = ''
+    [string]$ApkFile = '',
+    # Your own music: menu.*, shop.* and games.* in this folder play instead of the built-in tunes.
+    [string]$MusicDir = ''
 )
 $ErrorActionPreference = 'Stop'
 # Pipe plain UTF-8 to native commands; the default here prepends a BOM that corrupts the first command.
@@ -23,6 +26,7 @@ $OutputEncoding = New-Object System.Text.UTF8Encoding $false
 if (-not $TvHost) { throw 'pass -TvHost <tv ip> or set $env:TV_HOST' }
 $env:TV_HOST = $TvHost
 if ($ApkFile) { $ApkFile = (Resolve-Path $ApkFile).Path }
+if ($MusicDir) { $MusicDir = (Resolve-Path $MusicDir).Path }
 Set-Location $PSScriptRoot
 
 if (-not $ApkFile) {
@@ -45,6 +49,19 @@ $py = '..\tools\venv\Scripts\python.exe'
 $apk = if ($ApkFile) { $ApkFile } else { 'app\build\outputs\apk\release\app-release.apk' }
 if (-not (Test-Path $apk)) { throw "APK not found: $apk" }
 
+function Push-Music {
+    if (-not $MusicDir) { return }
+    $dest = '/sdcard/Android/data/com.gathin.tvhome/files/music'
+    & $py -I ..\tools\tv.py "mkdir -p $dest" | Out-Null
+    $files = Get-ChildItem $MusicDir -File | Where-Object {
+        $_.BaseName -in 'menu', 'shop', 'games' -and $_.Extension -in '.mp3', '.ogg', '.m4a', '.flac', '.wav' }
+    if (-not $files) { Write-Warning "no menu, shop or games music files in $MusicDir"; return }
+    foreach ($f in $files) {
+        & $py -I ..\tools\tv.py "rm -f $dest/$($f.BaseName).*" | Out-Null
+        & $py -I ..\tools\b64push.py $f.FullName "$dest/$($f.Name)"
+    }
+}
+
 # Fire TV: Fire OS protects its launcher, so leave it alone and redirect the Home button instead.
 $maker = "$(& $py -I ..\tools\tv.py 'getprop ro.product.manufacturer' | Select-Object -Last 1)".Trim()
 if ($maker -like 'Amazon*') {
@@ -54,6 +71,7 @@ if ($maker -like 'Amazon*') {
     $out = & $py -I ..\tools\tv.py 'pm install -r /data/local/tmp/tvhome.apk; rm -f /data/local/tmp/tvhome.apk'
     Write-Host $out
     if ("$out" -notmatch 'Success') { throw 'pm install failed' }
+    Push-Music
     $start = (& $py -I ..\tools\tv.py 'am start -W -n com.gathin.tvhome/.WiiMenuActivity') -join "`n"
     Write-Host $start
     if ($start -notmatch 'Status: ok' -or $start -match '(?m)^Error') { throw 'the launcher did not start (see above); the Home button was not redirected' }
@@ -104,6 +122,7 @@ if ($LASTEXITCODE -ne 0) { throw 'APK upload failed' }
 $out = & $py -I ..\tools\tv.py 'pm install -r /data/local/tmp/tvhome.apk; rm -f /data/local/tmp/tvhome.apk'
 Write-Host $out
 if ("$out" -notmatch 'Success') { throw 'pm install failed; the stock launcher was left untouched' }
+Push-Music
 # Android 9 only accepts a component here; Android 10+ also takes a bare package name.
 $out = & $py -I ..\tools\tv.py 'cmd package set-home-activity --user 0 com.gathin.tvhome/.WiiMenuActivity'
 Write-Host $out

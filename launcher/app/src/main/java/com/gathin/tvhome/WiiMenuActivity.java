@@ -43,6 +43,7 @@ public class WiiMenuActivity extends Activity implements WiiMenuView.Listener {
     /** Built-in channels have keys no package can have. */
     static final String FORECAST_KEY = "wiios.forecast";
     static final String SHOP_KEY = "wiios.shop";
+    static final String GAMES_KEY = "wiios.games";
     /** Debug: freeze the menu in the reference capture's state, for comparing screenshots against it. */
     static final String EXTRA_REF_POSE = "ref_pose";
 
@@ -241,6 +242,9 @@ public class WiiMenuActivity extends Activity implements WiiMenuView.Listener {
 
         allChannels.put(SHOP_KEY, new WiiMenuView.Channel(SHOP_KEY, getString(R.string.shop_channel),
                 new ShopBanner(getString(R.string.shop_channel)), null, new Intent(this, ShopActivity.class)));
+        allChannels.put(GAMES_KEY, new WiiMenuView.Channel(GAMES_KEY, getString(R.string.games_channel),
+                new GamesBanner(getString(R.string.games_channel)), null,
+                new Intent(this, ShopActivity.class).putExtra(ShopActivity.EXTRA_STORE, ShopCatalog.GAMES.id)));
 
         Set<String> userHidden = userHidden();
         List<WiiMenuView.Channel> channels = new ArrayList<>();
@@ -251,6 +255,7 @@ public class WiiMenuActivity extends Activity implements WiiMenuView.Listener {
         List<String> dock = new ArrayList<>();
         dock.add(FORECAST_KEY);
         dock.add(SHOP_KEY);
+        dock.add(GAMES_KEY);
         dock.addAll(Arrays.asList(getResources().getStringArray(R.array.dock_apps)));
         ChannelOrder.sort(channels, c -> c.key, c -> c.label,
                 ChannelOrder.split(prefs.getString(KEY_ORDER, "")), dock);
@@ -315,6 +320,7 @@ public class WiiMenuActivity extends Activity implements WiiMenuView.Listener {
         items.add(item(R.string.set_sound, () -> openSetting(Settings.ACTION_SOUND_SETTINGS)));
         items.add(item(R.string.wii_network, () -> openSetting(Settings.ACTION_WIFI_SETTINGS)));
         items.add(item(R.string.set_controllers, () -> openSetting(Settings.ACTION_BLUETOOTH_SETTINGS)));
+        items.add(item(R.string.set_accounts, () -> menu.pushSettings(getString(R.string.set_accounts), this::accountSettings)));
 
         items.add(new WiiMenuView.MenuItem(getString(R.string.set_remote), onOff(RemoteButtons.enabled(this)), () ->
                 menu.pushSettings(getString(R.string.set_remote), this::remoteSettings)));
@@ -651,6 +657,27 @@ public class WiiMenuActivity extends Activity implements WiiMenuView.Listener {
     }
 
     /** A settings screen, falling back to the main Settings where a build lacks that page (Fire OS). */
+    /**
+     * Accounts & Sign-in. The sign-in form is always the system's own (Google's on Google TV, Amazon's on Fire TV):
+     * a launcher must never see your password, and Google only lets its own screens add a Google account.
+     */
+    private List<WiiMenuView.MenuItem> accountSettings() {
+        List<WiiMenuView.MenuItem> items = new ArrayList<>();
+        if (DeviceProfile.fireTv()) {
+            items.add(item(R.string.set_amazon_account, () -> openSetting(Settings.ACTION_SETTINGS)));
+        } else {
+            items.add(item(R.string.set_add_google, () -> {
+                Intent add = new Intent(Settings.ACTION_ADD_ACCOUNT)
+                        .putExtra(Settings.EXTRA_ACCOUNT_TYPES, new String[] {"com.google"})
+                        .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+                if (add.resolveActivity(getPackageManager()) != null) open(add);
+                else openSetting(Settings.ACTION_SYNC_SETTINGS);
+            }));
+            items.add(item(R.string.set_manage_accounts, () -> openSetting(Settings.ACTION_SYNC_SETTINGS)));
+        }
+        return items;
+    }
+
     private void openSetting(String action) {
         Intent intent = new Intent(action).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
         if (!Settings.ACTION_SETTINGS.equals(action) && intent.resolveActivity(getPackageManager()) == null) {

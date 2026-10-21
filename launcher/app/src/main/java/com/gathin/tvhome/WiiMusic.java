@@ -8,6 +8,10 @@ import android.media.AudioTrack;
  * Plays MenuMusic's loop while the channel menu is in front, on the media stream so the remote's volume
  * keys set it, quietly enough to sit under the interface sounds. The loop is rendered once, off the UI
  * thread, the first time music is wanted; a feeder thread streams it round and round.
+ *
+ * Your own music file plays instead when there is one in the app's music folder on the device
+ * (Android/data/com.gathin.tvhome/files/music/), named for the screen: menu, shop or games, as .mp3, .ogg,
+ * .m4a, .flac or .wav. The installer copies them there with MUSIC_DIR; nothing is bundled in the APK.
  */
 final class WiiMusic {
     private static final float VOLUME = 0.28f;
@@ -24,16 +28,33 @@ final class WiiMusic {
 
     private final MenuMusic.Song song;
 
+    /** The user's own file for this screen, or null to play the built-in tune. */
+    private final java.io.File custom;
+    private android.media.MediaPlayer player;
+
     WiiMusic(android.content.Context context, boolean enabled) {
-        this(context, enabled, MenuMusic.MENU, "menu_music_v1.pcm");
+        this(context, enabled, MenuMusic.MENU, "menu_music_v1.pcm", "menu");
     }
 
-    WiiMusic(android.content.Context context, boolean enabled, MenuMusic.Song song, String cacheName) {
+    WiiMusic(android.content.Context context, boolean enabled, MenuMusic.Song song, String cacheName, String slot) {
         this.enabled = enabled;
         this.song = song;
+        this.custom = customFile(context, slot);
         // The rendered loop is kept on disk: Android often kills the launcher on a 1 GB stick while another app
         // runs, and reading 1.7 MB back is much cheaper than rendering it again on a 1.7 GHz CPU.
         this.cache = new java.io.File(context.getApplicationContext().getFilesDir(), cacheName);
+    }
+
+    static final String[] EXTENSIONS = {".mp3", ".ogg", ".m4a", ".flac", ".wav"};
+
+    static java.io.File customFile(android.content.Context context, String slot) {
+        java.io.File dir = context.getExternalFilesDir("music");
+        if (dir == null) return null;
+        for (String ext : EXTENSIONS) {
+            java.io.File f = new java.io.File(dir, slot + ext);
+            if (f.isFile() && f.length() > 0) return f;
+        }
+        return null;
     }
 
     /** The menu came to the front. */
@@ -68,6 +89,10 @@ final class WiiMusic {
     void release() {
         synchronized (lock) {
             released = true;
+            if (player != null) {
+                player.release();
+                player = null;
+            }
             // stop() also wakes a write() that is blocked on a paused track.
             if (track != null) track.stop();
             lock.notifyAll();
@@ -76,6 +101,10 @@ final class WiiMusic {
 
     private void update() {
         boolean play = enabled && wanted && !released;
+        if (custom != null) {
+            updateCustom(play);
+            return;
+        }
         if (play && feeder == null) {
             feeder = new Thread(this::feed, "wii-music");
             feeder.setPriority(Thread.NORM_PRIORITY - 1);
@@ -86,6 +115,29 @@ final class WiiMusic {
             else track.pause();
         }
         lock.notifyAll();
+    }
+
+    private void updateCustom(boolean play) {
+        if (play && player == null) {
+            try {
+                player = new android.media.MediaPlayer();
+                player.setAudioAttributes(new AudioAttributes.Builder()
+                        .setUsage(AudioAttributes.USAGE_MEDIA)
+                        .setContentType(AudioAttributes.CONTENT_TYPE_MUSIC)
+                        .build());
+                player.setDataSource(custom.getPath());
+                player.setLooping(true);
+                player.setVolume(VOLUME, VOLUME);
+                player.prepare();
+            } catch (java.io.IOException | RuntimeException e) {
+                if (player != null) player.release();
+                player = null;
+                return; // unreadable file: stay quiet rather than fall back mid-session
+            }
+        }
+        if (player == null) return;
+        if (play && !player.isPlaying()) player.start();
+        else if (!play && player.isPlaying()) player.pause();
     }
 
     private short[] loadOrRender() {

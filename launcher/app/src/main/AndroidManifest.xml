@@ -144,6 +144,13 @@
             android:excludeFromRecents="true"
             android:screenOrientation="landscape"
             android:theme="@android:style/Theme.Black.NoTitleBar.Fullscreen" />
+        <!-- Web games from the Games channel, full screen. -->
+        <activity
+            android:name=".WebPlayActivity"
+            android:exported="false"
+            android:screenOrientation="landscape"
+            android:configChanges="keyboard|keyboardHidden|navigation|orientation|screenSize|screenLayout|uiMode"
+            android:theme="@android:style/Theme.Black.NoTitleBar.Fullscreen" />
         <!-- Updater: the package installer's status, and switching the Fire TV Home redirect back on after an update. -->
         <receiver
             android:name=".UpdateReceiver"

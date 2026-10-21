@@ -35,6 +35,17 @@ public class MenuMusicTest {
     }
 
     @Test
+    public void storeTunesRenderAtTheirLength() {
+        for (MenuMusic.Song song : new MenuMusic.Song[] {MenuMusic.SHOP, MenuMusic.GAMES}) {
+            short[] pcm = MenuMusic.render(song);
+            assertEquals(MenuMusic.length(song), pcm.length);
+            int peak = 0;
+            for (short s : pcm) peak = Math.max(peak, Math.abs(s));
+            assertTrue(peak > 20000 && peak < 24000);
+        }
+    }
+
+    @Test
     public void midiToHz() {
         assertEquals(440.0, MenuMusic.hz(69), 1e-9);
         assertEquals(261.63, MenuMusic.hz(60), 0.01);

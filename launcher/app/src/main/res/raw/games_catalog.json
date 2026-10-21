@@ -1,0 +1,35 @@
+{
+  "categories": [
+    {"id": "party", "name": "Party Games"},
+    {"id": "cloud", "name": "Cloud Gaming"},
+    {"id": "retro", "name": "Retro & Emulators"},
+    {"id": "pc", "name": "Play from Your PC"},
+    {"id": "web", "name": "Web Games"}
+  ],
+  "apps": [
+    {"pkg": "com.jackboxgames*", "query": "Jackbox Party Pack", "name": "Jackbox Party Packs", "publisher": "Jackbox Games", "color": "#7B2FBE", "source": "play", "price": "Paid", "categories": ["party"],
+     "about": "Party games for 3 to 8+ players. The TV shows the game; everyone plays on their own phone at jackbox.tv, no app needed. Opens a store search, since each pack is its own app."},
+    {"pkg": "web.airconsole", "url": "https://www.airconsole.com/", "name": "AirConsole", "publisher": "N-Dream", "color": "#1C1C3A", "source": "web", "categories": ["party", "web"],
+     "about": "Over 100 party games where your phones are the controllers. Open it here, then point phones at airconsole.com and type the code on screen. Some games need AirConsole Hero."},
+    {"pkg": "org.supertuxkart.stk", "name": "SuperTuxKart", "publisher": "SuperTuxKart Team", "color": "#E2401E", "source": "fdroid", "categories": ["party"],
+     "about": "Open-source kart racer with online races. Plug in a controller for the best feel."},
+    {"pkg": "com.nvidia.geforcenow", "name": "GeForce NOW", "publisher": "NVIDIA", "color": "#76B900", "source": "play", "account": "NVIDIA", "price": "Free tier", "categories": ["cloud"],
+     "about": "Cloud gaming: play PC games you own on Steam, Epic, Xbox and more, run on NVIDIA's servers. Free tier with time limits; needs a fast connection (25 Mbps or more, 5 GHz Wi-Fi or Ethernet) and a controller."},
+    {"pkg": "com.boosteroidtv.streaming", "name": "Boosteroid", "publisher": "Boosteroid", "color": "#F26722", "source": "play", "account": "Boosteroid", "price": "Subscription", "categories": ["cloud"],
+     "about": "Cloud gaming for PC games you own, with a monthly subscription. Needs a fast connection and a controller."},
+    {"pkg": "web.xcloud", "url": "https://www.xbox.com/play", "name": "Xbox Cloud Gaming", "publisher": "Microsoft", "color": "#107C10", "source": "web", "account": "Microsoft", "price": "Game Pass", "categories": ["cloud", "web"],
+     "about": "Stream Game Pass games from Xbox's servers in the web player. Needs Game Pass Ultimate and a controller. If the site says this browser isn't supported, it hasn't come to TVs yet."},
+    {"pkg": "web.luna", "url": "https://luna.amazon.com/", "name": "Amazon Luna", "publisher": "Amazon", "color": "#7D3CF8", "source": "web", "account": "Amazon", "price": "Prime", "categories": ["cloud", "web"],
+     "about": "Amazon's cloud gaming, with games included with Prime that rotate, and add-on channels. On Fire TV, Luna's own app is in the Appstore."},
+    {"pkg": "com.retroarch", "name": "RetroArch", "publisher": "Libretro", "color": "#4B4B4B", "source": "play", "categories": ["retro"],
+     "about": "Emulators for classic consoles with up to 4 controllers on one TV, plus Netplay to play online with friends. Bring games you own or homebrew; none are included."},
+    {"pkg": "com.swordfish.lemuroid", "name": "Lemuroid", "publisher": "Swordfish90", "color": "#3B4CCA", "source": "play", "categories": ["retro"],
+     "about": "Simple, TV-friendly retro emulator with local multiplayer. Bring games you own or homebrew."},
+    {"pkg": "org.ppsspp.ppsspp", "name": "PPSSPP", "publisher": "Henrik Rydgård", "color": "#33B5E5", "source": "play", "categories": ["retro"],
+     "about": "PSP emulator that runs well on streaming sticks, with ad hoc multiplayer over your network. Bring games you own."},
+    {"pkg": "com.limelight", "name": "Moonlight", "publisher": "Moonlight Game Streaming", "color": "#3A3A3A", "source": "play", "categories": ["pc"],
+     "about": "Stream games from your own gaming PC (NVIDIA or Sunshine) to the TV, with every controller passed through."},
+    {"pkg": "com.valvesoftware.steamlink", "name": "Steam Link", "publisher": "Valve", "color": "#1B2838", "source": "play", "account": "Steam", "categories": ["pc"],
+     "about": "Play your Steam library from your PC on the TV, including Remote Play Together for local multiplayer games."}
+  ]
+}

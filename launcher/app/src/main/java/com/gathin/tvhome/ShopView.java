@@ -24,7 +24,7 @@ import java.util.List;
 import java.util.Map;
 
 /**
- * The Shop Channel, after the console's shop: white pages with pale blue edges and dotted rules, rounded white
+ * The Shop and Games channels, after the console's shop: white pages with pale blue edges and dotted rules, rounded white
  * buttons that glow blue, the title top left, and lists of titles with a picture, name, publisher and price on
  * the right ("Free"). Screens: home (categories), a category's list, a title's page, and the download screen.
  * Geometry in 1920 x 1080 reference px.
@@ -43,7 +43,7 @@ final class ShopView extends View {
     enum Screen { HOME, LIST, DETAIL, DOWNLOAD }
 
     /** What a title page's main button does. */
-    enum Action { OPEN, STORE, DOWNLOAD }
+    enum Action { OPEN, STORE, DOWNLOAD, WEB }
 
     static final String INSTALLED = "installed";
     private static final int ROWS = 4;
@@ -51,6 +51,7 @@ final class ShopView extends View {
 
     private final Listener listener;
     private final Context ctx;
+    private final ShopCatalog.Store store;
     private final TextPaint text = new TextPaint(Paint.ANTI_ALIAS_FLAG);
     private final Paint paint = new Paint(Paint.ANTI_ALIAS_FLAG | Paint.FILTER_BITMAP_FLAG);
     private final RectF rect = new RectF();
@@ -77,9 +78,10 @@ final class ShopView extends View {
 
     private static final int BACK_BTN = -1, NEXT_BTN = -2;
 
-    ShopView(Context context, Listener listener) {
+    ShopView(Context context, ShopCatalog.Store store, Listener listener) {
         super(context);
         this.ctx = context;
+        this.store = store;
         this.listener = listener;
         setFocusable(true);
     }
@@ -95,7 +97,7 @@ final class ShopView extends View {
     void refreshInstalled() {
         thumbs.clear();
         if (screen == Screen.LIST) list = listFor(category);
-        if (screen == Screen.DOWNLOAD && app != null && ShopCatalog.installed(ctx, app.pkg) != null) screen = Screen.DETAIL;
+        if (screen == Screen.DOWNLOAD && app != null && ShopCatalog.installed(ctx, app) != null) screen = Screen.DETAIL;
         invalidate();
     }
 
@@ -144,7 +146,7 @@ final class ShopView extends View {
     private List<ShopCatalog.App> listFor(String cat) {
         if (!INSTALLED.equals(cat)) return catalog.in(cat);
         List<ShopCatalog.App> out = new ArrayList<>();
-        for (ShopCatalog.App a : catalog.apps) if (ShopCatalog.installed(ctx, a.pkg) != null) out.add(a);
+        for (ShopCatalog.App a : catalog.apps) if (ShopCatalog.installed(ctx, a) != null) out.add(a);
         return out;
     }
 
@@ -157,8 +159,9 @@ final class ShopView extends View {
     }
 
     private String status(ShopCatalog.App a) {
-        String v = ShopCatalog.installed(ctx, a.pkg);
-        if (v == null) return ctx.getString(R.string.shop_free);
+        if (a.web()) return ctx.getString(R.string.games_web);
+        String v = ShopCatalog.installed(ctx, a);
+        if (v == null) return a.price.isEmpty() ? ctx.getString(R.string.shop_free) : a.price;
         if (a == app && latestVersion != null && !latestVersion.isEmpty() && !latestVersion.equals(v)) {
             return ctx.getString(R.string.shop_update);
         }
@@ -166,7 +169,8 @@ final class ShopView extends View {
     }
 
     private Action action(ShopCatalog.App a) {
-        String v = ShopCatalog.installed(ctx, a.pkg);
+        if (a.web()) return Action.WEB;
+        String v = ShopCatalog.installed(ctx, a);
         if (v != null) {
             boolean newer = a.direct() && latestVersion != null && !latestVersion.isEmpty() && !latestVersion.equals(v);
             return newer ? Action.DOWNLOAD : Action.OPEN;
@@ -178,7 +182,8 @@ final class ShopView extends View {
         switch (action(a)) {
             case OPEN: return ctx.getString(R.string.shop_open);
             case STORE: return ctx.getString(R.string.shop_get_store);
-            default: return ctx.getString(ShopCatalog.installed(ctx, a.pkg) != null ? R.string.shop_update : R.string.shop_download);
+            case WEB: return ctx.getString(R.string.games_play);
+            default: return ctx.getString(ShopCatalog.installed(ctx, a) != null ? R.string.shop_update : R.string.shop_download);
         }
     }
 
@@ -187,6 +192,7 @@ final class ShopView extends View {
             case "fdroid": return "F-Droid";
             case "github": return "GitHub";
             case "url": return ctx.getString(R.string.shop_from_web);
+            case "web": return ctx.getString(R.string.games_from_web);
             default: return DeviceProfile.fireTv() ? "Amazon Appstore" : "Google Play";
         }
     }
@@ -397,14 +403,17 @@ final class ShopView extends View {
     }
 
     private float[] drawHome(Canvas c) {
-        title(c, ctx.getString(R.string.shop_title));
-        ShopBanner.drawBag(c, 1560, 40, 120, paint);
-        label(c, ctx.getString(R.string.shop_welcome), 320, 235, 40, 0xFF7A7A7A, Paint.Align.LEFT);
+        title(c, ctx.getString(store.games() ? R.string.games_title : R.string.shop_title));
+        if (store.games()) GamesBanner.drawPad(c, 1530, 60, 200, paint);
+        else ShopBanner.drawBag(c, 1560, 40, 120, paint);
+        label(c, ctx.getString(store.games() ? R.string.games_welcome : R.string.shop_welcome), 320, 235, 40, 0xFF7A7A7A, Paint.Align.LEFT);
         List<HomeItem> items = homeItems();
         float[] h = null;
+        // Two columns; rows squeeze together if a catalog has more than three of them.
+        float step = Math.min(170f, 570f / ((items.size() + 1) / 2));
         for (int i = 0; i < items.size(); i++) {
             int col = i % 2, row = i / 2;
-            rect.set(320 + col * 660, 290 + row * 170, 320 + col * 660 + 620, 290 + row * 170 + 135);
+            rect.set(320 + col * 660, 290 + row * step, 320 + col * 660 + 620, 290 + row * step + step - 35);
             button(c, rect, 30, homeFocus == i);
             label(c, items.get(i).name, rect.centerX(), rect.centerY() + 18, 50, TEXT, Paint.Align.CENTER);
             if (homeFocus == i) h = new float[] {rect.right - 90, rect.bottom - 30};
@@ -421,7 +430,7 @@ final class ShopView extends View {
     private void drawFreeCount(Canvas c) {
         text.setTypeface(bold);
         label(c, String.valueOf(catalog.apps.size()), 1100, 945, 76, CYAN_TEXT, Paint.Align.CENTER);
-        label(c, ctx.getString(R.string.shop_titles_free), 1100, 995, 34, 0xFF8A8A8A, Paint.Align.CENTER);
+        label(c, ctx.getString(store.games() ? R.string.games_count : R.string.shop_titles_free), 1100, 995, 34, 0xFF8A8A8A, Paint.Align.CENTER);
     }
 
     private float[] drawList(Canvas c) {
@@ -514,7 +523,8 @@ final class ShopView extends View {
     private void drawThumb(Canvas c, ShopCatalog.App a, RectF r) {
         Bitmap b = thumbs.get(a.pkg);
         if (b == null && !thumbs.containsKey(a.pkg)) {
-            b = installedArt(a.pkg, Math.round(r.width()), Math.round(r.height()));
+            String pkg = ShopCatalog.installedPkg(ctx, a);
+            b = pkg == null ? null : installedArt(pkg, Math.round(r.width()), Math.round(r.height()));
             thumbs.put(a.pkg, b);
         }
         int sv = c.save();
@@ -531,8 +541,11 @@ final class ShopView extends View {
             text.setTypeface(bold);
             text.setTextAlign(Paint.Align.CENTER);
             text.setColor(0xFFFFFFFF);
+            // Shrink a long name to fit (down to 70%), then ellipsize what still doesn't.
             text.setTextSize(r.height() * 0.24f);
-            CharSequence t = TextUtils.ellipsize(a.name, text, r.width() - 20, TextUtils.TruncateAt.END);
+            float fit = (r.width() - 24) / text.measureText(a.name);
+            if (fit < 1f) text.setTextSize(r.height() * 0.24f * Math.max(0.7f, fit));
+            CharSequence t = TextUtils.ellipsize(a.name, text, r.width() - 24, TextUtils.TruncateAt.END);
             c.drawText(t, 0, t.length(), r.centerX(), r.centerY() + r.height() * 0.09f, text);
         }
         c.restoreToCount(sv);
@@ -573,13 +586,14 @@ final class ShopView extends View {
         drawThumb(c, a, th);
         label(c, a.publisher, 880, 270, 44, TEXT, Paint.Align.LEFT);
         label(c, ctx.getString(R.string.shop_from, sourceLabel(a)), 880, 335, 36, 0xFF888888, Paint.Align.LEFT);
-        String v = ShopCatalog.installed(ctx, a.pkg);
+        String v = ShopCatalog.installed(ctx, a);
         String ver = v != null ? ctx.getString(R.string.shop_have_version, v.isEmpty() ? "?" : v) : "";
         if (a.direct() && latestVersion != null && !latestVersion.isEmpty()) {
             ver = (ver.isEmpty() ? "" : ver + "   ") + ctx.getString(R.string.shop_latest_version, latestVersion);
         }
         label(c, ver, 880, 395, 34, 0xFF888888, Paint.Align.LEFT);
-        label(c, ctx.getString(R.string.shop_free), 1440, 470, 54, CYAN_TEXT, Paint.Align.RIGHT);
+        if (!a.account.isEmpty()) label(c, ctx.getString(R.string.games_account, a.account), 880, 455, 34, 0xFFD08A1E, Paint.Align.LEFT);
+        label(c, a.price.isEmpty() ? ctx.getString(R.string.shop_free) : a.price, 1440, 520, 54, CYAN_TEXT, Paint.Align.RIGHT);
         TextPaint body = new TextPaint(Paint.ANTI_ALIAS_FLAG);
         body.setTypeface(regular);
         body.setTextSize(40);

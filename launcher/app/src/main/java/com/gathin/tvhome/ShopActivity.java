@@ -13,11 +13,15 @@ import android.widget.Toast;
 import java.io.File;
 
 /**
- * The Shop Channel: browse the catalog, open an app's page, and get it. Google Play apps open their store
- * page (Play installs them); open-source apps download here with a progress screen and go to the package
- * installer, which shows Android's own Install confirmation.
+ * The Shop and Games channels: browse the catalog, open a title's page, and get it. Google Play apps open their
+ * store page (Play installs them); open-source apps download here with a progress screen and go to the package
+ * installer, which shows Android's own Install confirmation; web games open in WebPlayActivity. EXTRA_STORE
+ * picks the catalog ("games" for the Games channel, else the Shop).
  */
 public class ShopActivity extends Activity implements ShopView.Listener {
+    static final String EXTRA_STORE = "store";
+
+    private ShopCatalog.Store store;
     private ShopView view;
     private WiiSounds sounds;
     private WiiMusic music;
@@ -38,14 +42,16 @@ public class ShopActivity extends Activity implements ShopView.Listener {
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        view = new ShopView(this, this);
+        store = ShopCatalog.store(getIntent().getStringExtra(EXTRA_STORE));
+        view = new ShopView(this, store, this);
         setContentView(view);
         android.content.SharedPreferences prefs = Weather.prefs(this);
         sounds = new WiiSounds(this, prefs.getBoolean("sounds", getResources().getBoolean(R.bool.wii_sounds)));
-        music = new WiiMusic(this, prefs.getBoolean("music", getResources().getBoolean(R.bool.wii_music)),
-                MenuMusic.SHOP, "shop_music_v1.pcm");
-        view.setCatalog(ShopCatalog.local(this));
-        ShopCatalog.refresh(this, (c, e) -> {
+        boolean musicOn = prefs.getBoolean("music", getResources().getBoolean(R.bool.wii_music));
+        music = store.games() ? new WiiMusic(this, musicOn, MenuMusic.GAMES, "games_music_v1.pcm", "games")
+                : new WiiMusic(this, musicOn, MenuMusic.SHOP, "shop_music_v1.pcm", "shop");
+        view.setCatalog(ShopCatalog.local(this, store));
+        ShopCatalog.refresh(this, store, (c, e) -> {
             if (c != null && !isFinishing()) view.setCatalog(c);
         });
         IntentFilter f = new IntentFilter();
@@ -115,12 +121,17 @@ public class ShopActivity extends Activity implements ShopView.Listener {
     public void onAction(ShopCatalog.App app, ShopView.Action action) {
         switch (action) {
             case OPEN: {
-                Intent open = ShopCatalog.launchIntent(this, app.pkg);
+                String pkg = ShopCatalog.installedPkg(this, app);
+                Intent open = pkg == null ? null : ShopCatalog.launchIntent(this, pkg);
                 if (open != null) startActivity(open);
                 break;
             }
+            case WEB:
+                startActivity(new Intent(this, WebPlayActivity.class)
+                        .putExtra(WebPlayActivity.EXTRA_URL, app.url).putExtra(WebPlayActivity.EXTRA_TITLE, app.name));
+                break;
             case STORE: {
-                Intent store = ShopCatalog.storeIntent(this, app.pkg);
+                Intent store = ShopCatalog.storeIntent(this, app);
                 if (store != null) startActivity(store);
                 else Toast.makeText(this, R.string.shop_no_store, Toast.LENGTH_LONG).show();
                 break;

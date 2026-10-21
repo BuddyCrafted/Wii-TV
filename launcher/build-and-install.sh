@@ -3,6 +3,7 @@
 set -euo pipefail
 # Resolve APK_FILE (see below) before leaving the caller's directory.
 if [ -n "${APK_FILE:-}" ] && [ -f "$APK_FILE" ]; then APK_FILE="$(cd "$(dirname "$APK_FILE")" && pwd)/$(basename "$APK_FILE")"; fi
+if [ -n "${MUSIC_DIR:-}" ] && [ -d "$MUSIC_DIR" ]; then MUSIC_DIR="$(cd "$MUSIC_DIR" && pwd)"; fi
 cd "$(dirname "$0")"
 : "${TV_HOST:?set TV_HOST to the TV IP address, e.g. TV_HOST=192.168.1.50 $0}"
 # macOS: java_home or Homebrew; Linux: the java on PATH.
@@ -25,6 +26,24 @@ PY=$TOOLS/venv/bin/python
 export MSYS_NO_PATHCONV=1
 APK="${APK_FILE:-app/build/outputs/apk/release/app-release.apk}"
 
+# MUSIC_DIR=<folder> copies your own music to the TV: menu, shop and games (.mp3, .ogg, .m4a, .flac or .wav)
+# play instead of the built-in tunes on those screens. Nothing is added to the APK or the repository.
+push_music() {
+  [ -n "${MUSIC_DIR:-}" ] || return 0
+  [ -d "$MUSIC_DIR" ] || { echo "WARNING: MUSIC_DIR=$MUSIC_DIR is not a folder; no music copied." >&2; return 0; }
+  dest=/sdcard/Android/data/com.gathin.tvhome/files/music
+  "$PY" -I ../tools/tv.py "mkdir -p $dest" >/dev/null
+  found=0
+  for f in "$MUSIC_DIR"/menu.* "$MUSIC_DIR"/shop.* "$MUSIC_DIR"/games.*; do
+    [ -f "$f" ] || continue
+    case "$f" in *.mp3|*.ogg|*.m4a|*.flac|*.wav) ;; *) continue ;; esac
+    "$PY" -I ../tools/tv.py "rm -f $dest/$(basename "${f%.*}").*" >/dev/null
+    "$PY" -I ../tools/b64push.py "$f" "$dest/$(basename "$f")"
+    found=1
+  done
+  [ "$found" = 1 ] || echo "WARNING: no menu, shop or games music files in $MUSIC_DIR." >&2
+}
+
 # Fire TV: Fire OS protects its launcher (pm disable-user is refused, set-home-activity is accepted
 # but ignored), so the stock Home is never touched there. Instead the FireTvHomeService accessibility
 # service takes the Home button and covers the Amazon launcher whenever it shows. Nothing is disabled,
@@ -43,6 +62,7 @@ if [ "$FIRE_TV" = 1 ]; then
     *Success*) ;;
     *) echo "ERROR: pm install failed." >&2; exit 1 ;;
   esac
+  push_music
   START_OUT=$("$PY" -I ../tools/tv.py 'am start -W -n com.gathin.tvhome/.WiiMenuActivity')
   echo "$START_OUT"
   if ! printf '%s' "$START_OUT" | grep -qF 'Status: ok' || printf '%s' "$START_OUT" | grep -qi '^Error'; then
@@ -127,6 +147,7 @@ case "$OUT" in
   *Success*) ;;
   *) echo "ERROR: pm install failed; the stock launcher was left untouched." >&2; exit 1 ;;
 esac
+push_music
 # Start the launcher on its own, before the stock Home is touched. In the batch below a start that
 # fails only prints an "Error:" line, and the stock launcher would be disabled anyway, leaving the TV
 # with no usable Home (#239). "Status: ok" from `am start -W` means the activity really came up;
