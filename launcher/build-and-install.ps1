@@ -92,6 +92,11 @@ if (-not $StockLauncher) {
     else { throw "Home currently resolves to '$homePkg', which is not a stock launcher this script knows (android = launcher chooser, com.google.android.tungsten.setupwraith = setup wizard, see README Troubleshooting; anything else = another launcher is the default). Run again with -StockLauncher <package to disable> or -StockLauncher none." }
 }
 Write-Host "Stock launcher: $StockLauncher"
+# Google TV: with launcherx off, the remote's Input and YouTube buttons do nothing; InputKeyService answers them.
+if ($StockLauncher -eq 'com.google.android.apps.tv.launcherx' -and -not $PSBoundParameters.ContainsKey('InputKeyService')) {
+    $InputKeyService = $true
+    Write-Host "Google TV: the remote's Input and YouTube buttons will be handled by InputKeyService."
+}
 $disableStock = if ($StockLauncher -eq 'none') { 'echo stock launcher left alone' } else { "pm disable-user --user 0 $StockLauncher" }
 
 & $py -I ..\tools\b64push.py $apk /data/local/tmp/tvhome.apk

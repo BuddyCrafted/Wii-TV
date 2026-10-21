@@ -219,6 +219,18 @@ class HandoverTest(unittest.TestCase):
         self.assertTrue(any("pm enable --user 0" in c for c in state["commands"]))
         self.assertIsNotNone(self.record())
 
+    def test_google_tv_turns_on_the_remote_button_service(self):
+        result, state = self.handover(home="com.google.android.apps.tv.launcherx/.MainActivity")
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertIn("InputKeyService", result.stdout)
+        self.assertTrue(any("pm disable-user --user 0 com.google.android.apps.tv.launcherx" in c for c in state["commands"]))
+        self.assertTrue(any("enabled_accessibility_services" in c and "InputKeyService" in c for c in state["commands"]))
+
+    def test_other_android_tv_leaves_the_remote_button_service_off(self):
+        result, state = self.handover()
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertFalse(any("InputKeyService" in c for c in state["commands"]))
+
     def test_fire_tv_redirects_home_and_leaves_amazon_launcher_alone(self):
         result, state = self.handover(manufacturer="Amazon")
         self.assertEqual(result.returncode, 0, result.stderr)

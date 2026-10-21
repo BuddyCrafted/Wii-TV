@@ -21,6 +21,26 @@ How it becomes the home screen depends on the device:
 | **Fire TV** | A small accessibility service ("Wii menu as Fire TV home") catches the Home button and opens wiiOS. When the Amazon home screen appears anyway (at power-on, or when you back out of an app), wiiOS goes straight back on top. | Left installed and enabled. Fire OS won't let it be disabled, and nothing is lost. |
 | **onn. / Google TV / Android TV** | wiiOS is set as the default Home app. | The stock launcher is *disabled*, not uninstalled. One command puts it back (see [Undo](#undo)). |
 
+## onn. 4K Pro (2026) and other Google TV boxes: what goes, what stays
+
+This is the recommended device. On Google TV, wiiOS really replaces the home screen; it isn't layered on top the way it is on Fire TV.
+
+**Goes away with Google's home screen (`launcherx`, disabled rather than uninstalled):**
+- The sponsored rows and the "For you" / "Top picks" recommendations: the ads you see on the home screen.
+- Google TV's profiles and its home-screen app rows.
+- Google's ambient-mode screensaver, if you pick **Now Playing** or **Clock** in wiiOS Settings → Screensaver & Sleep.
+
+**Stays, because it's the Android system underneath:**
+- Wi-Fi, Ethernet, Bluetooth (remotes, controllers, headphones, soundbars) and HDMI-CEC.
+- The Play Store, app and system updates, and your Google account.
+- Chromecast built-in (casting from your phone) and Spotify Connect.
+- The Google Assistant / Gemini voice button.
+- Every app, including its own ads, if it has any. wiiOS only removes the ads on the home screen.
+
+**The remote:** Google's home screen was what answered the **YouTube** and **Input** buttons. The install script sees that it's a Google TV and switches on wiiOS's `InputKeyService`, which answers them instead (`INPUT_KEY_SERVICE=0` leaves it off). If your remote has other app buttons (Netflix and so on) that stop working, find their key code with `tools/tv.py 'logcat -v time -s InputReader:D'` while pressing the button, and add `keycode:package` to `app_keys` in `launcher/app/src/main/res/values/config.xml`.
+
+**Undo** (see [Undo](#undo)) turns Google's home screen back on, and the box is exactly as it came.
+
 ## What you need
 
 - A computer (Windows, macOS or Linux) on the **same Wi-Fi** as the stick.

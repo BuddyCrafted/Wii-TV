@@ -108,6 +108,13 @@ if [ -z "${STOCK_LAUNCHER:-}" ]; then
   esac
 fi
 echo "Stock launcher: $STOCK_LAUNCHER"
+# Google TV (onn. 4K / 4K Pro, Chromecast): once launcherx is off, the remote's Input and YouTube buttons, which
+# only it answered, do nothing. InputKeyService brings them back, so it is on by default there
+# (INPUT_KEY_SERVICE=0 to leave it off).
+if [ "$STOCK_LAUNCHER" = com.google.android.apps.tv.launcherx ] && [ -z "${INPUT_KEY_SERVICE:-}" ]; then
+  INPUT_KEY_SERVICE=1
+  echo "Google TV: the remote's Input and YouTube buttons will be handled by InputKeyService."
+fi
 HOME_QUERY='cmd package resolve-activity --brief -a android.intent.action.MAIN -c android.intent.category.HOME'
 if [ "$STOCK_LAUNCHER" = none ]; then DISABLE_STOCK="echo stock launcher left alone"
 else DISABLE_STOCK="pm disable-user --user 0 $STOCK_LAUNCHER"; fi
