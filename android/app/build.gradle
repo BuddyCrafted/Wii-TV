@@ -1,0 +1,47 @@
+plugins {
+    id 'com.android.application'
+}
+
+android {
+    namespace 'com.example.wiitv'
+    compileSdk 34
+
+    defaultConfig {
+        applicationId 'com.example.wiitv'
+        minSdk 23
+        targetSdk 34
+        versionCode 1
+        versionName '1.0.0'
+    }
+
+    buildTypes {
+        release {
+            minifyEnabled false
+            // Signed with the debug key so `assembleRelease` installs out of the box.
+            // Replace with your own keystore before distributing.
+            signingConfig signingConfigs.debug
+        }
+    }
+
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_17
+        targetCompatibility JavaVersion.VERSION_17
+    }
+
+    // The web UI lives in ../../web and is packaged as assets/web/.
+    sourceSets {
+        main {
+            assets.srcDirs = ['build/generated/webassets']
+        }
+    }
+}
+
+def copyWeb = tasks.register('copyWebAssets', Sync) {
+    from(rootProject.file('../web'))
+    into(layout.buildDirectory.dir('generated/webassets/web'))
+}
+tasks.named('preBuild') { dependsOn copyWeb }
+
+dependencies {
+    implementation 'androidx.webkit:webkit:1.12.1'
+}
