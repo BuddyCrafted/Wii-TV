@@ -249,6 +249,7 @@ final class ForecastView extends View {
 
     /** Grey glossy bar of three buttons, as at the top and bottom of the channel's pages. */
     private void drawButtonBar(Canvas c, float top, float bottom, String left, String mid, String right, int highlight) {
+        paint.setColor(0xFFFFFFFF);
         paint.setShader(new LinearGradient(0, top, 0, bottom, 0xFFF7F7F7, 0xFFC9C9C9, Shader.TileMode.CLAMP));
         c.drawRect(0, top, 1920, bottom, paint);
         paint.setShader(null);
@@ -256,6 +257,7 @@ final class ForecastView extends View {
         String[] labels = {left, mid, right};
         for (int i = 0; i < 3; i++) {
             if (i == highlight) {
+                paint.setColor(0xFFFFFFFF);
                 paint.setShader(new LinearGradient(0, top, 0, bottom, 0xFF5AB4F0, 0xFF1F78C8, Shader.TileMode.CLAMP));
                 c.drawRect(xs[i] + 3, top + 3, xs[i + 1] - 3, bottom - 3, paint);
                 paint.setShader(null);
@@ -282,9 +284,11 @@ final class ForecastView extends View {
     private void drawHeader(Canvas c, float top, float bottom, String title) {
         paint.setColor(NAVY);
         c.drawRect(0, top, 1920, bottom, paint);
+        paint.setColor(0xFFFFFFFF);
         paint.setShader(new LinearGradient(0, top, 0, bottom, GREEN, GREEN_DARK, Shader.TileMode.CLAMP));
         c.drawRect(0, top + 8, 640, bottom - 8, paint);
         rect.set(600, top + 14, 1900, bottom - 14);
+        paint.setColor(0xFFFFFFFF);
         paint.setShader(new LinearGradient(0, rect.top, 0, rect.bottom, GREEN_LIGHT, GREEN, Shader.TileMode.CLAMP));
         c.drawRoundRect(rect, rect.height() / 2f, rect.height() / 2f, paint);
         paint.setShader(null);
@@ -312,6 +316,7 @@ final class ForecastView extends View {
 
     /** The blue board, with the world map faintly behind it, as on the console. */
     private void drawBody(Canvas c, float top, float bottom) {
+        paint.setColor(0xFFFFFFFF);
         paint.setShader(new LinearGradient(0, top, 0, bottom, new int[] {BLUE_TOP, BLUE_MID, BLUE_TOP},
                 new float[] {0f, 0.55f, 1f}, Shader.TileMode.CLAMP));
         c.drawRect(0, top, 1920, bottom, paint);
@@ -340,6 +345,7 @@ final class ForecastView extends View {
         text.setTextAlign(Paint.Align.LEFT);
         c.drawText(getContext().getString(R.string.wx_credits), 40, (top + bottom) / 2f + 10, text);
         // Red ribbon fading in from the left, solid under the time.
+        paint.setColor(0xFFFFFFFF);
         paint.setShader(new LinearGradient(1000, 0, 1360, 0, 0x00D3202A, 0xFFD3202A, Shader.TileMode.CLAMP));
         c.drawRect(1000, top + 6, 1920, bottom - 6, paint);
         paint.setShader(null);
@@ -447,8 +453,10 @@ final class ForecastView extends View {
             Weather.Day d = r.days.get(i + 1);
             float x = x0 + i * colW;
             // Day name on a darker cell, as on the console's board.
+            paint.setColor(0xFFFFFFFF);
             paint.setShader(new LinearGradient(0, 280, 0, 380, 0xFF16348C, 0xFF0D2470, Shader.TileMode.CLAMP));
             c.drawRect(x + 6, 280, x + colW - 6, 380, paint);
+            paint.setColor(0xFFFFFFFF);
             paint.setShader(new LinearGradient(0, 380, 0, 880, 0x553E86F0, 0x22184AB8, Shader.TileMode.CLAMP));
             c.drawRect(x + 6, 384, x + colW - 6, 880, paint);
             paint.setShader(null);
@@ -483,6 +491,7 @@ final class ForecastView extends View {
         path.addRoundRect(frame, 70, 70, Path.Direction.CW);
         c.clipPath(path);
         // Top: the channel's blue name bar.
+        paint.setColor(0xFFFFFFFF);
         paint.setShader(new LinearGradient(0, 30, 0, 190, 0xFF3F8FE8, 0xFF1A55C0, Shader.TileMode.CLAMP));
         c.drawRect(frame.left, 30, frame.right, 190, paint);
         paint.setShader(null);
@@ -499,6 +508,7 @@ final class ForecastView extends View {
         if (report != null) drawCurrentBody(c, report, 330, 760);
         drawInfoStrip(c, 760, 820);
         // Bottom: the console's grey panel with Wii Menu / Start.
+        paint.setColor(0xFFFFFFFF);
         paint.setShader(new LinearGradient(0, 820, 0, 1050, 0xFFF4F4F4, 0xFFD0D0D4, Shader.TileMode.CLAMP));
         c.drawRect(frame.left, 820, frame.right, 1050, paint);
         paint.setShader(null);
@@ -524,6 +534,7 @@ final class ForecastView extends View {
 
     private void drawPill(Canvas c, RectF r, boolean on) {
         float rad = r.height() / 2f;
+        paint.setColor(0xFFFFFFFF);
         paint.setShader(new LinearGradient(0, r.top, 0, r.bottom, 0xFFFFFFFF, 0xFFE0E0E0, Shader.TileMode.CLAMP));
         c.drawRoundRect(r, rad, rad, paint);
         paint.setShader(null);
@@ -563,6 +574,7 @@ final class ForecastView extends View {
         float r = gr * f, cx = gx * f, cy = gy * f;
 
         // Atmosphere glow.
+        paint.setColor(0xFFFFFFFF);
         paint.setShader(new RadialGradient(gx, gy, gr * 1.12f, new int[] {0x00000000, 0x00000000, 0x664FA8FF, 0x00000000},
                 new float[] {0f, 0.86f, 0.9f, 1f}, Shader.TileMode.CLAMP));
         c.drawCircle(gx, gy, gr * 1.12f, paint);
@@ -572,6 +584,7 @@ final class ForecastView extends View {
             Bitmap b = globe.render(cx, cy, r, tiltC, lonShown);
             c.drawBitmap(b, null, new RectF(0, 0, 1920, 1080), paint);
         } else {
+            paint.setColor(0xFFFFFFFF);
             paint.setShader(new RadialGradient(gx - gr * 0.35f, gy - gr * 0.35f, gr * 1.3f, 0xFF4F9BFF, 0xFF0B2E7A, Shader.TileMode.CLAMP));
             c.drawCircle(gx, gy, gr, paint);
             paint.setShader(null);
@@ -617,6 +630,7 @@ final class ForecastView extends View {
         drawButtonBar(c, 966, 1080, getContext().getString(R.string.wx_end), "", getContext().getString(R.string.wx_restore), 1);
         // "CURRENT WEATHER" tag.
         rect.set(1320, 130, 1900, 200);
+        paint.setColor(0xFFFFFFFF);
         paint.setShader(new LinearGradient(rect.left, 0, rect.right, 0, 0x0013A537, GREEN, Shader.TileMode.CLAMP));
         c.drawRect(rect, paint);
         paint.setShader(null);

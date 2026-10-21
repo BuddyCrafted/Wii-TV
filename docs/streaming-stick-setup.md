@@ -166,6 +166,18 @@ The first channel is the **Forecast Channel**, modelled on the Wii's. Its tile s
 - **Location:** found automatically from your internet connection. To choose a city instead, go to **wiiOS Settings → Weather → Location → Search for a city**. Units (°F / °C) are on the same page.
 - Like any channel, you can move it or hide it (hold OK).
 
+## Shop Channel
+
+The second channel is the **Shop Channel**, a Wii Shop-style app store that sits in front of the real stores.
+
+- **Home:** categories (Popular Titles, Movies & TV, Music & Podcasts, Games & Emulators, Tools & App Stores) and **Installed & Updates**. It plays its own original background tune.
+- **Lists** look like the console's: picture, name, publisher, where the app comes from, and "Free" / "Installed" / "Update", with the scroll bar and page arrow.
+- **Each app's page** has a description and one button:
+  - **Google Play apps** (Netflix, Spotify, YouTube…): **Get it from the store** opens the app's Play page; on Fire TV it's the Amazon Appstore. Play installs its own apps, which also keeps sign-ins and purchases working.
+  - **Open-source apps** (F-Droid, GitHub releases, direct links): **Download** shows the Wii-style *Downloading…* screen with a progress bar. Android's own Install confirmation then follows. GitHub downloads pick the APK that matches the device's CPU.
+  - Already installed: **Open**, or **Update** when the source has a newer version.
+- **Adding or removing apps:** edit `launcher/app/src/main/res/raw/shop_catalog.json` and push to `main`. Devices pick up the new catalog within six hours, with no app update needed. The copy inside the APK is used offline.
+
 ## Language
 
 The menu is **English**, whatever language the device itself is set to. To change it, go to **wiiOS Settings → Language** and pick any of the 20+ languages. The menu reloads in that language right away. Only wiiOS changes; the device's own menus keep their language. The new screens (Settings, Screensaver & Sleep and so on) are written in English so far, so other languages show English for those words until they're translated.

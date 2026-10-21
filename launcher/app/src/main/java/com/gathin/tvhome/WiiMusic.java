@@ -22,11 +22,18 @@ final class WiiMusic {
 
     private final java.io.File cache;
 
+    private final MenuMusic.Song song;
+
     WiiMusic(android.content.Context context, boolean enabled) {
+        this(context, enabled, MenuMusic.MENU, "menu_music_v1.pcm");
+    }
+
+    WiiMusic(android.content.Context context, boolean enabled, MenuMusic.Song song, String cacheName) {
         this.enabled = enabled;
+        this.song = song;
         // The rendered loop is kept on disk: Android often kills the launcher on a 1 GB stick while another app
         // runs, and reading 1.7 MB back is much cheaper than rendering it again on a 1.7 GHz CPU.
-        this.cache = new java.io.File(context.getApplicationContext().getFilesDir(), "menu_music_v1.pcm");
+        this.cache = new java.io.File(context.getApplicationContext().getFilesDir(), cacheName);
     }
 
     /** The menu came to the front. */
@@ -82,7 +89,7 @@ final class WiiMusic {
     }
 
     private short[] loadOrRender() {
-        int n = MenuMusic.length();
+        int n = MenuMusic.length(song);
         if (cache.length() == n * 2L) {
             try (java.io.DataInputStream in = new java.io.DataInputStream(
                     new java.io.BufferedInputStream(new java.io.FileInputStream(cache), 1 << 16))) {
@@ -95,7 +102,7 @@ final class WiiMusic {
                 // fall through and render
             }
         }
-        short[] pcm = MenuMusic.render();
+        short[] pcm = MenuMusic.render(song);
         try (java.io.FileOutputStream out = new java.io.FileOutputStream(cache)) {
             java.nio.ByteBuffer b = java.nio.ByteBuffer.allocate(pcm.length * 2).order(java.nio.ByteOrder.LITTLE_ENDIAN);
             b.asShortBuffer().put(pcm);

@@ -197,6 +197,28 @@
     <string name="wx_globe_tag">CURRENT WEATHER</string>
     <string name="wx_globe_loading">Loading the globe…</string>
     <string name="wx_globe_keys">Arrows spin · OK next city · ⏪ ⏩ zoom · ☰ restore</string>
+    <string name="shop_title">Shop Channel</string>
+    <string name="shop_channel">Shop Channel</string>
+    <string name="shop_welcome">Welcome! Every app here is free. Pick a category to start shopping.</string>
+    <string name="shop_installed">Installed &amp; Updates</string>
+    <string name="shop_installed_tag">Installed</string>
+    <string name="shop_free">Free</string>
+    <string name="shop_update">Update</string>
+    <string name="shop_open">Open</string>
+    <string name="shop_download">Download</string>
+    <string name="shop_get_store">Get it from the store</string>
+    <string name="shop_from">From %1$s</string>
+    <string name="shop_from_web">its website</string>
+    <string name="shop_have_version">You have %1$s</string>
+    <string name="shop_latest_version">Latest %1$s</string>
+    <string name="shop_titles_free">titles · all free</string>
+    <string name="shop_none">Nothing here yet.</string>
+    <string name="shop_downloading">Downloading…</string>
+    <string name="shop_installing">Installing… confirm on the next screen.</string>
+    <string name="shop_dont_turn_off">Please don\'t turn off the power.</string>
+    <string name="shop_press_back">Press Back to return.</string>
+    <string name="shop_failed">The download failed: %1$s</string>
+    <string name="shop_no_store">There\'s no app store on this device to get it from.</string>
     <string name="set_remote">Remote Buttons</string>
     <string name="set_remote_shortcuts">Shortcut buttons</string>
     <string name="set_remote_add">Add a button</string>
@@ -221,6 +243,6 @@
     <string name="upd_checking">Checking for updates…</string>
     <string name="upd_downloading">Downloading the update…</string>
     <string name="upd_error">Update check failed: %1$s</string>
-    <string name="upd_failed">The update did not install. %1$s</string>
+    <string name="upd_failed">The install did not finish. %1$s</string>
     <string name="wii_no_media">Install Kodi, VLC or a file manager to use the SD button</string>
 </resources>

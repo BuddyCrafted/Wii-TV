@@ -116,8 +116,8 @@ final class Updater {
             String error = null;
             try {
                 File apk = new File(app.getCacheDir(), "update.apk");
-                download(r.apkUrl, apk);
-                commit(app, apk);
+                download(r.apkUrl, apk, null);
+                commit(app, apk, app.getPackageName());
             } catch (IOException | RuntimeException e) {
                 error = e.getMessage() == null ? e.toString() : e.getMessage();
             }
@@ -126,10 +126,11 @@ final class Updater {
         }, "wii-update-install").start();
     }
 
-    private static void commit(Context context, File apk) throws IOException {
+    /** Hands an APK to the package installer; the result comes to UpdateReceiver (which shows any confirmation). */
+    static void commit(Context context, File apk, String pkg) throws IOException {
         PackageInstaller installer = context.getPackageManager().getPackageInstaller();
         PackageInstaller.SessionParams params = new PackageInstaller.SessionParams(PackageInstaller.SessionParams.MODE_FULL_INSTALL);
-        params.setAppPackageName(context.getPackageName());
+        params.setAppPackageName(pkg);
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
             params.setRequireUserAction(PackageInstaller.SessionParams.USER_ACTION_NOT_REQUIRED);
         }
@@ -175,15 +176,25 @@ final class Updater {
         }
     }
 
-    private static void download(String url, File to) throws IOException {
+    interface Progress {
+        /** 0..1, or -1 when the size is unknown. Called on the download thread. */
+        void at(float fraction);
+    }
+
+    static void download(String url, File to, Progress progress) throws IOException {
         HttpURLConnection c = open(url);
         c.setRequestProperty("Accept", "application/octet-stream");
         try {
             if (c.getResponseCode() != 200) throw new IOException("HTTP " + c.getResponseCode());
+            long total = c.getContentLengthLong(), done = 0;
             try (InputStream in = c.getInputStream(); OutputStream out = new FileOutputStream(to)) {
                 byte[] buf = new byte[64 * 1024];
                 int n;
-                while ((n = in.read(buf)) > 0) out.write(buf, 0, n);
+                while ((n = in.read(buf)) > 0) {
+                    out.write(buf, 0, n);
+                    done += n;
+                    if (progress != null) progress.at(total > 0 ? (float) done / total : -1f);
+                }
             }
         } finally {
             c.disconnect();

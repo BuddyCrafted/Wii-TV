@@ -1,0 +1,43 @@
+{
+  "version": 1,
+  "about": "The Shop Channel's catalog. Edit and push: devices load the copy on main from GitHub, and fall back to the one bundled in the APK. source: play (opens Google Play, or the Amazon Appstore on Fire TV), fdroid (downloads from f-droid.org), github (latest release APK, matched to the device's CPU), url (a direct APK link).",
+  "categories": [
+    {"id": "popular", "name": "Popular Titles"},
+    {"id": "streaming", "name": "Movies & TV"},
+    {"id": "music", "name": "Music & Podcasts"},
+    {"id": "games", "name": "Games & Emulators"},
+    {"id": "tools", "name": "Tools & App Stores"}
+  ],
+  "apps": [
+    {"pkg": "com.google.android.youtube.tv", "name": "YouTube", "publisher": "Google", "color": "#E62117", "source": "play", "categories": ["popular", "streaming"], "about": "Videos, shows and music from YouTube."},
+    {"pkg": "com.netflix.ninja", "name": "Netflix", "publisher": "Netflix, Inc.", "color": "#141414", "source": "play", "categories": ["popular", "streaming"], "about": "Movies, TV shows and games. Needs a Netflix plan."},
+    {"pkg": "com.disney.disneyplus", "name": "Disney+", "publisher": "Disney", "color": "#0E2A6B", "source": "play", "categories": ["popular", "streaming"], "about": "Disney, Pixar, Marvel, Star Wars and National Geographic."},
+    {"pkg": "com.amazon.amazonvideo.livingroom", "name": "Prime Video", "publisher": "Amazon", "color": "#00A8E1", "source": "play", "categories": ["streaming"], "about": "Movies and series with Prime."},
+    {"pkg": "com.wbd.stream", "name": "Max", "publisher": "Warner Bros. Discovery", "color": "#002BE7", "source": "play", "categories": ["streaming"], "about": "HBO, Warner Bros. and Discovery shows and movies."},
+    {"pkg": "com.hulu.livingroomplus", "name": "Hulu", "publisher": "Hulu", "color": "#1CE783", "source": "play", "categories": ["streaming"], "about": "Current-season TV, originals and movies."},
+    {"pkg": "com.cbs.ott", "name": "Paramount+", "publisher": "Paramount", "color": "#0064FF", "source": "play", "categories": ["streaming"], "about": "Paramount, CBS and Nickelodeon shows and movies."},
+    {"pkg": "com.peacocktv.peacockandroid", "name": "Peacock", "publisher": "NBCUniversal", "color": "#000000", "source": "play", "categories": ["streaming"], "about": "NBC shows, movies, sports and news."},
+    {"pkg": "tv.pluto.android", "name": "Pluto TV", "publisher": "Paramount", "color": "#2B2B2B", "source": "play", "categories": ["popular", "streaming"], "about": "Free live TV channels and movies."},
+    {"pkg": "com.tubitv", "name": "Tubi", "publisher": "Tubi, Inc.", "color": "#7408FF", "source": "play", "categories": ["streaming"], "about": "Free movies and TV with ads."},
+    {"pkg": "com.plexapp.android", "name": "Plex", "publisher": "Plex, Inc.", "color": "#282A2D", "source": "play", "categories": ["streaming", "music"], "about": "Your own media server, plus free movies and live TV."},
+    {"pkg": "org.jellyfin.androidtv", "name": "Jellyfin", "publisher": "Jellyfin", "color": "#00A4DC", "source": "play", "categories": ["streaming"], "about": "Open-source client for your own Jellyfin media server."},
+    {"pkg": "org.xbmc.kodi", "name": "Kodi", "publisher": "XBMC Foundation", "color": "#17B2E7", "source": "play", "categories": ["streaming", "music"], "about": "Open-source media center for your own videos, music and photos."},
+    {"pkg": "org.videolan.vlc", "name": "VLC", "publisher": "VideoLAN", "color": "#FF8800", "source": "play", "categories": ["streaming", "tools"], "about": "Plays almost any video or audio file, from USB or the network."},
+    {"pkg": "tv.twitch.android.app", "name": "Twitch", "publisher": "Twitch", "color": "#9146FF", "source": "play", "categories": ["streaming", "games"], "about": "Live game streams and creators."},
+    {"pkg": "com.crunchyroll.crunchyroid", "name": "Crunchyroll", "publisher": "Crunchyroll", "color": "#F47521", "source": "play", "categories": ["streaming"], "about": "Anime, simulcast after Japan."},
+    {"pkg": "com.spotify.tv.android", "name": "Spotify", "publisher": "Spotify AB", "color": "#1DB954", "source": "play", "categories": ["popular", "music"], "about": "Music and podcasts. Works with Spotify Connect and the Now Playing screensaver."},
+    {"pkg": "com.google.android.youtube.tvmusic", "name": "YouTube Music", "publisher": "Google", "color": "#FF0000", "source": "play", "categories": ["music"], "about": "Songs, albums and music videos."},
+    {"pkg": "com.pandora.android.atv", "name": "Pandora", "publisher": "Pandora Media", "color": "#3668FF", "source": "play", "categories": ["music"], "about": "Personalized radio stations and podcasts."},
+    {"pkg": "au.com.shiftyjelly.pocketcasts", "name": "Pocket Casts", "publisher": "Automattic", "color": "#F43E37", "source": "play", "categories": ["music"], "about": "Podcast player."},
+    {"pkg": "com.retroarch", "name": "RetroArch", "publisher": "Libretro", "color": "#4B4B4B", "source": "play", "categories": ["popular", "games"], "about": "Emulators for classic consoles, with multiplayer and controller support. Use games you own or homebrew."},
+    {"pkg": "com.swordfish.lemuroid", "name": "Lemuroid", "publisher": "Swordfish90", "color": "#3B4CCA", "source": "play", "categories": ["games"], "about": "Simple, TV-friendly retro emulator. Use games you own or homebrew."},
+    {"pkg": "com.limelight", "name": "Moonlight", "publisher": "Moonlight Game Streaming", "color": "#3A3A3A", "source": "play", "categories": ["games"], "about": "Stream games from your own gaming PC."},
+    {"pkg": "com.valvesoftware.steamlink", "name": "Steam Link", "publisher": "Valve", "color": "#1B2838", "source": "play", "categories": ["games"], "about": "Play your Steam library from your PC on the TV."},
+    {"pkg": "com.esaba.downloader", "name": "Downloader", "publisher": "AFTVnews", "color": "#E77F22", "source": "play", "categories": ["tools"], "about": "Browser and file downloader made for TV remotes."},
+    {"pkg": "com.yablio.sendfilestotv", "name": "Send Files to TV", "publisher": "Yablio", "color": "#2F80ED", "source": "play", "categories": ["tools"], "about": "Send files and APKs from your phone to the TV over Wi-Fi."},
+    {"pkg": "com.lonelycatgames.Xplore", "name": "X-plore", "publisher": "Lonely Cat Games", "color": "#2D9CDB", "source": "play", "categories": ["tools"], "about": "File manager for USB drives, the network and the cloud."},
+    {"pkg": "org.fdroid.fdroid", "name": "F-Droid", "publisher": "F-Droid", "color": "#1976D2", "source": "url", "url": "https://f-droid.org/F-Droid.apk", "categories": ["tools"], "about": "App store for free and open-source Android apps."},
+    {"pkg": "com.aurora.store", "name": "Aurora Store", "publisher": "Rahul Kumar Patel", "color": "#4F46E5", "source": "fdroid", "categories": ["tools"], "about": "Open-source way into Google Play's catalog, without a Google account."},
+    {"pkg": "dev.imranr.obtainium", "name": "Obtainium", "publisher": "Imran Remtulla", "color": "#6750A4", "source": "github", "repo": "ImranR98/Obtainium", "categories": ["tools"], "about": "Installs and updates apps straight from their GitHub, GitLab or F-Droid pages."}
+  ]
+}

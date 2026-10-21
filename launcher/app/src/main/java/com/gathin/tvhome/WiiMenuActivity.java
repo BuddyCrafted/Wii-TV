@@ -42,6 +42,7 @@ public class WiiMenuActivity extends Activity implements WiiMenuView.Listener {
     private static final String KEY_MUSIC = "music";
     /** Built-in channels have keys no package can have. */
     static final String FORECAST_KEY = "wiios.forecast";
+    static final String SHOP_KEY = "wiios.shop";
     /** Debug: freeze the menu in the reference capture's state, for comparing screenshots against it. */
     static final String EXTRA_REF_POSE = "ref_pose";
 
@@ -238,6 +239,9 @@ public class WiiMenuActivity extends Activity implements WiiMenuView.Listener {
                     new Intent(this, ForecastActivity.class)));
         }
 
+        allChannels.put(SHOP_KEY, new WiiMenuView.Channel(SHOP_KEY, getString(R.string.shop_channel),
+                new ShopBanner(getString(R.string.shop_channel)), null, new Intent(this, ShopActivity.class)));
+
         Set<String> userHidden = userHidden();
         List<WiiMenuView.Channel> channels = new ArrayList<>();
         for (WiiMenuView.Channel ch : allChannels.values()) {
@@ -246,6 +250,7 @@ public class WiiMenuActivity extends Activity implements WiiMenuView.Listener {
         // The Forecast Channel comes first until it is moved, like the console's own channels.
         List<String> dock = new ArrayList<>();
         dock.add(FORECAST_KEY);
+        dock.add(SHOP_KEY);
         dock.addAll(Arrays.asList(getResources().getStringArray(R.array.dock_apps)));
         ChannelOrder.sort(channels, c -> c.key, c -> c.label,
                 ChannelOrder.split(prefs.getString(KEY_ORDER, "")), dock);

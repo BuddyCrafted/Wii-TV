@@ -14,8 +14,24 @@ final class MenuMusic {
     private MenuMusic() {}
 
     static final int RATE = 22050;
-    private static final double BEAT = 60.0 / 100.0;
-    private static final double BAR = 4 * BEAT;
+
+    /** A tune: tempo, chords and roots per bar, melody, and the chord and bass rhythms within a bar. */
+    static final class Song {
+        final double beat, bar;
+        final int[][] chords;
+        final int[] roots;
+        final double[][] melody, comp, bass;
+
+        Song(double bpm, int[][] chords, int[] roots, double[][] melody, double[][] comp, double[][] bass) {
+            this.beat = 60.0 / bpm;
+            this.bar = 4 * beat;
+            this.chords = chords;
+            this.roots = roots;
+            this.melody = melody;
+            this.comp = comp;
+            this.bass = bass;
+        }
+    }
 
     /** Chords (MIDI) per bar: an I-vi-ii-V turnaround in F with colour tones, then a variation. */
     private static final int[][] CHORDS = {
@@ -50,39 +66,83 @@ final class MenuMusic {
     private static final double[][] COMP = {{0, 0.9}, {1.5, 0.5}, {2.5, 1.0}, {3.5, 0.4}};
     private static final double[][] BASS = {{0, 1.4}, {1.5, 0.4}, {2, 1.4}, {3.5, 0.4}};
 
+    /** The channel menu's loop. */
+    static final Song MENU = new Song(100, CHORDS, ROOTS, MELODY, COMP, BASS);
+
+    /**
+     * The Shop Channel's loop: an original, brighter bossa in C at 118 BPM (a I-VI-ii-V turnaround with a
+     * minor-iv colour), with a skipping melody. Not a copy of any real tune.
+     */
+    static final Song SHOP = new Song(118,
+            new int[][] {
+                {48, 52, 55, 59}, {45, 49, 55, 57}, {50, 53, 57, 60}, {43, 47, 53, 57},
+                {52, 55, 59, 62}, {45, 49, 55, 57}, {50, 53, 57, 60}, {43, 47, 53, 57},
+                {53, 57, 60, 64}, {53, 56, 60, 62}, {52, 55, 59, 62}, {45, 49, 55, 57},
+                {50, 53, 57, 60}, {43, 47, 53, 57}, {48, 52, 55, 59}, {43, 47, 53, 57},
+            },
+            new int[] {36, 45, 38, 43, 40, 45, 38, 43, 41, 41, 40, 45, 38, 43, 36, 43},
+            new double[][] {
+                {0, 0.5, 76, 0.5}, {0, 1, 79, 1}, {0, 2.5, 77, 0.5}, {0, 3, 76, 1},
+                {1, 0, 73, 1.5}, {1, 2, 76, 0.5}, {1, 2.5, 79, 1.5},
+                {2, 0.5, 77, 0.5}, {2, 1, 81, 1}, {2, 2.5, 79, 0.5}, {2, 3, 77, 1},
+                {3, 0, 74, 2.5}, {3, 3, 71, 0.5}, {3, 3.5, 74, 0.5},
+                {4, 0.5, 79, 0.5}, {4, 1, 83, 1}, {4, 2.5, 81, 0.5}, {4, 3, 79, 1},
+                {5, 0, 76, 1.5}, {5, 2, 79, 0.5}, {5, 2.5, 85, 1.5},
+                {6, 0.5, 84, 0.5}, {6, 1, 81, 1}, {6, 2.5, 77, 0.5}, {6, 3, 74, 1},
+                {7, 0, 77, 1}, {7, 1.5, 79, 2.5},
+                {8, 0.5, 81, 0.5}, {8, 1, 84, 1}, {8, 2.5, 81, 0.5}, {8, 3, 77, 1},
+                {9, 0, 80, 2}, {9, 2.5, 77, 1.5},
+                {10, 0.5, 79, 0.5}, {10, 1, 83, 1}, {10, 2.5, 79, 0.5}, {10, 3, 76, 1},
+                {11, 0, 73, 2}, {11, 2.5, 76, 1.5},
+                {12, 0, 77, 0.5}, {12, 0.5, 76, 0.5}, {12, 1, 74, 1}, {12, 2.5, 72, 0.5}, {12, 3, 74, 1},
+                {13, 0, 71, 1.5}, {13, 2, 74, 0.5}, {13, 2.5, 77, 1.5},
+                {14, 0, 76, 3}, {14, 3.5, 74, 0.5},
+                {15, 0, 72, 2}, {15, 3, 79, 1},
+            },
+            new double[][] {{0, 0.6}, {1.5, 0.4}, {2, 0.6}, {3.5, 0.4}},
+            new double[][] {{0, 1.2}, {1.5, 0.4}, {2, 1.2}, {3, 0.4}});
+
     static double hz(double midi) {
         return 440.0 * Math.pow(2, (midi - 69) / 12.0);
     }
 
-    /** Samples in the loop. */
+    /** Samples in the menu loop. */
     static int length() {
-        return (int) (RATE * BAR * CHORDS.length);
+        return length(MENU);
+    }
+
+    static int length(Song song) {
+        return (int) (RATE * song.bar * song.chords.length);
+    }
+
+    static short[] render() {
+        return render(MENU);
     }
 
     /** The whole loop as 16-bit mono PCM at RATE. */
-    static short[] render() {
-        float[] buf = new float[length()];
+    static short[] render(Song song) {
+        float[] buf = new float[length(song)];
         Random rng = new Random(11);
-        for (int b = 0; b < CHORDS.length; b++) {
-            double t0 = b * BAR;
-            for (double[] hit : COMP) {
+        for (int b = 0; b < song.chords.length; b++) {
+            double t0 = b * song.bar;
+            for (double[] hit : song.comp) {
                 for (int k = 0; k < 4; k++) {
-                    double at = t0 + hit[0] * BEAT + k * 0.008;
-                    epiano(buf, hz(CHORDS[b][k]), hit[1] * BEAT + 0.6, k == 0 ? 0.07 : 0.06, at);
+                    double at = t0 + hit[0] * song.beat + k * 0.008;
+                    epiano(buf, hz(song.chords[b][k]), hit[1] * song.beat + 0.6, k == 0 ? 0.07 : 0.06, at);
                 }
             }
-            for (int i = 0; i < BASS.length; i++) {
-                int note = i % 2 == 0 ? ROOTS[b] : ROOTS[b] + 7;
-                bass(buf, hz(note), BASS[i][1] * BEAT + 0.2, 0.22, t0 + BASS[i][0] * BEAT);
+            for (int i = 0; i < song.bass.length; i++) {
+                int note = i % 2 == 0 ? song.roots[b] : song.roots[b] + 7;
+                bass(buf, hz(note), song.bass[i][1] * song.beat + 0.2, 0.22, t0 + song.bass[i][0] * song.beat);
             }
             for (int e = 0; e < 8; e++) {
-                shaker(buf, 0.12, 0.035 * (e % 2 == 1 ? 1.0 : 0.55), t0 + e * BEAT / 2, rng);
+                shaker(buf, 0.12, 0.035 * (e % 2 == 1 ? 1.0 : 0.55), t0 + e * song.beat / 2, rng);
             }
         }
-        for (double[] m : MELODY) {
-            double at = m[0] * BAR + m[1] * BEAT;
-            musicBox(buf, hz(m[2]), m[3] * BEAT + 0.5, 0.16, at);
-            musicBox(buf, hz(m[2] + 12), m[3] * BEAT + 0.3, 0.03, at + 0.004);
+        for (double[] m : song.melody) {
+            double at = m[0] * song.bar + m[1] * song.beat;
+            musicBox(buf, hz(m[2]), m[3] * song.beat + 0.5, 0.16, at);
+            musicBox(buf, hz(m[2] + 12), m[3] * song.beat + 0.3, 0.03, at + 0.004);
         }
         // Soft limiter, then normalise with headroom under the interface sounds.
         float peak = 1e-6f;
