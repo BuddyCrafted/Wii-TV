@@ -10,6 +10,7 @@ public class MenuMusicTest {
     @Test
     public void loopIsSixteenBarsAndAudible() {
         short[] pcm = MenuMusic.render();
+        assertEquals(MenuMusic.length(), pcm.length);   // the on-disk cache is sized by length()
         // 16 bars of 4 beats at 100 BPM.
         assertEquals((int) (MenuMusic.RATE * 16 * 4 * 0.6), pcm.length, MenuMusic.RATE / 100);
         int peak = 0;

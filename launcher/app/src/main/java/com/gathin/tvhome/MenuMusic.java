@@ -54,9 +54,14 @@ final class MenuMusic {
         return 440.0 * Math.pow(2, (midi - 69) / 12.0);
     }
 
+    /** Samples in the loop. */
+    static int length() {
+        return (int) (RATE * BAR * CHORDS.length);
+    }
+
     /** The whole loop as 16-bit mono PCM at RATE. */
     static short[] render() {
-        float[] buf = new float[(int) (RATE * BAR * CHORDS.length)];
+        float[] buf = new float[length()];
         Random rng = new Random(11);
         for (int b = 0; b < CHORDS.length; b++) {
             double t0 = b * BAR;

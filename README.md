@@ -13,6 +13,7 @@ Español: [README.es.md](README.es.md)
 This repository is [MauroProto/wii-tv](https://github.com/MauroProto/wii-tv) with the same look, extended for **streaming sticks and boxes** (Fire TV Stick, onn. 4K / 4K Pro, Chromecast with Google TV and other Google TV / Android TV devices), plus a few features of its own.
 
 **→ Step-by-step setup for making it your home screen: [docs/streaming-stick-setup.md](docs/streaming-stick-setup.md)**
+**→ 2020–2022 Fire TV Stick (3rd Gen, Lite, 4K Max 1st Gen): [docs/fire-tv-stick-2021.md](docs/fire-tv-stick-2021.md)**
 
 What's added on top of upstream:
 

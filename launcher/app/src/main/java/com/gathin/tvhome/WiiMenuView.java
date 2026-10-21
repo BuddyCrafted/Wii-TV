@@ -227,6 +227,8 @@ public class WiiMenuView extends View {
     private float settingsAlpha;
     private float[] settingsLift = new float[SETTINGS_ROWS + 1];
     private String backLabel = "Back";
+    /** 1 GB devices: channel art at 16 bits a pixel (tiles are opaque, so nothing is lost but a little banding). */
+    private boolean lowMemory;
 
     /** OK went down on a channel; it opens on release, or shows the options if held. */
     private boolean okPending;
@@ -399,6 +401,10 @@ public class WiiMenuView extends View {
         invalidate();
     }
 
+    void setLowMemory(boolean low) {
+        lowMemory = low;
+    }
+
     void setBackLabel(String label) {
         backLabel = label;
     }
@@ -465,11 +471,13 @@ public class WiiMenuView extends View {
             case KeyEvent.KEYCODE_DPAD_LEFT:
             case KeyEvent.KEYCODE_BUTTON_L1:
             case KeyEvent.KEYCODE_PAGE_UP:
+            case KeyEvent.KEYCODE_MEDIA_REWIND:
                 if (p.sheet > 0) p.sheet--;
                 break;
             case KeyEvent.KEYCODE_DPAD_RIGHT:
             case KeyEvent.KEYCODE_BUTTON_R1:
             case KeyEvent.KEYCODE_PAGE_DOWN:
+            case KeyEvent.KEYCODE_MEDIA_FAST_FORWARD:
                 if (p.sheet < sheets - 1) p.sheet++;
                 break;
             default:
@@ -636,9 +644,15 @@ public class WiiMenuView extends View {
             listener.onMenuKey();
             return true;
         }
+        // Shoulder buttons, and the Fire TV remote's rewind / fast-forward keys, turn the page.
         if (keyCode == KeyEvent.KEYCODE_BUTTON_L1 || keyCode == KeyEvent.KEYCODE_PAGE_UP
-                || keyCode == KeyEvent.KEYCODE_BUTTON_R1 || keyCode == KeyEvent.KEYCODE_PAGE_DOWN) {
-            turnPage(keyCode == KeyEvent.KEYCODE_BUTTON_R1 || keyCode == KeyEvent.KEYCODE_PAGE_DOWN ? 1 : -1);
+                || keyCode == KeyEvent.KEYCODE_MEDIA_REWIND) {
+            turnPage(-1);
+            return true;
+        }
+        if (keyCode == KeyEvent.KEYCODE_BUTTON_R1 || keyCode == KeyEvent.KEYCODE_PAGE_DOWN
+                || keyCode == KeyEvent.KEYCODE_MEDIA_FAST_FORWARD) {
+            turnPage(1);
             return true;
         }
         switch (keyCode) {
@@ -1133,7 +1147,7 @@ public class WiiMenuView extends View {
         tw = Math.max(1, tw);
         th = Math.max(1, th);
         if (ch.art != null && ch.art.getWidth() == tw && ch.art.getHeight() == th) return;
-        Bitmap bmp = Bitmap.createBitmap(tw, th, Bitmap.Config.ARGB_8888);
+        Bitmap bmp = Bitmap.createBitmap(tw, th, lowMemory ? Bitmap.Config.RGB_565 : Bitmap.Config.ARGB_8888);
         Canvas cv = new Canvas(bmp);
         cv.drawColor(0xFFFFFFFF);
         if (ch.banner != null) {

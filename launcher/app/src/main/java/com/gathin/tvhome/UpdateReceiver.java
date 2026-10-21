@@ -4,7 +4,6 @@ import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
 import android.content.pm.PackageInstaller;
-import android.os.Build;
 import android.provider.Settings;
 import android.widget.Toast;
 
@@ -41,7 +40,7 @@ public class UpdateReceiver extends BroadcastReceiver {
 
     /** On Fire TV, makes sure FireTvHomeService is in the enabled accessibility services. */
     static void ensureFireTvHome(Context context) {
-        if (!"Amazon".equalsIgnoreCase(Build.MANUFACTURER)) return;
+        if (!DeviceProfile.fireTv()) return;
         String svc = context.getPackageName() + "/" + FireTvHomeService.class.getName();
         try {
             String cur = Settings.Secure.getString(context.getContentResolver(), Settings.Secure.ENABLED_ACCESSIBILITY_SERVICES);

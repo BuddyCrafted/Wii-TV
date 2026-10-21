@@ -100,10 +100,11 @@ public class WiiMenuActivity extends Activity implements WiiMenuView.Listener {
                 getString(R.string.wii_intro_continue));
         prefs = getSharedPreferences(PREFS, MODE_PRIVATE);
         sounds = new WiiSounds(this, prefs.getBoolean(KEY_SOUNDS, getResources().getBoolean(R.bool.wii_sounds)));
-        music = new WiiMusic(prefs.getBoolean(KEY_MUSIC, getResources().getBoolean(R.bool.wii_music)));
+        music = new WiiMusic(this, prefs.getBoolean(KEY_MUSIC, getResources().getBoolean(R.bool.wii_music)));
         menu.setSounds(sounds);
         menu.setSettingsLabel(getString(R.string.wii_settings_label));
         menu.setBackLabel(getString(R.string.set_back));
+        menu.setLowMemory(DeviceProfile.lowMemory(this));
         setContentView(menu);
         menu.requestFocus();
         introPending = firstStartThisBoot();
