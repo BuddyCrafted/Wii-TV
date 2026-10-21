@@ -178,6 +178,17 @@ public class WiiMenuActivity extends Activity implements WiiMenuView.Listener {
 
     @Override
     public boolean onKeyDown(int keyCode, KeyEvent event) {
+        if (capturingButton) {
+            if (keyCode == KeyEvent.KEYCODE_BACK || keyCode == KeyEvent.KEYCODE_BUTTON_B) {
+                capturingButton = false;
+                return true;
+            }
+            if (!RemoteButtons.reserved(keyCode)) {
+                capturingButton = false;
+                pickButtonApp(keyCode);
+                return true;
+            }
+        }
         if (menu.handleKey(keyCode, event)) return true;
         return super.onKeyDown(keyCode, event);
     }
@@ -300,6 +311,8 @@ public class WiiMenuActivity extends Activity implements WiiMenuView.Listener {
         items.add(item(R.string.wii_network, () -> openSetting(Settings.ACTION_WIFI_SETTINGS)));
         items.add(item(R.string.set_controllers, () -> openSetting(Settings.ACTION_BLUETOOTH_SETTINGS)));
 
+        items.add(new WiiMenuView.MenuItem(getString(R.string.set_remote), onOff(RemoteButtons.enabled(this)), () ->
+                menu.pushSettings(getString(R.string.set_remote), this::remoteSettings)));
         items.add(item(R.string.set_captions, () -> openSetting(Settings.ACTION_CAPTIONING_SETTINGS)));
         items.add(new WiiMenuView.MenuItem(getString(R.string.set_sleep), screensaverName(), () ->
                 menu.pushSettings(getString(R.string.set_sleep), this::sleepSettings)));
@@ -347,6 +360,57 @@ public class WiiMenuActivity extends Activity implements WiiMenuView.Listener {
                 menu.pushSettings(getString(R.string.set_update), this::updateSettings)));
         items.add(item(R.string.set_about, () -> openSetting(Settings.ACTION_DEVICE_INFO_SETTINGS)));
         return items;
+    }
+
+    // ---- remote buttons -----------------------------------------------------------------------------
+
+    /** Waiting for a remote button to add (Settings > Remote Buttons > Add a button). */
+    private boolean capturingButton;
+
+    private List<WiiMenuView.MenuItem> remoteSettings() {
+        List<WiiMenuView.MenuItem> items = new ArrayList<>();
+        boolean on = RemoteButtons.enabled(this);
+        items.add(new WiiMenuView.MenuItem(getString(R.string.set_remote_shortcuts), onOff(on), () -> {
+            RemoteButtons.prefs(this).edit().putBoolean(RemoteButtons.KEY_ON, !on).apply();
+            if (!on && !RemoteButtons.ensureService(this)) {
+                Toast.makeText(this, R.string.set_remote_needs, Toast.LENGTH_LONG).show();
+            }
+            menu.refreshSettings();
+        }));
+        java.util.Map<Integer, String> all = new java.util.LinkedHashMap<>(
+                RemoteKeys.parseAppKeys(getResources().getStringArray(R.array.app_keys)));
+        all.putAll(RemoteButtons.overrides(this));
+        for (java.util.Map.Entry<Integer, String> e : all.entrySet()) {
+            int code = e.getKey();
+            WiiMenuView.Channel ch = allChannels.get(e.getValue());
+            String value = e.getValue().isEmpty() ? getString(R.string.set_remote_none) : ch != null ? ch.label : e.getValue();
+            items.add(new WiiMenuView.MenuItem(RemoteButtons.name(code), value, () -> pickButtonApp(code)));
+        }
+        items.add(item(R.string.set_remote_add, () -> {
+            capturingButton = true;
+            Toast.makeText(this, R.string.set_remote_press, Toast.LENGTH_LONG).show();
+        }));
+        return items;
+    }
+
+    /** Which app a button opens: any channel, or nothing (the system's own behaviour). */
+    private void pickButtonApp(int code) {
+        List<WiiMenuView.MenuItem> items = new ArrayList<>();
+        items.add(new WiiMenuView.MenuItem(getString(R.string.set_remote_none), () -> {
+            RemoteButtons.set(this, code, "");
+            menu.refreshSettings();
+        }));
+        for (WiiMenuView.Channel ch : allChannels.values()) {
+            if (ch.key.startsWith("wiios.")) continue;
+            items.add(new WiiMenuView.MenuItem(ch.label, () -> {
+                RemoteButtons.set(this, code, ch.key);
+                RemoteButtons.ensureService(this);
+                menu.refreshSettings();
+                Toast.makeText(this, getString(R.string.set_remote_saved, RemoteButtons.name(code), ch.label),
+                        Toast.LENGTH_SHORT).show();
+            }));
+        }
+        menu.showMenu(RemoteButtons.name(code), items);
     }
 
     // ---- weather ------------------------------------------------------------------------------------

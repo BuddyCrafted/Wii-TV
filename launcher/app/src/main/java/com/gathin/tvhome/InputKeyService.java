@@ -23,13 +23,31 @@ public class InputKeyService extends AccessibilityService {
     private int[] inputKeycodes = new int[0];
     private Map<Integer, String> appKeys = Collections.emptyMap();
 
+    private Map<Integer, String> configKeys = Collections.emptyMap();
+    /** Settings > Remote Buttons changes take effect at once: the service runs in the launcher's process. */
+    private final android.content.SharedPreferences.OnSharedPreferenceChangeListener prefsChanged = (p, key) -> {
+        if (RemoteButtons.KEY_MAP.equals(key) || RemoteButtons.KEY_ON.equals(key)) reload();
+    };
+
     @Override
     protected void onServiceConnected() {
         super.onServiceConnected();
         // From config.xml or a theme's config.json; theme.sh rebinds this service after a push.
         Config config = Config.load(this);
         inputKeycodes = config.inputKeycodes;
-        appKeys = RemoteKeys.parseAppKeys(config.appKeys);
+        configKeys = RemoteKeys.parseAppKeys(config.appKeys);
+        reload();
+        RemoteButtons.prefs(this).registerOnSharedPreferenceChangeListener(prefsChanged);
+    }
+
+    private void reload() {
+        appKeys = RemoteButtons.effective(configKeys, RemoteButtons.overrides(this), RemoteButtons.enabled(this));
+    }
+
+    @Override
+    public void onDestroy() {
+        RemoteButtons.prefs(this).unregisterOnSharedPreferenceChangeListener(prefsChanged);
+        super.onDestroy();
     }
 
     private boolean isInputKey(int keyCode) {

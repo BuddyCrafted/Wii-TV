@@ -197,6 +197,13 @@
     <string name="wx_globe_tag">CURRENT WEATHER</string>
     <string name="wx_globe_loading">Loading the globe…</string>
     <string name="wx_globe_keys">Arrows spin · OK next city · ⏪ ⏩ zoom · ☰ restore</string>
+    <string name="set_remote">Remote Buttons</string>
+    <string name="set_remote_shortcuts">Shortcut buttons</string>
+    <string name="set_remote_add">Add a button</string>
+    <string name="set_remote_press">Press the button on your remote now (Back to cancel)</string>
+    <string name="set_remote_none">Nothing (system default)</string>
+    <string name="set_remote_saved">%1$s now opens %2$s</string>
+    <string name="set_remote_needs">wiiOS couldn\'t switch on its button helper. Run the install script once more.</string>
     <string name="set_weather">Weather</string>
     <string name="set_wx_location">Location</string>
     <string name="set_wx_auto">Automatic</string>
