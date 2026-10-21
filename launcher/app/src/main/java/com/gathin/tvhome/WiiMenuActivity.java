@@ -84,6 +84,12 @@ public class WiiMenuActivity extends Activity implements WiiMenuView.Listener {
     };
 
     @Override
+    protected void attachBaseContext(Context base) {
+        // English unless another language was picked in Settings > Language, whatever the TV's own is.
+        super.attachBaseContext(AppLanguage.wrap(base));
+    }
+
+    @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         menu = new WiiMenuView(this, this);
@@ -94,6 +100,7 @@ public class WiiMenuActivity extends Activity implements WiiMenuView.Listener {
         music = new WiiMusic(prefs.getBoolean(KEY_MUSIC, getResources().getBoolean(R.bool.wii_music)));
         menu.setSounds(sounds);
         menu.setSettingsLabel(getString(R.string.wii_settings_label));
+        menu.setBackLabel(getString(R.string.set_back));
         setContentView(menu);
         menu.requestFocus();
         introPending = firstStartThisBoot();
@@ -245,40 +252,184 @@ public class WiiMenuActivity extends Activity implements WiiMenuView.Listener {
         open(channel.intent);
     }
 
-    /** The round button bottom left: a menu of the system's own settings screens and the menu's switches. */
+    /** The round button bottom left (and Start on a controller): the Settings screen. */
     @Override
     public void onSettingsButton() {
-        showWiiMenu(0);
+        menu.pushSettings(getString(R.string.set_title, getString(R.string.wii_settings_label)), this::mainSettings);
     }
 
-    private void showWiiMenu(int selected) {
+    @Override
+    public void onMenuKey() {
+        if (!menu.settingsOpen()) onSettingsButton();
+    }
+
+    /**
+     * The main Settings sheets: the device's own screens first (they keep Wi-Fi, Bluetooth, picture and sound
+     * in the system's hands), then the menu's own switches.
+     */
+    private List<WiiMenuView.MenuItem> mainSettings() {
         List<WiiMenuView.MenuItem> items = new ArrayList<>();
-        items.add(new WiiMenuView.MenuItem(getString(R.string.wii_settings), () -> openSetting(Settings.ACTION_SETTINGS)));
-        items.add(new WiiMenuView.MenuItem(getString(R.string.wii_network), () -> openSetting(Settings.ACTION_WIFI_SETTINGS)));
-        items.add(new WiiMenuView.MenuItem(getString(R.string.wii_bluetooth), () -> openSetting(Settings.ACTION_BLUETOOTH_SETTINGS)));
-        items.add(new WiiMenuView.MenuItem(getString(music.isEnabled() ? R.string.wii_music_on : R.string.wii_music_off), () -> {
+        items.add(item(R.string.set_display, () -> openSetting(Settings.ACTION_DISPLAY_SETTINGS)));
+        items.add(item(R.string.set_sound, () -> openSetting(Settings.ACTION_SOUND_SETTINGS)));
+        items.add(item(R.string.wii_network, () -> openSetting(Settings.ACTION_WIFI_SETTINGS)));
+        items.add(item(R.string.set_controllers, () -> openSetting(Settings.ACTION_BLUETOOTH_SETTINGS)));
+
+        items.add(item(R.string.set_captions, () -> openSetting(Settings.ACTION_CAPTIONING_SETTINGS)));
+        items.add(new WiiMenuView.MenuItem(getString(R.string.set_sleep), screensaverName(), () ->
+                menu.pushSettings(getString(R.string.set_sleep), this::sleepSettings)));
+        items.add(new WiiMenuView.MenuItem(getString(R.string.set_language),
+                AppLanguage.displayName(AppLanguage.current(this)), () ->
+                menu.pushSettings(getString(R.string.set_language), this::languageSettings)));
+        if (!inputItems().isEmpty()) {
+            items.add(item(R.string.set_inputs, () -> menu.showMenu(getString(R.string.inputs), inputItems())));
+        }
+        items.add(item(R.string.set_date, () -> openSetting(Settings.ACTION_DATE_SETTINGS)));
+
+        items.add(item(R.string.set_accessibility, () -> openSetting(Settings.ACTION_ACCESSIBILITY_SETTINGS)));
+        items.add(item(R.string.set_apps, () -> openSetting(Settings.ACTION_APPLICATION_SETTINGS)));
+        items.add(item(R.string.set_storage, () -> openSetting(Settings.ACTION_INTERNAL_STORAGE_SETTINGS)));
+
+        items.add(new WiiMenuView.MenuItem(getString(R.string.set_music), onOff(music.isEnabled()), () -> {
             music.setEnabled(!music.isEnabled());
             prefs.edit().putBoolean(KEY_MUSIC, music.isEnabled()).apply();
-            showWiiMenu(3);
+            menu.refreshSettings();
         }));
-        items.add(new WiiMenuView.MenuItem(getString(sounds.isEnabled() ? R.string.wii_sounds_on : R.string.wii_sounds_off), () -> {
+        items.add(new WiiMenuView.MenuItem(getString(R.string.set_sounds), onOff(sounds.isEnabled()), () -> {
             sounds.setEnabled(!sounds.isEnabled());
             prefs.edit().putBoolean(KEY_SOUNDS, sounds.isEnabled()).apply();
-            showWiiMenu(4);
+            menu.refreshSettings();
         }));
         int hiddenCount = 0;
         for (String key : userHidden()) if (allChannels.containsKey(key)) hiddenCount++;
         if (hiddenCount > 0) {
-            items.add(new WiiMenuView.MenuItem(getString(R.string.wii_hidden, hiddenCount), this::showHiddenChannels));
+            items.add(new WiiMenuView.MenuItem(getString(R.string.set_hidden), String.valueOf(hiddenCount),
+                    this::showHiddenChannels));
         }
         if (!prefs.getString(KEY_ORDER, "").isEmpty()) {
-            items.add(new WiiMenuView.MenuItem(getString(R.string.wii_reset_order), () -> {
+            items.add(item(R.string.wii_reset_order, () -> {
                 prefs.edit().remove(KEY_ORDER).apply();
                 reloadApps();
+                menu.refreshSettings();
                 Toast.makeText(this, R.string.wii_order_reset, Toast.LENGTH_SHORT).show();
             }));
         }
-        menu.showMenu(getString(R.string.wii_menu_title, getString(R.string.wii_settings_label)), items, selected);
+        items.add(item(R.string.set_all, () -> openSetting(Settings.ACTION_SETTINGS)));
+        items.add(item(R.string.set_about, () -> openSetting(Settings.ACTION_DEVICE_INFO_SETTINGS)));
+        return items;
+    }
+
+    private WiiMenuView.MenuItem item(int label, Runnable action) {
+        return new WiiMenuView.MenuItem(getString(label), action);
+    }
+
+    private String onOff(boolean on) {
+        return getString(on ? R.string.set_on : R.string.set_off);
+    }
+
+    private List<WiiMenuView.MenuItem> languageSettings() {
+        List<WiiMenuView.MenuItem> items = new ArrayList<>();
+        String current = AppLanguage.current(this);
+        for (String tag : AppLanguage.tags()) {
+            items.add(new WiiMenuView.MenuItem(AppLanguage.displayName(tag),
+                    tag.equals(current) ? getString(R.string.set_selected) : null, () -> {
+                if (tag.equals(AppLanguage.current(this))) return;
+                AppLanguage.set(this, tag);
+                recreate();   // reloads every string in the new language; the menu opens fresh
+            }));
+        }
+        return items;
+    }
+
+    // ---- screensaver and sleep ---------------------------------------------------------------------
+
+    private static final int MIN = 60_000;
+    private static final int[] SS_DELAYS = {5 * MIN, 10 * MIN, 15 * MIN, 30 * MIN, 60 * MIN, SystemSettings.NEVER};
+    private static final int[] SLEEP_DELAYS = {30 * MIN, 60 * MIN, 120 * MIN, 240 * MIN, 480 * MIN, SystemSettings.NEVER};
+    private static final int[] DARK_MINUTES = {0, 5, 15, 30, 60};
+
+    private String component(Class<?> cls) {
+        return new android.content.ComponentName(this, cls).flattenToShortString();
+    }
+
+    private String screensaverName() {
+        String ss = SystemSettings.screensaver(this);
+        if (ss.contains("NowPlayingDream")) return getString(R.string.set_ss_nowplaying);
+        if (ss.contains(getPackageName() + "/") && ss.contains("ClockDream")) return getString(R.string.set_ss_clock);
+        return getString(R.string.set_ss_device);
+    }
+
+    private String duration(int ms) {
+        if (ms == SystemSettings.NEVER) return getString(R.string.set_never);
+        int min = ms / MIN;
+        return min >= 60 && min % 60 == 0 ? getString(R.string.set_hours, min / 60) : getString(R.string.set_minutes, min);
+    }
+
+    private List<WiiMenuView.MenuItem> sleepSettings() {
+        List<WiiMenuView.MenuItem> items = new ArrayList<>();
+        items.add(new WiiMenuView.MenuItem(getString(R.string.set_screensaver), screensaverName(), () ->
+                menu.pushSettings(getString(R.string.set_screensaver), () -> {
+                    List<WiiMenuView.MenuItem> list = new ArrayList<>();
+                    String now = screensaverName();
+                    String[] names = {getString(R.string.set_ss_nowplaying), getString(R.string.set_ss_clock),
+                            getString(R.string.set_ss_device)};
+                    String[] comps = {component(NowPlayingDream.class), component(ClockDream.class), null};
+                    for (int i = 0; i < names.length; i++) {
+                        final String comp = comps[i];
+                        list.add(new WiiMenuView.MenuItem(names[i], names[i].equals(now) ? getString(R.string.set_selected) : null, () -> {
+                            if (comp == null) openSetting(Settings.ACTION_DREAM_SETTINGS);
+                            else if (!SystemSettings.setScreensaver(this, comp)) needsGrant(Settings.ACTION_DREAM_SETTINGS);
+                            else menu.popSettings();
+                        }));
+                    }
+                    return list;
+                })));
+        items.add(new WiiMenuView.MenuItem(getString(R.string.set_ss_after), duration(SystemSettings.screensaverDelay(this)), () ->
+                chooseDuration(R.string.set_ss_after, SS_DELAYS, SystemSettings.screensaverDelay(this),
+                        ms -> SystemSettings.setScreensaverDelay(this, ms), Settings.ACTION_DREAM_SETTINGS)));
+        items.add(new WiiMenuView.MenuItem(getString(R.string.set_sleep_after), duration(SystemSettings.sleepAfter(this)), () ->
+                chooseDuration(R.string.set_sleep_after, SLEEP_DELAYS, SystemSettings.sleepAfter(this),
+                        ms -> SystemSettings.setSleepAfter(this, ms), Settings.ACTION_DREAM_SETTINGS)));
+        int dark = prefs.getInt(NowPlayingActivity.KEY_DARK, 0);
+        items.add(new WiiMenuView.MenuItem(getString(R.string.set_dark_after),
+                dark == 0 ? getString(R.string.set_never) : duration(dark * MIN), () ->
+                menu.pushSettings(getString(R.string.set_dark_after), () -> {
+                    List<WiiMenuView.MenuItem> list = new ArrayList<>();
+                    int cur = prefs.getInt(NowPlayingActivity.KEY_DARK, 0);
+                    for (int m : DARK_MINUTES) {
+                        String label = m == 0 ? getString(R.string.set_never) : duration(m * MIN);
+                        list.add(new WiiMenuView.MenuItem(label, m == cur ? getString(R.string.set_selected) : null, () -> {
+                            prefs.edit().putInt(NowPlayingActivity.KEY_DARK, m).apply();
+                            menu.popSettings();
+                        }));
+                    }
+                    return list;
+                })));
+        items.add(item(R.string.set_preview, () -> open(new Intent(this, NowPlayingActivity.class))));
+        items.add(item(R.string.set_device_ss, () -> openSetting(Settings.ACTION_DREAM_SETTINGS)));
+        return items;
+    }
+
+    private interface Writer {
+        boolean write(int ms);
+    }
+
+    private void chooseDuration(int title, int[] options, int current, Writer writer, String fallback) {
+        menu.pushSettings(getString(title), () -> {
+            List<WiiMenuView.MenuItem> list = new ArrayList<>();
+            for (int ms : options) {
+                list.add(new WiiMenuView.MenuItem(duration(ms), ms == current ? getString(R.string.set_selected) : null, () -> {
+                    if (writer.write(ms)) menu.popSettings();
+                    else needsGrant(fallback);
+                }));
+            }
+            return list;
+        });
+    }
+
+    /** The TV refused a settings write (the ADB grants are missing): say so and open its own page. */
+    private void needsGrant(String fallback) {
+        Toast.makeText(this, R.string.set_needs_grant, Toast.LENGTH_LONG).show();
+        openSetting(fallback);
     }
 
     /** A settings screen, falling back to the main Settings where a build lacks that page (Fire OS). */
@@ -300,6 +451,7 @@ public class WiiMenuActivity extends Activity implements WiiMenuView.Listener {
                 hidden.remove(key);
                 prefs.edit().putString(KEY_HIDDEN, ChannelOrder.join(new ArrayList<>(hidden))).apply();
                 reloadApps();
+                menu.refreshSettings();
             }));
         }
         menu.showMenu(getString(R.string.wii_hidden_title), items);
@@ -318,7 +470,7 @@ public class WiiMenuActivity extends Activity implements WiiMenuView.Listener {
             prefs.edit().putString(KEY_HIDDEN, ChannelOrder.join(new ArrayList<>(hidden))).apply();
             reloadApps();
             Toast.makeText(this, getString(R.string.wii_hidden_toast, channel.label,
-                    getString(R.string.wii_settings_label)), Toast.LENGTH_LONG).show();
+                    getString(R.string.set_title, getString(R.string.wii_settings_label))), Toast.LENGTH_LONG).show();
         }));
         items.add(new WiiMenuView.MenuItem(getString(R.string.library_app_info), () ->
                 open(new Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS, Uri.parse("package:" + channel.key))
@@ -350,6 +502,24 @@ public class WiiMenuActivity extends Activity implements WiiMenuView.Listener {
 
     @Override
     public void onInputsButton() {
+        List<WiiMenuView.MenuItem> items = inputItems();
+        // On a TV the envelope lists the inputs; a streaming stick has none, so it is the Message Board:
+        // the channels opened last, newest first. A TV gets those after its inputs.
+        boolean board = items.isEmpty();
+        for (String key : ChannelOrder.split(prefs.getString(KEY_RECENT, ""))) {
+            WiiMenuView.Channel ch = allChannels.get(key);
+            if (ch == null) continue;
+            items.add(new WiiMenuView.MenuItem(getString(R.string.wii_recent, ch.label), () -> onChannel(ch)));
+        }
+        if (items.isEmpty()) {
+            Toast.makeText(this, R.string.wii_board_empty, Toast.LENGTH_LONG).show();
+            return;
+        }
+        menu.showMenu(getString(board ? R.string.wii_message_board : R.string.inputs), items);
+    }
+
+    /** The TV's HDMI and other passthrough inputs, then Live TV; empty on a streaming stick. */
+    private List<WiiMenuView.MenuItem> inputItems() {
         List<WiiMenuView.MenuItem> items = new ArrayList<>();
         TvInputManager tim = (TvInputManager) getSystemService(TV_INPUT_SERVICE);
         if (tim != null) {
@@ -381,19 +551,7 @@ public class WiiMenuActivity extends Activity implements WiiMenuView.Listener {
             final Intent tv = liveTv.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
             items.add(new WiiMenuView.MenuItem(getString(R.string.live_tv), () -> open(tv)));
         }
-        // On a TV the envelope lists the inputs; a streaming stick has none, so it is the Message Board:
-        // the channels opened last, newest first. A TV gets those after its inputs.
-        boolean board = items.isEmpty();
-        for (String key : ChannelOrder.split(prefs.getString(KEY_RECENT, ""))) {
-            WiiMenuView.Channel ch = allChannels.get(key);
-            if (ch == null) continue;
-            items.add(new WiiMenuView.MenuItem(getString(R.string.wii_recent, ch.label), () -> onChannel(ch)));
-        }
-        if (items.isEmpty()) {
-            Toast.makeText(this, R.string.wii_board_empty, Toast.LENGTH_LONG).show();
-            return;
-        }
-        menu.showMenu(getString(board ? R.string.wii_message_board : R.string.inputs), items);
+        return items;
     }
 
     private void openInput(String inputId) {

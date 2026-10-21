@@ -112,9 +112,44 @@ tools/venv/bin/python tools/adb-closed.py 192.168.1.50
 
 The round buttons and the SD card:
 
-- **wiiOS** (bottom left): the menu with **Settings**, **Network & Wi-Fi**, **Remotes & Bluetooth**, **Music On/Off**, **Sounds On/Off**, **Hidden channels** (choose one to bring it back) and **Reset channel order**.
+- **wiiOS** (bottom left): **wiiOS Settings**, a full-screen settings screen styled like the Wii's. It has four big buttons per page; press left/right to change pages and use **Back** at the bottom to go back. Every device setting opens the stick's own page, so nothing has to be rebuilt:
+  - **Display & Picture**, **Sound & Speakers** (soundbar, surround, volume), **Network & Wi-Fi**, **Remotes, Controllers & Bluetooth**
+  - **Captions & Subtitles**, **Screensaver & Sleep**, **Language**, **Inputs (HDMI)** (only on TVs that have them), **Date & Time**
+  - **Accessibility**, **Apps**, **Storage**
+  - **Menu Music** and **Menu Sounds** (on/off), **Hidden Channels** (choose one to bring it back), **Reset channel order**, **All Device Settings**, **About This Device**
 - **SD**: opens your media or file app. That's the first one installed of Kodi, VLC, X-plore, Files, Photos or Plex (list: `sd_apps` in `launcher/app/src/main/res/values/config.xml`).
 - **Envelope** (bottom right): the **Message Board**, with the channels you opened most recently, newest first. On a TV with HDMI ports, the inputs come first.
+
+## Language
+
+The menu is **English**, whatever language the device itself is set to. To change it, go to **wiiOS Settings → Language** and pick any of the 20+ languages. The menu reloads in that language right away. Only wiiOS changes; the device's own menus keep their language. The new screens (Settings, Screensaver & Sleep and so on) are written in English so far, so other languages show English for those words until they're translated.
+
+## Game controllers and other remotes
+
+Anything the device can pair works as the remote. Pair it in **wiiOS Settings → Remotes, Controllers & Bluetooth**.
+
+- **Xbox (Bluetooth models, 2016 and later), PlayStation DualShock 4 / DualSense, 8BitDo and other Bluetooth gamepads**: hold the controller's pairing button, then choose it in the list. Fire TV and Google TV both support these natively.
+- On a controller: **D-pad or left stick** moves, **A** = OK, **B** = Back, **Y/X** = channel options, **LB/RB** turn the page, and **Start/Menu** opens wiiOS Settings.
+- **Bluetooth keyboards and air mice** work too: arrows, Enter and Esc.
+- **Your phone**: the Google TV app (onn./Google TV) or the Amazon Fire TV app (Fire TV) acts as a remote with a keyboard.
+- **The TV's own remote via HDMI-CEC**: on most TVs, turn on HDMI-CEC (Anynet+, Bravia Sync, SimpLink…) and the TV remote's arrows drive the stick.
+
+## Screensaver, music and turning the screen off
+
+Go to **wiiOS Settings → Screensaver & Sleep**:
+
+| Setting | What it does |
+| --- | --- |
+| **Screensaver** | **Now Playing** (artwork, title, artist and progress of whatever's playing in Spotify, YouTube Music, a podcast app…, plus the clock), **Clock**, or the device's own. |
+| **Start screensaver after** | How long without a key press before the screensaver comes on (5 min to 1 hr, or Never). |
+| **Turn screen off after** | How long before the device goes to sleep and the TV turns off (30 min to 8 hr, or Never). |
+| **Screensaver goes dark after** | The Now Playing screensaver fades to a **black screen** after this long, while the music or podcast keeps playing. Any key brings the picture back. |
+| **Preview screensaver** | Shows it now. It also works as a "music screen" you can open on purpose. |
+
+Notes:
+- **Listening with the screen dark:** use **Now Playing** plus **Screensaver goes dark after**. The audio keeps playing through the TV or soundbar while the picture is black, with no burn-in. "Turn screen off after" really puts the stick to sleep, and **that stops the audio**, so for long podcasts set it to Never or to longer than the episode.
+- **Spotify:** install **Spotify** from the Play Store (Google TV) or the Amazon Appstore (Fire TV) and it gets a channel like any other app. Start music, press **Home**, and it keeps playing while you browse. **Spotify Connect** also works: pick the stick from the Spotify app on your phone, and the Now Playing screensaver shows what's on.
+- The install script grants wiiOS permission to change these timers and to read what's playing. If a device refuses (some Fire OS versions), choosing a value opens the device's own screensaver page instead.
 
 ## Undo
 

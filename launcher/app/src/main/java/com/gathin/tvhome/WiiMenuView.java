@@ -52,6 +52,8 @@ public class WiiMenuView extends View {
         void onChannelOptions(Channel channel);
         /** A move started with startMove() was dropped; the list is the new channel order. */
         void onOrderChanged(List<Channel> order);
+        /** Start on a game controller, or Menu away from a channel. */
+        void onMenuKey();
     }
 
     static final class Channel {
@@ -75,10 +77,38 @@ public class WiiMenuView extends View {
     static final class MenuItem {
         final String label;
         final Runnable action;
+        /** Shown at the right of a Settings button (the current choice); null for none. */
+        final String value;
 
         MenuItem(String label, Runnable action) {
+            this(label, null, action);
+        }
+
+        MenuItem(String label, String value, Runnable action) {
             this.label = label;
+            this.value = value;
             this.action = action;
+        }
+    }
+
+    /** Builds a Settings page's buttons; called again after each choice so values stay current. */
+    interface PageSource {
+        List<MenuItem> items();
+    }
+
+    /** One full-screen Settings page in the style of the console's settings screens. */
+    private static final class SettingsPage {
+        final String title;
+        final PageSource source;
+        List<MenuItem> items;
+        /** Focused button; SETTINGS_BACK for the Back button. */
+        int focus;
+        int sheet;
+
+        SettingsPage(String title, PageSource source) {
+            this.title = title;
+            this.source = source;
+            this.items = source.items();
         }
     }
 
@@ -90,6 +120,17 @@ public class WiiMenuView extends View {
     private static final long INTRO_AUTO_MS = 12_000L;
     /** Menu rows shown at once; longer menus scroll with the focus. */
     private static final int MENU_ROWS = 6;
+
+    // Settings screen, in ref px like the rest: four big buttons a sheet, arrows to the other sheets, Back below.
+    private static final int SETTINGS_ROWS = 4;
+    private static final int SETTINGS_BACK = -1;
+    private static final float SET_BTN_W = 1120f;
+    private static final float SET_BTN_H = 124f;
+    private static final float SET_BTN_TOP = 250f;
+    private static final float SET_BTN_PITCH = 152f;
+    private static final float SET_BAND_TOP = 884f;
+    private static final float SET_ARROW_Y = 478f;
+    private static final float SET_BACK_L = 110f, SET_BACK_T = 930f, SET_BACK_R = 430f, SET_BACK_B = 1034f;
 
     // Channel frames: the box through the corner arcs' ends; the sides bow out by TILE_BULGE in the middle.
     private static final float TILE_X0 = 163f;
@@ -179,6 +220,11 @@ public class WiiMenuView extends View {
     private boolean menuOpen;
     private float[] menuLift = new float[0];
     private int menuFirst;
+
+    private final List<SettingsPage> settings = new ArrayList<>();
+    private float settingsAlpha;
+    private float[] settingsLift = new float[SETTINGS_ROWS + 1];
+    private String backLabel = "Back";
 
     /** OK went down on a channel; it opens on release, or shows the options if held. */
     private boolean okPending;
@@ -351,6 +397,109 @@ public class WiiMenuView extends View {
         invalidate();
     }
 
+    void setBackLabel(String label) {
+        backLabel = label;
+    }
+
+    boolean settingsOpen() {
+        return !settings.isEmpty();
+    }
+
+    /** Opens a Settings page on top of the menu, or on top of the Settings page already showing. */
+    void pushSettings(String title, PageSource source) {
+        settings.add(new SettingsPage(title, source));
+        menuOpen = false;
+        lastFrameNanos = 0;
+        invalidate();
+    }
+
+    /** Rebuilds the showing page's buttons, e.g. after a switch changed; the focus stays put. */
+    void refreshSettings() {
+        if (settings.isEmpty()) return;
+        SettingsPage p = top();
+        p.items = p.source.items();
+        if (p.focus >= p.items.size()) p.focus = p.items.size() - 1;
+        int sheets = sheets(p);
+        if (p.sheet >= sheets) p.sheet = sheets - 1;
+        invalidate();
+    }
+
+    /** Back on a Settings page: back to the page before, or to the menu. */
+    void popSettings() {
+        if (settings.isEmpty()) return;
+        settings.remove(settings.size() - 1);
+        if (!settings.isEmpty()) refreshSettings();
+        invalidate();
+    }
+
+    void closeSettings() {
+        settings.clear();
+        invalidate();
+    }
+
+    private SettingsPage top() {
+        return settings.get(settings.size() - 1);
+    }
+
+    private static int sheets(SettingsPage p) {
+        return Math.max(1, (p.items.size() + SETTINGS_ROWS - 1) / SETTINGS_ROWS);
+    }
+
+    private boolean settingsKey(int keyCode) {
+        SettingsPage p = top();
+        int sheets = sheets(p);
+        int first = p.sheet * SETTINGS_ROWS;
+        int onSheet = Math.min(SETTINGS_ROWS, p.items.size() - first);
+        int row = p.focus == SETTINGS_BACK ? -1 : p.focus - first;
+        int before = p.focus, sheetBefore = p.sheet;
+        switch (keyCode) {
+            case KeyEvent.KEYCODE_DPAD_UP:
+                if (p.focus == SETTINGS_BACK) p.focus = first + onSheet - 1;
+                else if (row > 0) p.focus--;
+                break;
+            case KeyEvent.KEYCODE_DPAD_DOWN:
+                if (p.focus != SETTINGS_BACK) p.focus = row < onSheet - 1 ? p.focus + 1 : SETTINGS_BACK;
+                break;
+            case KeyEvent.KEYCODE_DPAD_LEFT:
+            case KeyEvent.KEYCODE_BUTTON_L1:
+            case KeyEvent.KEYCODE_PAGE_UP:
+                if (p.sheet > 0) p.sheet--;
+                break;
+            case KeyEvent.KEYCODE_DPAD_RIGHT:
+            case KeyEvent.KEYCODE_BUTTON_R1:
+            case KeyEvent.KEYCODE_PAGE_DOWN:
+                if (p.sheet < sheets - 1) p.sheet++;
+                break;
+            default:
+                if (isOk(keyCode)) {
+                    if (p.focus == SETTINGS_BACK) {
+                        sound(WiiSounds.BACK);
+                        popSettings();
+                    } else if (p.focus >= 0 && p.focus < p.items.size()) {
+                        sound(WiiSounds.SELECT);
+                        p.items.get(p.focus).action.run();
+                    }
+                    return true;
+                }
+                if (keyCode == KeyEvent.KEYCODE_BUTTON_B) {
+                    sound(WiiSounds.BACK);
+                    popSettings();
+                    return true;
+                }
+                return keyCode == KeyEvent.KEYCODE_MENU;
+        }
+        if (p.sheet != sheetBefore && p.focus != SETTINGS_BACK) {
+            // Same row on the new sheet, or its last button.
+            int nf = p.sheet * SETTINGS_ROWS + Math.max(0, row);
+            p.focus = Math.min(nf, p.items.size() - 1);
+        }
+        if (p.focus != before || p.sheet != sheetBefore) {
+            sound(p.sheet != sheetBefore ? WiiSounds.PAGE : WiiSounds.MOVE);
+            invalidate();
+        }
+        return true;
+    }
+
     /** Picks up the focused channel; the arrows then carry it and OK or Back puts it down. */
     void startMove() {
         if (focus < 0 || focus >= channels.size()) return;
@@ -369,6 +518,11 @@ public class WiiMenuView extends View {
 
     /** Back: closes the menu or the welcome screen. False when there was nothing to close. */
     boolean back() {
+        if (!settings.isEmpty() && !menuOpen) {
+            sound(WiiSounds.BACK);
+            popSettings();
+            return true;
+        }
         if (moving) {
             endMove();
             return true;
@@ -408,12 +562,13 @@ public class WiiMenuView extends View {
     /** Key down from the activity; the event's repeat count tells a held OK apart from a press. */
     boolean handleKey(int keyCode, KeyEvent event) {
         if (!isOk(keyCode)) okPending = false;
-        if (moving || menuOpen || introAlpha > 0f || refPose) {
+        if (moving || menuOpen || !settings.isEmpty() || introAlpha > 0f || refPose) {
             if (event.getRepeatCount() > 0 && isOk(keyCode)) return true;
             return handleKey(keyCode);
         }
         boolean onChannel = focus >= 0 && focus < channels.size();
-        if (onChannel && keyCode == KeyEvent.KEYCODE_MENU) {
+        if (onChannel && (keyCode == KeyEvent.KEYCODE_MENU || keyCode == KeyEvent.KEYCODE_BUTTON_Y
+                || keyCode == KeyEvent.KEYCODE_BUTTON_X)) {
             if (event.getRepeatCount() == 0) {
                 sound(WiiSounds.MENU);
                 listener.onChannelOptions(channels.get(focus));
@@ -438,7 +593,7 @@ public class WiiMenuView extends View {
     boolean handleKeyUp(int keyCode) {
         if (!isOk(keyCode) || !okPending) return false;
         okPending = false;
-        if (focus >= 0 && focus < channels.size() && !menuOpen && !moving) activate();
+        if (focus >= 0 && focus < channels.size() && !menuOpen && !moving && settings.isEmpty()) activate();
         return true;
     }
 
@@ -467,7 +622,23 @@ public class WiiMenuView extends View {
             return true;
         }
         if (menuOpen) return menuKey(keyCode);
+        if (!settings.isEmpty()) return settingsKey(keyCode);
         if (moving) return moveKey(keyCode);
+        // Game controllers: B is Back, Start the wiiOS menu, the shoulder buttons turn the page.
+        if (keyCode == KeyEvent.KEYCODE_BUTTON_B) {
+            back();
+            return true;
+        }
+        if (keyCode == KeyEvent.KEYCODE_BUTTON_START || keyCode == KeyEvent.KEYCODE_MENU) {
+            sound(WiiSounds.MENU);
+            listener.onMenuKey();
+            return true;
+        }
+        if (keyCode == KeyEvent.KEYCODE_BUTTON_L1 || keyCode == KeyEvent.KEYCODE_PAGE_UP
+                || keyCode == KeyEvent.KEYCODE_BUTTON_R1 || keyCode == KeyEvent.KEYCODE_PAGE_DOWN) {
+            turnPage(keyCode == KeyEvent.KEYCODE_BUTTON_R1 || keyCode == KeyEvent.KEYCODE_PAGE_DOWN ? 1 : -1);
+            return true;
+        }
         switch (keyCode) {
             case KeyEvent.KEYCODE_DPAD_LEFT:
                 move(-1, 0);
@@ -529,6 +700,16 @@ public class WiiMenuView extends View {
             sound(page != pageBefore ? WiiSounds.PAGE : WiiSounds.MOVE);
             invalidate();
         }
+    }
+
+    private void turnPage(int delta) {
+        int np = Math.max(0, Math.min(pages - 1, page + delta));
+        if (np == page) return;
+        int i = focus >= 0 ? focus % SLOTS_PER_PAGE : 0;
+        page = np;
+        focus = page * SLOTS_PER_PAGE + i;
+        sound(WiiSounds.PAGE);
+        invalidate();
     }
 
     private boolean moveKey(int keyCode) {
@@ -613,6 +794,19 @@ public class WiiMenuView extends View {
 
     /** Where the hand's fingertip goes for this focus. */
     private void handTarget(int f, float[] out) {
+        if (!settings.isEmpty()) {
+            SettingsPage p = top();
+            if (p.focus == SETTINGS_BACK) {
+                out[0] = (SET_BACK_L + (SET_BACK_R - SET_BACK_L) * 0.72f) * s;
+                out[1] = (SET_BACK_T + (SET_BACK_B - SET_BACK_T) * 0.75f) * s;
+            } else {
+                // At the button's right end, clear of its text.
+                int row = p.focus - p.sheet * SETTINGS_ROWS;
+                out[0] = (WiiBase.CX + SET_BTN_W / 2f + 18f) * s;
+                out[1] = (SET_BTN_TOP + row * SET_BTN_PITCH + SET_BTN_H * 0.62f) * s;
+            }
+            return;
+        }
         if (refPose || f == Integer.MIN_VALUE) {
             out[0] = HAND_REF_X * s;
             out[1] = HAND_REF_Y * s;
@@ -832,6 +1026,17 @@ public class WiiMenuView extends View {
             if (menuLift[i] != t) moving = true;
         }
 
+        float st = settings.isEmpty() ? 0f : 1f;
+        settingsAlpha = approach(settingsAlpha, st, kMenu, 0.004f);
+        if (settingsAlpha != st) moving = true;
+        int sf = settings.isEmpty() ? -2 : top().focus;
+        int srow = settings.isEmpty() ? -2 : sf == SETTINGS_BACK ? SETTINGS_ROWS : sf - top().sheet * SETTINGS_ROWS;
+        for (int i = 0; i < settingsLift.length; i++) {
+            float t = i == srow ? 1f : 0f;
+            settingsLift[i] = approach(settingsLift[i], t, kLift, 0.002f);
+            if (settingsLift[i] != t) moving = true;
+        }
+
         if (introLeaving) {
             introAlpha = approach(introAlpha, 0f, 1f - (float) Math.exp(-dt / 0.2f), 0.004f);
             if (introAlpha == 0f) introLeaving = false;
@@ -858,6 +1063,7 @@ public class WiiMenuView extends View {
         drawSd(c);
         drawClock(c);
         drawDate(c);
+        if (settingsAlpha > 0f) drawSettings(c);
         drawHand(c);
         if (menuAlpha > 0f) drawMenu(c);
         if (introAlpha > 0f) drawIntro(c);
@@ -1252,6 +1458,105 @@ public class WiiMenuView extends View {
         if (menuFirst > 0) drawChevron(c, w / 2f, py + head - 26f * s, true);
         if (menuFirst + n < menuItems.size()) drawChevron(c, w / 2f, py + ph - 22f * s, false);
         c.restoreToCount(save);
+    }
+
+    /** The Settings screen: title and sheet number, four big buttons, arrows to other sheets, Back below. */
+    private void drawSettings(Canvas c) {
+        if (settings.isEmpty() && settingsAlpha <= 0f) return;
+        int a = Math.round(settingsAlpha * 255);
+        int save = a < 255 ? c.saveLayerAlpha(0, 0, w, h, a) : c.save();
+        if (base != null) {
+            // Only the striped part of the backdrop, above the channel panel, stretched to the full screen.
+            android.graphics.Rect src = new android.graphics.Rect(0, 0, base.getWidth(), Math.round(760f * s));
+            c.drawBitmap(base, src, new RectF(0, 0, w, h), bmpPaint);
+        } else {
+            c.drawColor(0xFFE9E9E9);
+        }
+        if (settings.isEmpty()) {
+            c.restoreToCount(save);
+            return;
+        }
+        SettingsPage p = top();
+        int sheets = sheets(p);
+
+        text.setTypeface(sansBold);
+        text.setTextSize(54f * s);
+        text.setTextAlign(Paint.Align.LEFT);
+        text.setColor(DATE_COLOR);
+        c.drawText(p.title, 150f * s, 150f * s, text);
+        if (sheets > 1) {
+            text.setTextAlign(Paint.Align.RIGHT);
+            text.setTextSize(46f * s);
+            c.drawText((p.sheet + 1) + " / " + sheets, 1770f * s, 150f * s, text);
+        }
+        stroke.setColor(0xFFC4C4C4);
+        stroke.setStrokeWidth(3f * s);
+        c.drawLine(120f * s, 186f * s, 1800f * s, 186f * s, stroke);
+
+        int first = p.sheet * SETTINGS_ROWS;
+        int onSheet = Math.min(SETTINGS_ROWS, p.items.size() - first);
+        for (int r = 0; r < onSheet; r++) {
+            MenuItem item = p.items.get(first + r);
+            float top = SET_BTN_TOP + r * SET_BTN_PITCH;
+            tmp.set((WiiBase.CX - SET_BTN_W / 2f) * s, top * s, (WiiBase.CX + SET_BTN_W / 2f) * s, (top + SET_BTN_H) * s);
+            drawPill(c, tmp, settingsLift[r]);
+            text.setTextSize(46f * s);
+            text.setColor(0xFF5E5E5E);
+            if (item.value == null) {
+                text.setTextAlign(Paint.Align.CENTER);
+                CharSequence l = TextUtils.ellipsize(item.label, text, tmp.width() - 80f * s, TextUtils.TruncateAt.END);
+                c.drawText(l, 0, l.length(), tmp.centerX(), tmp.centerY() + 16f * s, text);
+            } else {
+                text.setTextAlign(Paint.Align.RIGHT);
+                text.setColor(0xFF2E86BF);
+                float vw = Math.min(text.measureText(item.value), tmp.width() * 0.45f);
+                CharSequence v = TextUtils.ellipsize(item.value, text, vw, TextUtils.TruncateAt.END);
+                c.drawText(v, 0, v.length(), tmp.right - 64f * s, tmp.centerY() + 16f * s, text);
+                text.setTextAlign(Paint.Align.LEFT);
+                text.setColor(0xFF5E5E5E);
+                CharSequence l = TextUtils.ellipsize(item.label, text, tmp.width() - vw - 170f * s, TextUtils.TruncateAt.END);
+                c.drawText(l, 0, l.length(), tmp.left + 64f * s, tmp.centerY() + 16f * s, text);
+            }
+        }
+        if (p.sheet < sheets - 1) drawArrow(c, ARROW_TIP * s, SET_ARROW_Y * s, false);
+        if (p.sheet > 0) drawArrow(c, (2f * WiiBase.CX - ARROW_TIP) * s, SET_ARROW_Y * s, true);
+
+        // Bottom band with the blue rim, as under the channels, and the Back button on it.
+        fill.setShader(new LinearGradient(0, SET_BAND_TOP * s, 0, h, 0xFFF2F2F2, 0xFFD3D3D6, Shader.TileMode.CLAMP));
+        c.drawRect(0, SET_BAND_TOP * s, w, h, fill);
+        fill.setShader(null);
+        stroke.setColor(BLUE);
+        stroke.setStrokeWidth(5f * s);
+        c.drawLine(0, SET_BAND_TOP * s, w, SET_BAND_TOP * s, stroke);
+        tmp.set(SET_BACK_L * s, SET_BACK_T * s, SET_BACK_R * s, SET_BACK_B * s);
+        drawPill(c, tmp, settingsLift[SETTINGS_ROWS]);
+        text.setTextAlign(Paint.Align.CENTER);
+        text.setTextSize(44f * s);
+        text.setColor(0xFF5E5E5E);
+        c.drawText(backLabel, tmp.centerX(), tmp.centerY() + 15f * s, text);
+        c.restoreToCount(save);
+    }
+
+    /** A white rounded button with the grey rim, glowing blue as it is focused. */
+    private void drawPill(Canvas c, RectF r, float lf) {
+        float rad = Math.min(r.height() / 2f, 40f * s);
+        int sv = c.save();
+        float sc = 1f + 0.03f * lf;
+        c.scale(sc, sc, r.centerX(), r.centerY());
+        fill.setShader(new LinearGradient(0, r.top, 0, r.bottom, 0xFFFFFFFF, 0xFFE1E1E1, Shader.TileMode.CLAMP));
+        c.drawRoundRect(r, rad, rad, fill);
+        fill.setShader(null);
+        if (lf > 0.01f) {
+            for (int k = 3; k >= 1; k--) {
+                stroke.setColor(withAlpha(BLUE, (int) (lf * 70 / k)));
+                stroke.setStrokeWidth((4f + k * 6f) * s);
+                c.drawRoundRect(r, rad, rad, stroke);
+            }
+        }
+        stroke.setColor(blend(TILE_BORDER_COLOR, BLUE, lf));
+        stroke.setStrokeWidth((TILE_BORDER + 2f * lf) * s);
+        c.drawRoundRect(r, rad, rad, stroke);
+        c.restoreToCount(sv);
     }
 
     private void drawChevron(Canvas c, float cx, float cy, boolean up) {

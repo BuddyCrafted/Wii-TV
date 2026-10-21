@@ -12,6 +12,13 @@
     <!-- Needed since Android 10 to read the Wi-Fi network name for the network pill. Never requested at
          runtime: build-and-install grants it with pm grant, so lint's Android 12 "ask for COARSE with
          FINE" rule does not apply here. -->
+    <!-- Settings > Screensaver & sleep sets the TV's own timers. Both are granted only over ADB, by
+         build-and-install.sh (appops for WRITE_SETTINGS, pm grant for WRITE_SECURE_SETTINGS); without them the
+         launcher opens the system page instead. -->
+    <uses-permission android:name="android.permission.WRITE_SETTINGS"
+        tools:ignore="ProtectedPermissions" />
+    <uses-permission android:name="android.permission.WRITE_SECURE_SETTINGS"
+        tools:ignore="ProtectedPermissions" />
     <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION"
         tools:ignore="CoarseFineLocation" />
 
@@ -110,6 +117,34 @@
             <meta-data
                 android:name="android.accessibilityservice"
                 android:resource="@xml/home_key_service" />
+        </service>
+
+        <!-- Now Playing screensaver: the clock, and the artwork and title of what is playing. -->
+        <service
+            android:name=".NowPlayingDream"
+            android:label="@string/np_dream_name"
+            android:exported="true"
+            android:permission="android.permission.BIND_DREAM_SERVICE">
+            <intent-filter>
+                <action android:name="android.service.dreams.DreamService" />
+                <category android:name="android.intent.category.DEFAULT" />
+            </intent-filter>
+        </service>
+        <activity
+            android:name=".NowPlayingActivity"
+            android:exported="false"
+            android:excludeFromRecents="true"
+            android:screenOrientation="landscape"
+            android:theme="@android:style/Theme.Black.NoTitleBar.Fullscreen" />
+        <!-- Lets the Now Playing screensaver read media sessions; ignores notifications. Enabled over ADB. -->
+        <service
+            android:name=".MediaListener"
+            android:label="@string/np_listener_name"
+            android:exported="true"
+            android:permission="android.permission.BIND_NOTIFICATION_LISTENER_SERVICE">
+            <intent-filter>
+                <action android:name="android.service.notification.NotificationListenerService" />
+            </intent-filter>
         </service>
 
         <!-- Fire TV: Fire OS will not hand Home to another app, so this service takes the Home button and
