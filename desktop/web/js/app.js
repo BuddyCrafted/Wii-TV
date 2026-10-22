@@ -27,7 +27,9 @@ const prefs = {
 audio.soundsOn = prefs.get('sounds', true);
 audio.musicOn = prefs.get('music', true);
 
-let info = { build: 0, os: 'web', autostart: false };
+let info = { build: 0, version: '', os: 'web', autostart: false };
+/** "1.0 (build 30)": the version people see, and the build number updates compare. */
+const versionText = () => (info.version ? `${info.version} (build ${info.build})` : `build ${info.build}`);
 let all = new Map(); // key -> channel, hidden ones included
 let fullscreen = true;
 
@@ -197,7 +199,7 @@ function mainSettings() {
       menu.showNotice(String(e));
     }
   } });
-  items.push({ label: 'System Update', value: `build ${info.build}`, action: () => menu.pushSettings('System Update', updateSettings) });
+  items.push({ label: 'System Update', value: versionText(), action: () => menu.pushSettings('System Update', updateSettings) });
   items.push({ label: 'Power', action: () => menu.pushSettings('Power', powerSettings) });
   return items;
 }
@@ -209,7 +211,7 @@ function updateSettings() {
       prefs.set('autoUpdate', !prefs.get('autoUpdate', true));
       menu.refreshSettings();
     } },
-    { label: 'This version', value: `build ${info.build} · ${info.os}`, action: () => {} },
+    { label: 'This version', value: `${versionText()} · ${info.os}`, action: () => {} },
   ];
 }
 
@@ -285,7 +287,7 @@ async function checkForUpdate(manual) {
   }
   prefs.set('lastCheck', Date.now());
   if (!u) {
-    if (manual) menu.showNotice(`WiiOS is up to date (build ${info.build}).`);
+    if (manual) menu.showNotice(`WiiOS is up to date (${versionText()}).`);
     return;
   }
   menu.showNotice('', 1);

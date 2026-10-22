@@ -446,7 +446,7 @@ public class WiiMenuActivity extends Activity implements WiiMenuView.Listener {
             }));
         }
         items.add(item(R.string.set_all, () -> openSetting(Settings.ACTION_SETTINGS)));
-        items.add(new WiiMenuView.MenuItem(getString(R.string.set_update), "build " + BuildConfig.WIIOS_BUILD, () ->
+        items.add(new WiiMenuView.MenuItem(getString(R.string.set_update), BuildConfig.WIIOS_VERSION + " (build " + BuildConfig.WIIOS_BUILD + ")", () ->
                 menu.pushSettings(getString(R.string.set_update), this::updateSettings)));
         items.add(item(R.string.set_about, () -> openSetting(Settings.ACTION_DEVICE_INFO_SETTINGS)));
         return items;
@@ -579,7 +579,7 @@ public class WiiMenuActivity extends Activity implements WiiMenuView.Listener {
 
     private List<WiiMenuView.MenuItem> updateSettings() {
         List<WiiMenuView.MenuItem> items = new ArrayList<>();
-        items.add(new WiiMenuView.MenuItem(getString(R.string.set_upd_version), "build " + BuildConfig.WIIOS_BUILD, () -> { }));
+        items.add(new WiiMenuView.MenuItem(getString(R.string.set_upd_version), BuildConfig.WIIOS_VERSION + " (build " + BuildConfig.WIIOS_BUILD + ")", () -> { }));
         items.add(item(R.string.set_upd_check, () -> checkForUpdate(true)));
         items.add(new WiiMenuView.MenuItem(getString(R.string.set_upd_auto), onOff(prefs.getBoolean(Updater.KEY_AUTO, true)), () -> {
             prefs.edit().putBoolean(Updater.KEY_AUTO, !prefs.getBoolean(Updater.KEY_AUTO, true)).apply();

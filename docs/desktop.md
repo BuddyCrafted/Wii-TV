@@ -66,6 +66,13 @@ Settings, or GNOME/KDE settings on Linux). The other settings:
 - **System Update**: check now, or switch automatic updates off.
 - **Power**: Sleep, Restart, Shut down, or Close WiiOS.
 
+## Version numbers
+
+Every version of WiiOS (TV, Windows, Linux) shares one version number, set in the `VERSION` file at the top of
+the repository: **1.0**, then **1.1, 1.2…** for new features, **1.0.1**-style for fixes only, and **2.0** for a big
+milestone. Each release also has a build number (`build 30`) that always goes up; updates compare that, so a
+release is never skipped whatever the version says. Releases are titled like *WiiOS 1.0 (build 30)*.
+
 ## Updates
 
 WiiOS checks for a newer release once a day, and you can check any time in **Settings → System Update**. When

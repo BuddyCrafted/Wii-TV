@@ -11,6 +11,7 @@ use serde::Serialize;
 #[derive(Serialize)]
 struct Info {
     build: u32,
+    version: &'static str,
     os: &'static str,
     autostart: bool,
 }
@@ -22,7 +23,7 @@ async fn blocking<T: Send + 'static>(f: impl FnOnce() -> Result<T, String> + Sen
 
 #[tauri::command]
 fn info() -> Info {
-    Info { build: update::build(), os: std::env::consts::OS, autostart: system::autostart() }
+    Info { build: update::build(), version: env!("WIIOS_VERSION"), os: std::env::consts::OS, autostart: system::autostart() }
 }
 
 #[tauri::command]

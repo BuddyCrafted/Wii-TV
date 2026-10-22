@@ -3,6 +3,8 @@ plugins {
 }
 
 def wiiosBuild = (providers.gradleProperty('wiiosBuild').getOrElse('0')) as int
+// The version people see (1.0, 1.1, 2.0...), shared by every WiiOS version: the VERSION file at the repository root.
+def wiiosVersion = rootProject.file('../VERSION').text.trim()
 
 android {
     namespace 'com.gathin.tvhome'
@@ -15,8 +17,9 @@ android {
         targetSdk 34
         // CI passes -PwiiosBuild=<run number>; the in-app updater installs a release whose build is higher.
         versionCode 100 + wiiosBuild
-        versionName "WiiOS build ${wiiosBuild}"
+        versionName "${wiiosVersion} (build ${wiiosBuild})"
         buildConfigField 'int', 'WIIOS_BUILD', "${wiiosBuild}"
+        buildConfigField 'String', 'WIIOS_VERSION', "\"${wiiosVersion}\""
     }
 
     buildFeatures {

@@ -142,4 +142,4 @@ jobs:
           cp artifacts/WiiOS-apk/app-release.apk "WiiOS-build-$n.apk"
           gh release create "build-$n" "WiiOS-build-$n.apk" \
             artifacts/WiiOS-windows/WiiOS-windows-x64.exe artifacts/WiiOS-linux/WiiOS-linux-x86_64.AppImage \
-            --target "${{ github.sha }}" --title "WiiOS build $n" --notes "$(git log -1 --pretty=%B)"
+            --target "${{ github.sha }}" --title "WiiOS $(cat VERSION) (build $n)" --notes "$(git log -1 --pretty=%B)"
