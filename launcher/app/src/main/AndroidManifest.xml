@@ -195,6 +195,14 @@
             android:screenOrientation="landscape"
             android:theme="@android:style/Theme.Black.NoTitleBar.Fullscreen" />
 
+        <!-- Who's watching? and the profile look editor. -->
+        <activity
+            android:name=".ProfilesActivity"
+            android:exported="false"
+            android:excludeFromRecents="true"
+            android:screenOrientation="landscape"
+            android:theme="@android:style/Theme.Black.NoTitleBar.Fullscreen" />
+
         <!-- The Wii and Aquarium screensavers (SaverDream), and their preview. -->
         <service
             android:name=".SaverDream$Wii"

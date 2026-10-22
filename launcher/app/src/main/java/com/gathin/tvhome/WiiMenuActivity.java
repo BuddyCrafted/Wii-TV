@@ -67,6 +67,9 @@ public class WiiMenuActivity extends Activity implements WiiMenuView.Listener {
     /** The theme the current music was picked for. */
     private Theme musicTheme;
     private SharedPreferences prefs;
+    /** The current profile's own preferences: theme, accent, channel order, hidden and recent channels. */
+    private SharedPreferences my;
+    private int profileId;
     /** Every channel found on the last reload, hidden ones included, by package. */
     private final Map<String, WiiMenuView.Channel> allChannels = new LinkedHashMap<>();
     /** The welcome screen plays once per boot and whenever the screen comes back on, as at power-on. */
@@ -117,16 +120,22 @@ public class WiiMenuActivity extends Activity implements WiiMenuView.Listener {
         menu.setIntroText(getString(R.string.wii_intro_title), getString(R.string.wii_intro_body),
                 getString(R.string.wii_intro_continue));
         prefs = getSharedPreferences(PREFS, MODE_PRIVATE);
+        profileId = Profiles.current(this);
+        my = Profiles.prefs(this, profileId);
         sounds = new WiiSounds(this, prefs.getBoolean(KEY_SOUNDS, getResources().getBoolean(R.bool.wii_sounds)));
         themeFromIntent(getIntent());
-        musicTheme = Theme.load(prefs);
+        musicTheme = Theme.load(my);
         music = WiiMusic.forTheme(this, prefs.getBoolean(KEY_MUSIC, getResources().getBoolean(R.bool.wii_music)), musicTheme);
         menu.setSounds(sounds);
         menu.setSettingsLabel(getString(R.string.wii_settings_label));
         menu.setBackLabel(getString(R.string.set_back));
         menu.setLowMemory(DeviceProfile.lowMemory(this));
+        // Switched on with more than one profile: ask who's watching once the welcome screen is gone.
+        menu.setOnIntroDone(() -> {
+            if (Profiles.ask(this) && resumed) startActivity(new Intent(this, ProfilesActivity.class));
+        });
         SystemSettings.applyDefaultSleep(this, prefs);
-        menu.setTheme(Theme.load(prefs));
+        menu.setTheme(Theme.load(my));
         setContentView(menu);
         menu.requestFocus();
         introPending = firstStartThisBoot();
@@ -174,9 +183,10 @@ public class WiiMenuActivity extends Activity implements WiiMenuView.Listener {
             menu.postDelayed(() -> { if (resumed) FireTvHomeService.menuShown(); }, 60);
             menu.postDelayed(saveCover, 2500);
         }
+        if (Profiles.current(this) != profileId) switchProfile();
         if (appsDirty) reloadApps();
         // Automatic theme: a new month may bring a new look.
-        if (!Theme.load(prefs).id.equals(musicTheme.id)) applyTheme();
+        if (!Theme.load(my).id.equals(musicTheme.id)) applyTheme();
         menu.start();
         music.resume();
         UpdateReceiver.ensureFireTvHome(this);
@@ -288,6 +298,33 @@ public class WiiMenuActivity extends Activity implements WiiMenuView.Listener {
         return super.onKeyUp(keyCode, event);
     }
 
+    /** Another profile was picked: its own theme and channels, and a hello. */
+    private void switchProfile() {
+        profileId = Profiles.current(this);
+        my = Profiles.prefs(this, profileId);
+        appsDirty = true;
+        applyTheme();
+        Toast.makeText(this, getString(R.string.prof_hi, Profiles.name(this, profileId)), Toast.LENGTH_SHORT).show();
+    }
+
+    /** Settings > Profile. */
+    private List<WiiMenuView.MenuItem> profileSettings() {
+        List<WiiMenuView.MenuItem> items = new ArrayList<>();
+        items.add(new WiiMenuView.MenuItem(getString(R.string.set_prof_switch), () ->
+                startActivity(new Intent(this, ProfilesActivity.class))));
+        items.add(new WiiMenuView.MenuItem(getString(R.string.set_prof_edit), () ->
+                startActivity(new Intent(this, ProfilesActivity.class).putExtra(ProfilesActivity.EXTRA_EDIT, profileId))));
+        if (Profiles.nextId(this) >= 0) {
+            items.add(new WiiMenuView.MenuItem(getString(R.string.set_prof_add), () ->
+                    startActivity(new Intent(this, ProfilesActivity.class).putExtra(ProfilesActivity.EXTRA_EDIT, ProfilesActivity.EXTRA_NEW))));
+        }
+        items.add(new WiiMenuView.MenuItem(getString(R.string.set_prof_ask), onOff(prefs.getBoolean(Profiles.KEY_ASK, true)), () -> {
+            prefs.edit().putBoolean(Profiles.KEY_ASK, !prefs.getBoolean(Profiles.KEY_ASK, true)).apply();
+            menu.refreshSettings();
+        }));
+        return items;
+    }
+
     @Override
     public void onBackPressed() {
         // Home has nowhere to go back to; Back only closes what is open.
@@ -345,7 +382,7 @@ public class WiiMenuActivity extends Activity implements WiiMenuView.Listener {
         dock.add(GAMES_KEY);
         dock.addAll(Arrays.asList(getResources().getStringArray(R.array.dock_apps)));
         ChannelOrder.sort(channels, c -> c.key, c -> c.label,
-                ChannelOrder.split(prefs.getString(KEY_ORDER, "")), dock);
+                ChannelOrder.split(my.getString(KEY_ORDER, "")), dock);
         menu.setChannels(channels);
     }
 
@@ -378,7 +415,7 @@ public class WiiMenuActivity extends Activity implements WiiMenuView.Listener {
     }
 
     private Set<String> userHidden() {
-        return new HashSet<>(ChannelOrder.split(prefs.getString(KEY_HIDDEN, "")));
+        return new HashSet<>(ChannelOrder.split(my.getString(KEY_HIDDEN, "")));
     }
 
     private void open(Intent intent) {
@@ -392,8 +429,8 @@ public class WiiMenuActivity extends Activity implements WiiMenuView.Listener {
 
     @Override
     public void onChannel(WiiMenuView.Channel channel) {
-        List<String> recent = ChannelOrder.touchRecent(ChannelOrder.split(prefs.getString(KEY_RECENT, "")), channel.key);
-        prefs.edit().putString(KEY_RECENT, ChannelOrder.join(recent)).apply();
+        List<String> recent = ChannelOrder.touchRecent(ChannelOrder.split(my.getString(KEY_RECENT, "")), channel.key);
+        my.edit().putString(KEY_RECENT, ChannelOrder.join(recent)).apply();
         open(channel.intent);
     }
 
@@ -414,11 +451,13 @@ public class WiiMenuActivity extends Activity implements WiiMenuView.Listener {
      */
     private List<WiiMenuView.MenuItem> mainSettings() {
         List<WiiMenuView.MenuItem> items = new ArrayList<>();
-        Theme current = Theme.load(prefs);
-        items.add(new WiiMenuView.MenuItem(getString(R.string.set_theme), Theme.automatic(prefs)
+        items.add(new WiiMenuView.MenuItem(getString(R.string.set_profile), Profiles.name(this, profileId), () ->
+                menu.pushSettings(getString(R.string.set_profile), this::profileSettings)));
+        Theme current = Theme.load(my);
+        items.add(new WiiMenuView.MenuItem(getString(R.string.set_theme), Theme.automatic(my)
                 ? getString(R.string.theme_auto_now, themeName(Theme.byId(current.id))) : themeName(Theme.byId(current.id)), () ->
                 menu.pushSettings(getString(R.string.set_theme), this::themeSettings)));
-        items.add(new WiiMenuView.MenuItem(getString(R.string.set_accent), accentName(prefs.getInt(Theme.KEY_ACCENT, 0)), () ->
+        items.add(new WiiMenuView.MenuItem(getString(R.string.set_accent), accentName(my.getInt(Theme.KEY_ACCENT, 0)), () ->
                 menu.pushSettings(getString(R.string.set_accent), this::accentSettings)));
         items.add(item(R.string.set_display, () -> openSetting(Settings.ACTION_DISPLAY_SETTINGS)));
         items.add(item(R.string.set_sound, () -> openSetting(Settings.ACTION_SOUND_SETTINGS)));
@@ -462,9 +501,9 @@ public class WiiMenuActivity extends Activity implements WiiMenuView.Listener {
             items.add(new WiiMenuView.MenuItem(getString(R.string.set_hidden), String.valueOf(hiddenCount),
                     this::showHiddenChannels));
         }
-        if (!prefs.getString(KEY_ORDER, "").isEmpty()) {
+        if (!my.getString(KEY_ORDER, "").isEmpty()) {
             items.add(item(R.string.wii_reset_order, () -> {
-                prefs.edit().remove(KEY_ORDER).apply();
+                my.edit().remove(KEY_ORDER).apply();
                 reloadApps();
                 menu.refreshSettings();
                 Toast.makeText(this, R.string.wii_order_reset, Toast.LENGTH_SHORT).show();
@@ -662,15 +701,15 @@ public class WiiMenuActivity extends Activity implements WiiMenuView.Listener {
     /** Settings > Theme: picking one repaints the menu behind the sheet straight away. */
     private List<WiiMenuView.MenuItem> themeSettings() {
         List<WiiMenuView.MenuItem> items = new ArrayList<>();
-        String chosen = Theme.automatic(prefs) ? Theme.AUTO : Theme.byId(prefs.getString(Theme.KEY_THEME, Theme.CLASSIC.id)).id;
+        String chosen = Theme.automatic(my) ? Theme.AUTO : Theme.byId(my.getString(Theme.KEY_THEME, Theme.CLASSIC.id)).id;
         items.add(new WiiMenuView.MenuItem(getString(R.string.theme_auto), Theme.AUTO.equals(chosen) ? onOff(true) : null, () -> {
-            prefs.edit().putString(Theme.KEY_THEME, Theme.AUTO).apply();
+            my.edit().putString(Theme.KEY_THEME, Theme.AUTO).apply();
             applyTheme();
         }));
         for (int i = 0; i < Theme.ALL.length; i++) {
             Theme t = Theme.ALL[i];
             items.add(new WiiMenuView.MenuItem(getString(THEME_NAMES[i]), t.id.equals(chosen) ? onOff(true) : null, () -> {
-                prefs.edit().putString(Theme.KEY_THEME, t.id).apply();
+                my.edit().putString(Theme.KEY_THEME, t.id).apply();
                 applyTheme();
             }));
         }
@@ -680,11 +719,11 @@ public class WiiMenuActivity extends Activity implements WiiMenuView.Listener {
     /** Settings > Accent color: the focus glow, the line, the button rings, arrows, SD card and cursor. */
     private List<WiiMenuView.MenuItem> accentSettings() {
         List<WiiMenuView.MenuItem> items = new ArrayList<>();
-        int chosen = prefs.getInt(Theme.KEY_ACCENT, 0);
+        int chosen = my.getInt(Theme.KEY_ACCENT, 0);
         for (int i = 0; i < Theme.ACCENTS.length; i++) {
             int rgb = Theme.ACCENTS[i];
             items.add(new WiiMenuView.MenuItem(getString(ACCENT_NAMES[i]), rgb == chosen ? onOff(true) : null, () -> {
-                prefs.edit().putInt(Theme.KEY_ACCENT, rgb).apply();
+                my.edit().putInt(Theme.KEY_ACCENT, rgb).apply();
                 applyTheme();
             }));
         }
@@ -697,18 +736,18 @@ public class WiiMenuActivity extends Activity implements WiiMenuView.Listener {
         boolean changed = false;
         String id = intent.getStringExtra(EXTRA_THEME);
         if (id != null) {
-            prefs.edit().putString(Theme.KEY_THEME, Theme.AUTO.equals(id) ? Theme.AUTO : Theme.byId(id).id).apply();
+            my.edit().putString(Theme.KEY_THEME, Theme.AUTO.equals(id) ? Theme.AUTO : Theme.byId(id).id).apply();
             changed = true;
         }
         if (intent.hasExtra(EXTRA_ACCENT)) {
-            prefs.edit().putInt(Theme.KEY_ACCENT, intent.getIntExtra(EXTRA_ACCENT, 0) & 0xFFFFFF).apply();
+            my.edit().putInt(Theme.KEY_ACCENT, intent.getIntExtra(EXTRA_ACCENT, 0) & 0xFFFFFF).apply();
             changed = true;
         }
         return changed;
     }
 
     private void applyTheme() {
-        Theme theme = Theme.load(prefs);
+        Theme theme = Theme.load(my);
         menu.setTheme(theme);
         if ((theme.deco == Theme.Deco.SNOW) != (musicTheme.deco == Theme.Deco.SNOW)) {
             // Winter can have its own music file: swap it in, carrying on playing if the menu is in front.
@@ -928,7 +967,7 @@ public class WiiMenuActivity extends Activity implements WiiMenuView.Listener {
             items.add(new WiiMenuView.MenuItem(ch.label, () -> {
                 Set<String> hidden = userHidden();
                 hidden.remove(key);
-                prefs.edit().putString(KEY_HIDDEN, ChannelOrder.join(new ArrayList<>(hidden))).apply();
+                my.edit().putString(KEY_HIDDEN, ChannelOrder.join(new ArrayList<>(hidden))).apply();
                 reloadApps();
                 menu.refreshSettings();
             }));
@@ -946,7 +985,7 @@ public class WiiMenuActivity extends Activity implements WiiMenuView.Listener {
         items.add(new WiiMenuView.MenuItem(getString(R.string.wii_hide), () -> {
             Set<String> hidden = userHidden();
             hidden.add(channel.key);
-            prefs.edit().putString(KEY_HIDDEN, ChannelOrder.join(new ArrayList<>(hidden))).apply();
+            my.edit().putString(KEY_HIDDEN, ChannelOrder.join(new ArrayList<>(hidden))).apply();
             reloadApps();
             Toast.makeText(this, getString(R.string.wii_hidden_toast, channel.label,
                     getString(R.string.set_title, getString(R.string.wii_settings_label))), Toast.LENGTH_LONG).show();
@@ -1030,7 +1069,7 @@ public class WiiMenuActivity extends Activity implements WiiMenuView.Listener {
     public void onOrderChanged(List<WiiMenuView.Channel> order) {
         List<String> keys = new ArrayList<>();
         for (WiiMenuView.Channel ch : order) keys.add(ch.key);
-        prefs.edit().putString(KEY_ORDER, ChannelOrder.join(keys)).apply();
+        my.edit().putString(KEY_ORDER, ChannelOrder.join(keys)).apply();
     }
 
     /** SD: the TV's media player, or on a streaming stick the first media or file app installed. */
@@ -1054,7 +1093,7 @@ public class WiiMenuActivity extends Activity implements WiiMenuView.Listener {
         // On a TV the envelope lists the inputs; a streaming stick has none, so it is the Message Board:
         // the channels opened last, newest first. A TV gets those after its inputs.
         boolean board = items.isEmpty();
-        for (String key : ChannelOrder.split(prefs.getString(KEY_RECENT, ""))) {
+        for (String key : ChannelOrder.split(my.getString(KEY_RECENT, ""))) {
             WiiMenuView.Channel ch = allChannels.get(key);
             if (ch == null) continue;
             items.add(new WiiMenuView.MenuItem(getString(R.string.wii_recent, ch.label), () -> onChannel(ch)));

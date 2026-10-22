@@ -31,7 +31,7 @@ public class UpdateActivity extends Activity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         getWindow().addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
-        Theme theme = Theme.load(getSharedPreferences(WiiMenuActivity.PREFS, MODE_PRIVATE));
+        Theme theme = Theme.load(Profiles.currentPrefs(this));
         view = new UpdateView(this, Theme.argb(theme.accent));
         setContentView(view);
         int build = getIntent().getIntExtra(EXTRA_BUILD, 0);

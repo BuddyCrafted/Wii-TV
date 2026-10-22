@@ -378,9 +378,17 @@ public class WiiMenuView extends View {
         invalidate();
     }
 
+    private Runnable onIntroDone;
+
+    /** Runs when the welcome screen is dismissed. */
+    void setOnIntroDone(Runnable r) {
+        onIntroDone = r;
+    }
+
     void dismissIntro() {
         if (introAlpha <= 0f || introLeaving) return;
         introLeaving = true;
+        if (onIntroDone != null) post(onIntroDone);
         removeCallbacks(autoContinue);
         playEntrance();
         invalidate();

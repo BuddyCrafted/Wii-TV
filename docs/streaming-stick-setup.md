@@ -139,6 +139,8 @@ The round buttons and the SD card:
   - **Captions & Subtitles**, **Screensaver & Sleep**, **Language**, **Inputs (HDMI)** (only on TVs that have them), **Date & Time**
   - **Accessibility**, **Apps**, **Storage**
   - **Menu Music** and **Menu Sounds** (on/off), **Hidden Channels** (choose one to bring it back), **Reset channel order**, **All Device Settings**, **About This Device**
+  - **Profile**: everyone in the house can have their own profile (up to six), with a little character you design (skin, hair colour, hair style, shirt) and a name. Each profile keeps its own **theme**, **channel order**, **hidden channels** and **Message Board**. **Switch profile**, **Edit my look and name**, **Add a profile**, and **Ask who's watching when the TV turns on**: with more than one profile, "Who's watching?" comes up after the welcome screen.
+  - **Theme** includes **Automatic**, which changes with the seasons: Winter from December to February, Island village in spring, Beach in summer, Fall in September and November, and Halloween all October.
 - **SD**: opens your media or file app. That's the first one installed of Kodi, VLC, X-plore, Files, Photos or Plex (list: `sd_apps` in `launcher/app/src/main/res/values/config.xml`).
 - **Envelope** (bottom right): the **Message Board**, with the channels you opened most recently, newest first. On a TV with HDMI ports, the inputs come first.
 
