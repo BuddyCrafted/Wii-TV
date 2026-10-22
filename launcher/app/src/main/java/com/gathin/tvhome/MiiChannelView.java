@@ -307,6 +307,15 @@ final class MiiChannelView extends View {
         }, true);
     }
 
+    /** Set when a profile asked for a new Mii: called with the Mii once saved, or null if none was made. */
+    private java.util.function.Consumer<Mii> onMade;
+
+    /** For WiiOS profiles: goes straight to making a new Mii and hands it back when it's saved. */
+    void makeOne(java.util.function.Consumer<Mii> done) {
+        onMade = done;
+        newMii();
+    }
+
     private void closeEditor(Mii saved) {
         final boolean isNew = editor.isNew;
         if (saved != null && saved.name.trim().isEmpty()) saved.name = Mii.random(rnd, saved.female()).name;
@@ -319,6 +328,11 @@ final class MiiChannelView extends View {
                 if (isNew) plaza.addNew(saved);
                 else plaza.replace(saved);
                 store.save(plaza.miis());
+            }
+            if (onMade != null && isNew) {
+                java.util.function.Consumer<Mii> done = onMade;
+                onMade = null;
+                post(() -> done.accept(saved));
             }
         }, true);
     }

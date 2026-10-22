@@ -10,9 +10,9 @@ import android.graphics.Typeface;
 import java.util.List;
 
 /**
- * "Who's watching?" and the look editor, in the menu's style. Picking: a row of characters on round cards
- * with their names, the focused one lifted with a glow, and a + card to add someone. Editing: the character
- * large on the left, bobbing and blinking, with rows on the right (skin, hair, hair style, shirt, name, done).
+ * "Who's watching?" and the profile editor, in the menu's style. Picking: each profile's Mii on a round
+ * card with its name, the focused one lifted with a glow and swaying, and a + card to add someone. Editing:
+ * the Mii large on the left, bobbing and blinking, with rows on the right (choose Mii, make one, name, done).
  */
 final class ProfilesView extends SaverView {
     private final Paint p = new Paint(Paint.ANTI_ALIAS_FLAG);
@@ -24,14 +24,15 @@ final class ProfilesView extends SaverView {
     // Picking
     private String title = "", hint = "", addLabel = "";
     private List<String> names;
-    private int[] looks;
+    private List<Mii> miis;
+    private final MiiPortrait portrait = new MiiPortrait();
     private boolean canAdd;
     private int focus;
     private float[] lift = new float[0];
 
     // Editing
     private boolean editing;
-    private int editLook;
+    private Mii editMii;
     private String editName = "";
     private String[] rows = new String[0];
     private int row;
@@ -43,24 +44,24 @@ final class ProfilesView extends SaverView {
         text.setTextAlign(Paint.Align.CENTER);
     }
 
-    void showPicker(String title, String hint, String addLabel, List<String> names, int[] looks, boolean canAdd, int focus) {
+    void showPicker(String title, String hint, String addLabel, List<String> names, List<Mii> miis, boolean canAdd, int focus) {
         editing = false;
         this.title = title;
         this.hint = hint;
         this.addLabel = addLabel;
         this.names = names;
-        this.looks = looks;
+        this.miis = miis;
         this.canAdd = canAdd;
         this.focus = focus;
         lift = new float[cards()];
         invalidate();
     }
 
-    void showEditor(String title, String hint, int look, String name, String[] rows, int row) {
+    void showEditor(String title, String hint, Mii mii, String name, String[] rows, int row) {
         editing = true;
         this.title = title;
         this.hint = hint;
-        this.editLook = look;
+        this.editMii = mii;
         this.editName = name;
         this.rows = rows;
         this.row = row;
@@ -133,7 +134,8 @@ final class ProfilesView extends SaverView {
                 clip.addCircle(cx * s, cy * s, (r - 3f) * s, android.graphics.Path.Direction.CW);
                 c.clipPath(clip);
                 float bob = i == focus ? 4f * (float) Math.sin(t * 3f) : 0f;
-                Avatar.draw(c, cx * s, (cy - 22f + bob) * s, 52f * s, looks[i], blink(t + i * 1.7f));
+                float sway = i == focus ? 3f * (float) Math.sin(t * 2.2f) : 0f;
+                portrait.draw(c, miis.get(i), cx * s, (cy - 34f + bob) * s, 92f * s, blink(t + i * 1.7f) > 0.5f, sway);
                 c.restoreToCount(save);
                 label = names.get(i);
             } else {
@@ -161,7 +163,10 @@ final class ProfilesView extends SaverView {
         clip.reset();
         clip.addCircle(cx * s, (cy + 40f) * s, 255f * s, android.graphics.Path.Direction.CW);
         c.clipPath(clip);
-        Avatar.draw(c, cx * s, (cy - 10f + 5f * (float) Math.sin(t * 2.4f)) * s, 110f * s, editLook, blink(t));
+        if (editMii != null) {
+            portrait.draw(c, editMii, cx * s, (cy - 40f + 5f * (float) Math.sin(t * 2.4f)) * s, 120f * s, blink(t) > 0.5f,
+                    3f * (float) Math.sin(t * 1.3f));
+        }
         c.restoreToCount(save);
         text.setColor(0xFF4A4A4A);
         text.setTextSize(48f * s);

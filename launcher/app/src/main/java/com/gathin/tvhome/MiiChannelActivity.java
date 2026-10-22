@@ -7,6 +7,9 @@ import android.view.KeyEvent;
 /** The Mii channel, opened from its tile in the channel menu; Back from the plaza returns there. */
 public class MiiChannelActivity extends Activity {
 
+    /** Open straight into making a new Mii, and return its id (EXTRA_MII_ID) when it's saved. */
+    static final String EXTRA_MAKE = "make_mii", EXTRA_MII_ID = "mii_id";
+
     private MiiChannelView view;
 
     @Override
@@ -18,6 +21,14 @@ public class MiiChannelActivity extends Activity {
         });
         setContentView(view);
         view.requestFocus();
+        if (getIntent().getBooleanExtra(EXTRA_MAKE, false)) {
+            // A profile is asking for its Mii: straight to making one, and back with it once saved.
+            view.post(() -> view.makeOne(m -> {
+                if (m != null) setResult(RESULT_OK, new android.content.Intent().putExtra(EXTRA_MII_ID, m.id));
+                finish();
+                overridePendingTransition(android.R.anim.fade_in, android.R.anim.fade_out);
+            }));
+        }
     }
 
     @Override

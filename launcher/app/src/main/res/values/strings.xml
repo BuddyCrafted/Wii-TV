@@ -133,10 +133,8 @@
     <string name="prof_add">Add</string>
     <string name="prof_default_name">Player %1$d</string>
     <string name="prof_hi">Hi, %1$s!</string>
-    <string name="prof_skin">Skin</string>
-    <string name="prof_hair">Hair colour</string>
-    <string name="prof_style">Hair style</string>
-    <string name="prof_shirt">Shirt</string>
+    <string name="prof_mii">Mii: %1$s</string>
+    <string name="prof_make_mii">Make a new Mii</string>
     <string name="prof_name">Name: %1$s</string>
     <string name="prof_name_title">Your name</string>
     <string name="prof_done">Done</string>
@@ -144,10 +142,10 @@
     <string name="prof_delete_confirm">Press OK again to delete</string>
     <string name="prof_new_title">New profile</string>
     <string name="prof_edit_title">Edit profile</string>
-    <string name="prof_edit_hint">▲ ▼ choose a row · ◀ ▶ change it · OK on Done to save</string>
+    <string name="prof_edit_hint">▲ ▼ choose a row · ◀ ▶ pick your Mii · OK on Done to save</string>
     <string name="set_profile">Profile</string>
     <string name="set_prof_switch">Switch profile</string>
-    <string name="set_prof_edit">Edit my look and name</string>
+    <string name="set_prof_edit">Change my Mii and name</string>
     <string name="set_prof_add">Add a profile</string>
     <string name="set_prof_ask">Ask who\'s watching when the TV turns on</string>
     <string name="remote_title">Phone remote</string>
