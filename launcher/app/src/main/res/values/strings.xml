@@ -155,6 +155,10 @@
     <string name="set_screensaver">Screensaver</string>
     <string name="set_ss_nowplaying">Now Playing</string>
     <string name="set_ss_clock">Clock</string>
+    <string name="set_ss_wii">Wii</string>
+    <string name="set_ss_aquarium">Aquarium</string>
+    <string name="dream_wii">wiiOS Wii</string>
+    <string name="dream_aquarium">wiiOS Aquarium</string>
     <string name="set_ss_device">Device default</string>
     <string name="set_ss_after">Start screensaver after</string>
     <string name="set_sleep_after">Turn screen off after</string>

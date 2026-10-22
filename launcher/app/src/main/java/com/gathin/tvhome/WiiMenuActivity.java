@@ -643,6 +643,8 @@ public class WiiMenuActivity extends Activity implements WiiMenuView.Listener {
     private String screensaverName() {
         String ss = SystemSettings.screensaver(this);
         if (ss.contains("NowPlayingDream")) return getString(R.string.set_ss_nowplaying);
+        if (ss.contains("SaverDream$Wii")) return getString(R.string.set_ss_wii);
+        if (ss.contains("SaverDream$Aquarium")) return getString(R.string.set_ss_aquarium);
         if (ss.contains(getPackageName() + "/") && ss.contains("ClockDream")) return getString(R.string.set_ss_clock);
         return getString(R.string.set_ss_device);
     }
@@ -659,9 +661,11 @@ public class WiiMenuActivity extends Activity implements WiiMenuView.Listener {
                 menu.pushSettings(getString(R.string.set_screensaver), () -> {
                     List<WiiMenuView.MenuItem> list = new ArrayList<>();
                     String now = screensaverName();
-                    String[] names = {getString(R.string.set_ss_nowplaying), getString(R.string.set_ss_clock),
+                    String[] names = {getString(R.string.set_ss_wii), getString(R.string.set_ss_aquarium),
+                            getString(R.string.set_ss_nowplaying), getString(R.string.set_ss_clock),
                             getString(R.string.set_ss_device)};
-                    String[] comps = {component(NowPlayingDream.class), component(ClockDream.class), null};
+                    String[] comps = {component(SaverDream.Wii.class), component(SaverDream.Aquarium.class),
+                            component(NowPlayingDream.class), component(ClockDream.class), null};
                     for (int i = 0; i < names.length; i++) {
                         final String comp = comps[i];
                         list.add(new WiiMenuView.MenuItem(names[i], names[i].equals(now) ? getString(R.string.set_selected) : null, () -> {
@@ -693,9 +697,20 @@ public class WiiMenuActivity extends Activity implements WiiMenuView.Listener {
                     }
                     return list;
                 })));
-        items.add(item(R.string.set_preview, () -> open(new Intent(this, NowPlayingActivity.class))));
+        items.add(item(R.string.set_preview, this::previewScreensaver));
         items.add(item(R.string.set_device_ss, () -> openSetting(Settings.ACTION_DREAM_SETTINGS)));
         return items;
+    }
+
+    /** Shows the chosen screensaver now: Wii or Aquarium in SaverActivity, else Now Playing. */
+    private void previewScreensaver() {
+        String ss = SystemSettings.screensaver(this);
+        if (ss.contains("SaverDream$Wii") || ss.contains("SaverDream$Aquarium")) {
+            open(new Intent(this, SaverActivity.class).putExtra(SaverActivity.EXTRA_KIND,
+                    ss.contains("Aquarium") ? SaverActivity.AQUARIUM : SaverActivity.WII));
+        } else {
+            open(new Intent(this, NowPlayingActivity.class));
+        }
     }
 
     private interface Writer {
