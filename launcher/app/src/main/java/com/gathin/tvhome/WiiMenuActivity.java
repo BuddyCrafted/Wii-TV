@@ -130,6 +130,7 @@ public class WiiMenuActivity extends Activity implements WiiMenuView.Listener {
             menu.setRefPose(true);
         }
         liveTvPkg = getString(R.string.live_tv_package);
+        handleGet(getIntent());
 
         IntentFilter screen = new IntentFilter(Intent.ACTION_SCREEN_ON);
         IntentFilter packages = new IntentFilter();
@@ -221,10 +222,23 @@ public class WiiMenuActivity extends Activity implements WiiMenuView.Listener {
         music.release();
     }
 
+    /**
+     * `am start -n com.gathin.tvhome/.WiiMenuActivity --es get <package>` (the installer's SmartTube step): opens
+     * that app's Shop page and downloads it if it isn't installed. The Shop itself isn't reachable from adb.
+     */
+    private void handleGet(Intent intent) {
+        String pkg = intent.getStringExtra(ShopActivity.EXTRA_GET);
+        if (pkg == null) return;
+        intent.removeExtra(ShopActivity.EXTRA_GET);
+        if (ShopCatalog.installed(this, pkg) != null) return;
+        open(new Intent(this, ShopActivity.class).putExtra(ShopActivity.EXTRA_GET, pkg));
+    }
+
     @Override
     protected void onNewIntent(Intent intent) {
         super.onNewIntent(intent);
         menu.closeMenu();
+        handleGet(intent);
         if (intent.getBooleanExtra(EXTRA_REF_POSE, false)) {
             introPending = false;
             menu.setRefPose(true);
@@ -458,7 +472,12 @@ public class WiiMenuActivity extends Activity implements WiiMenuView.Listener {
         all.putAll(RemoteButtons.overrides(this));
         for (java.util.Map.Entry<Integer, String> e : all.entrySet()) {
             int code = e.getKey();
-            WiiMenuView.Channel ch = allChannels.get(e.getValue());
+            // "a|b|c" lists alternatives: name the first one installed.
+            WiiMenuView.Channel ch = null;
+            for (String p : e.getValue().split("\\|")) {
+                ch = allChannels.get(p);
+                if (ch != null) break;
+            }
             String value = e.getValue().isEmpty() ? getString(R.string.set_remote_none) : ch != null ? ch.label : e.getValue();
             items.add(new WiiMenuView.MenuItem(RemoteButtons.name(code), value, () -> pickButtonApp(code)));
         }

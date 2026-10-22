@@ -19,9 +19,9 @@ pub fn build() -> u32 {
 /// This computer's file in a release, or None where there is no build for it yet.
 pub fn asset_name() -> Option<&'static str> {
     if cfg!(all(windows, target_arch = "x86_64")) {
-        Some("wiiOS-windows-x64.exe")
+        Some("WiiOS-windows-x64.exe")
     } else if cfg!(all(target_os = "linux", target_arch = "x86_64")) {
-        Some("wiiOS-linux-x86_64.AppImage")
+        Some("WiiOS-linux-x86_64.AppImage")
     } else {
         None
     }
@@ -62,7 +62,7 @@ pub fn check() -> Result<Option<Update>, String> {
     }
     let url = format!("https://api.github.com/repos/{}/releases/latest", REPO);
     let release: serde_json::Value = ureq::get(&url)
-        .set("User-Agent", "wiiOS-updater")
+        .set("User-Agent", "WiiOS-updater")
         .set("Accept", "application/vnd.github+json")
         .call()
         .map_err(|e| e.to_string())?
@@ -100,7 +100,7 @@ pub fn apply(url: &str, sha256: &str) -> Result<PathBuf, String> {
     let target = target()?;
     let new = sibling(&target, ".new");
     let old = sibling(&target, ".old");
-    let resp = ureq::get(url).set("User-Agent", "wiiOS-updater").call().map_err(|e| e.to_string())?;
+    let resp = ureq::get(url).set("User-Agent", "WiiOS-updater").call().map_err(|e| e.to_string())?;
     let mut reader = resp.into_reader();
     let mut file = fs::File::create(&new).map_err(|e| format!("can't write next to {}: {}", target.display(), e))?;
     let mut hash = Sha256::new();
@@ -145,15 +145,15 @@ mod tests {
             "tag_name": tag,
             "body": "notes",
             "assets": [
-                {"name": "wiiOS-build-42.apk", "browser_download_url": "https://github.com/x/apk"},
-                {"name": "wiiOS-windows-x64.exe", "browser_download_url": "https://github.com/x/exe", "digest": "sha256:abc"}
+                {"name": "WiiOS-build-42.apk", "browser_download_url": "https://github.com/x/apk"},
+                {"name": "WiiOS-windows-x64.exe", "browser_download_url": "https://github.com/x/exe", "digest": "sha256:abc"}
             ]
         })
     }
 
     #[test]
     fn newer_release_with_our_file() {
-        let u = parse(&release("build-42"), 41, "wiiOS-windows-x64.exe").unwrap();
+        let u = parse(&release("build-42"), 41, "WiiOS-windows-x64.exe").unwrap();
         assert_eq!(u.build, 42);
         assert_eq!(u.url, "https://github.com/x/exe");
         assert_eq!(u.sha256, "abc");
@@ -161,9 +161,9 @@ mod tests {
 
     #[test]
     fn same_or_older_or_missing_file_is_no_update() {
-        assert_eq!(parse(&release("build-42"), 42, "wiiOS-windows-x64.exe"), None);
-        assert_eq!(parse(&release("build-40"), 41, "wiiOS-windows-x64.exe"), None);
-        assert_eq!(parse(&release("build-42"), 1, "wiiOS-linux-x86_64.AppImage"), None);
-        assert_eq!(parse(&release("v1.0"), 1, "wiiOS-windows-x64.exe"), None);
+        assert_eq!(parse(&release("build-42"), 42, "WiiOS-windows-x64.exe"), None);
+        assert_eq!(parse(&release("build-40"), 41, "WiiOS-windows-x64.exe"), None);
+        assert_eq!(parse(&release("build-42"), 1, "WiiOS-linux-x86_64.AppImage"), None);
+        assert_eq!(parse(&release("v1.0"), 1, "WiiOS-windows-x64.exe"), None);
     }
 }

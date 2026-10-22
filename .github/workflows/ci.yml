@@ -55,10 +55,10 @@ jobs:
       # Ready to install without a JDK or SDK: APK_FILE=app-release.apk TV_HOST=<ip> launcher/build-and-install.sh
       - uses: actions/upload-artifact@v4
         with:
-          name: wiiOS-apk
+          name: WiiOS-apk
           path: launcher/app/build/outputs/apk/release/app-release.apk
 
-  # wiiOS for computers (desktop/): the same menu as a Tauri app. Every version is built from the same commit
+  # WiiOS for computers (desktop/): the same menu as a Tauri app. Every version is built from the same commit
   # with the same build number, so one release carries all of them.
   desktop-windows:
     name: Desktop (Windows)
@@ -82,11 +82,11 @@ jobs:
           node scripts/prepare.mjs
           (cd src-tauri && cargo test --release)
           npx tauri build --no-bundle
-          cp src-tauri/target/release/wiios.exe ../wiiOS-windows-x64.exe
+          cp src-tauri/target/release/wiios.exe ../WiiOS-windows-x64.exe
       - uses: actions/upload-artifact@v4
         with:
-          name: wiiOS-windows
-          path: wiiOS-windows-x64.exe
+          name: WiiOS-windows
+          path: WiiOS-windows-x64.exe
 
   desktop-linux:
     name: Desktop (Linux)
@@ -114,11 +114,11 @@ jobs:
           node --test tests/*.test.mjs
           (cd src-tauri && cargo test --release)
           npx tauri build
-          cp src-tauri/target/release/bundle/appimage/*.AppImage ../wiiOS-linux-x86_64.AppImage
+          cp src-tauri/target/release/bundle/appimage/*.AppImage ../WiiOS-linux-x86_64.AppImage
       - uses: actions/upload-artifact@v4
         with:
-          name: wiiOS-linux
-          path: wiiOS-linux-x86_64.AppImage
+          name: WiiOS-linux
+          path: WiiOS-linux-x86_64.AppImage
 
   # Over-the-air updates: every build of main (or a manual run with "publish") becomes release build-<N> with
   # every version attached. Each one's updater picks its own file: the TV the .apk, Windows the .exe, Linux the
@@ -139,7 +139,7 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           n=${{ github.run_number }}
-          cp artifacts/wiiOS-apk/app-release.apk "wiiOS-build-$n.apk"
-          gh release create "build-$n" "wiiOS-build-$n.apk" \
-            artifacts/wiiOS-windows/wiiOS-windows-x64.exe artifacts/wiiOS-linux/wiiOS-linux-x86_64.AppImage \
-            --target "${{ github.sha }}" --title "wiiOS build $n" --notes "$(git log -1 --pretty=%B)"
+          cp artifacts/WiiOS-apk/app-release.apk "WiiOS-build-$n.apk"
+          gh release create "build-$n" "WiiOS-build-$n.apk" \
+            artifacts/WiiOS-windows/WiiOS-windows-x64.exe artifacts/WiiOS-linux/WiiOS-linux-x86_64.AppImage \
+            --target "${{ github.sha }}" --title "WiiOS build $n" --notes "$(git log -1 --pretty=%B)"

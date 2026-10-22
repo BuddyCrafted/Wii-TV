@@ -204,7 +204,7 @@ public class WiiMenuView extends View {
     private boolean started;
     private boolean colonOn = true;
     private boolean refPose;
-    private String settingsLabel = "wiiOS";
+    private String settingsLabel = "WiiOS";
     private WiiSounds sounds;
 
     private float introAlpha;
@@ -635,7 +635,7 @@ public class WiiMenuView extends View {
         if (menuOpen) return menuKey(keyCode);
         if (!settings.isEmpty()) return settingsKey(keyCode);
         if (moving) return moveKey(keyCode);
-        // Game controllers: B is Back, Start the wiiOS menu, the shoulder buttons turn the page.
+        // Game controllers: B is Back, Start the WiiOS menu, the shoulder buttons turn the page.
         if (keyCode == KeyEvent.KEYCODE_BUTTON_B) {
             back();
             return true;

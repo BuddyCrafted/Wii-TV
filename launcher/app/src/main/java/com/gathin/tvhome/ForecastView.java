@@ -502,7 +502,7 @@ final class ForecastView extends View {
         c.drawText(getContext().getString(R.string.wx_title), 1830, 135, text);
         text.setTextAlign(Paint.Align.LEFT);
         text.setTextSize(40);
-        c.drawText("wiiOS", 100, 128, text);
+        c.drawText("WiiOS", 100, 128, text);
         drawHeader(c, 190, 330, getContext().getString(R.string.wx_page_current));
         drawBody(c, 330, 760);
         if (report != null) drawCurrentBody(c, report, 330, 760);

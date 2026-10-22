@@ -26,6 +26,19 @@ PY=$TOOLS/venv/bin/python
 export MSYS_NO_PATHCONV=1
 APK="${APK_FILE:-app/build/outputs/apk/release/app-release.apk}"
 
+# SmartTube (YouTube without ads; its channel is named YouTube and the remote's YouTube button opens it): the
+# launcher downloads the latest release from its GitHub page on the TV itself, and Android asks to confirm the
+# install there. Skipped when it is already installed. SMARTTUBE=0 leaves it out.
+get_smarttube() {
+  [ "${SMARTTUBE:-1}" = 1 ] || return 0
+  if "$PY" -I ../tools/tv.py 'pm path org.smarttube.stable; pm path com.liskovsoft.smarttubetv' 2>/dev/null | grep -q package:; then
+    echo "SmartTube is already installed."
+    return 0
+  fi
+  "$PY" -I ../tools/tv.py 'am start -n com.gathin.tvhome/.WiiMenuActivity --es get org.smarttube.stable' >/dev/null || return 0
+  echo "SmartTube is downloading on the TV: when it asks, choose Install (it shows up as your YouTube channel)."
+}
+
 # MUSIC_DIR=<folder> copies your own music to the TV: menu, shop and games (.mp3, .ogg, .m4a, .flac or .wav)
 # play instead of the built-in tunes on those screens. Nothing is added to the APK or the repository.
 push_music() {
@@ -82,6 +95,7 @@ if [ "$FIRE_TV" = 1 ]; then
     "s=\$(settings get secure enabled_accessibility_services); case \"\$s\" in *FireTvHomeService*) ;; null|'') settings put secure enabled_accessibility_services $SVC ;; *) settings put secure enabled_accessibility_services \"\$s:$SVC\" ;; esac; settings put secure accessibility_enabled 1; echo FireTvHomeService enabled" \
     "am start -n com.gathin.tvhome/.WiiMenuActivity" \
     | "$PY" -I ../tools/tv.py --batch
+  get_smarttube
   echo "Installed. Press Home on the remote to see it; hold Home for Settings."
   exit 0
 fi
@@ -242,4 +256,5 @@ enable_service() {   # appends to enabled_accessibility_services without droppin
 }
 if [ "${INPUT_KEY_SERVICE:-0}" = 1 ]; then enable_service InputKeyService; fi
 if [ "${HOME_KEY_SERVICE:-0}" = 1 ]; then enable_service HomeKeyService; fi
+get_smarttube
 echo "Installed. Press Home on the remote to see it."

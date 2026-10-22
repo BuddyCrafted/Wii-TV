@@ -93,7 +93,7 @@ pub fn autostart() -> bool {
     use winreg::enums::HKEY_CURRENT_USER;
     winreg::RegKey::predef(HKEY_CURRENT_USER)
         .open_subkey("Software\\Microsoft\\Windows\\CurrentVersion\\Run")
-        .and_then(|k| k.get_value::<String, _>("wiiOS"))
+        .and_then(|k| k.get_value::<String, _>("WiiOS"))
         .is_ok()
 }
 
@@ -104,10 +104,10 @@ pub fn set_autostart(on: bool) -> Result<(), String> {
         .create_subkey("Software\\Microsoft\\Windows\\CurrentVersion\\Run")
         .map_err(|e| e.to_string())?;
     if on {
-        key.set_value("wiiOS", &format!("\"{}\"", program()?.display())).map_err(|e| e.to_string())
+        key.set_value("WiiOS", &format!("\"{}\"", program()?.display())).map_err(|e| e.to_string())
     } else {
         // Already off is fine.
-        let _ = key.delete_value("wiiOS");
+        let _ = key.delete_value("WiiOS");
         Ok(())
     }
 }
@@ -130,6 +130,6 @@ pub fn set_autostart(on: bool) -> Result<(), String> {
         return Ok(());
     }
     std::fs::create_dir_all(f.parent().unwrap()).map_err(|e| e.to_string())?;
-    let text = format!("[Desktop Entry]\nType=Application\nName=wiiOS\nExec=\"{}\"\nX-GNOME-Autostart-enabled=true\n", program()?.display());
+    let text = format!("[Desktop Entry]\nType=Application\nName=WiiOS\nExec=\"{}\"\nX-GNOME-Autostart-enabled=true\n", program()?.display());
     std::fs::write(&f, text).map_err(|e| e.to_string())
 }

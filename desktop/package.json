@@ -2,7 +2,7 @@
   "name": "wiios-desktop",
   "private": true,
   "version": "1.0.0",
-  "description": "wiiOS for Windows and Linux: the channel menu as a full-screen app",
+  "description": "WiiOS for Windows and Linux: the channel menu as a full-screen app",
   "scripts": {
     "prepare-web": "node scripts/prepare.mjs",
     "dev": "tauri dev",

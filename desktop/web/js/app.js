@@ -1,5 +1,5 @@
 // The desktop menu's controller, after the Android launcher's WiiMenuActivity: builds the channel list (PC
-// games and web channels, in the viewer's order), handles keyboard, mouse and game controllers, the wiiOS
+// games and web channels, in the viewer's order), handles keyboard, mouse and game controllers, the WiiOS
 // Settings pages, the Message Board, and updates from the same GitHub releases as the TV version.
 import { WiiMenu, FONT } from './menu.js';
 import { Audio } from './audio.js';
@@ -149,7 +149,7 @@ async function reloadChannels() {
 const onOff = (v) => (v ? 'On' : 'Off');
 
 function openSettings() {
-  menu.pushSettings('wiiOS Settings', mainSettings);
+  menu.pushSettings('WiiOS Settings', mainSettings);
 }
 
 function mainSettings() {
@@ -219,7 +219,7 @@ function powerSettings() {
     { label: 'Sleep', action: () => power('sleep') },
     { label: 'Restart', action: () => power('restart') },
     { label: 'Shut down', action: () => power('shutdown') },
-    { label: 'Close wiiOS', action: () => power('quit') },
+    { label: 'Close WiiOS', action: () => power('quit') },
   ];
 }
 
@@ -285,14 +285,14 @@ async function checkForUpdate(manual) {
   }
   prefs.set('lastCheck', Date.now());
   if (!u) {
-    if (manual) menu.showNotice(`wiiOS is up to date (build ${info.build}).`);
+    if (manual) menu.showNotice(`WiiOS is up to date (build ${info.build}).`);
     return;
   }
   menu.showNotice('', 1);
   menu.showMenu(`Update to build ${u.build}?`, [
     { label: 'Update now', action: async () => {
       menu.closeSettings();
-      menu.showNotice('Updating… wiiOS restarts by itself.', 0);
+      menu.showNotice('Updating… WiiOS restarts by itself.', 0);
       try {
         await invoke('apply_update', { url: u.url, sha256: u.sha256 || '' });
       } catch (e) {
@@ -376,7 +376,7 @@ canvas.addEventListener('wheel', (e) => {
 }, { passive: false });
 
 // Game controllers (standard mapping): A = OK (hold for options), B = Back, X/Y = options, LB/RB turn the
-// page, Start = wiiOS Settings, D-pad or left stick move.
+// page, Start = WiiOS Settings, D-pad or left stick move.
 const pads = {};
 const STICK = 0.6;
 function pollPads() {
@@ -408,7 +408,7 @@ function pollPads() {
 }
 requestAnimationFrame(pollPads);
 
-// Music while wiiOS is in front; quiet while a game or the browser is.
+// Music while WiiOS is in front; quiet while a game or the browser is.
 window.addEventListener('blur', () => audio.setWanted(false));
 window.addEventListener('focus', () => {
   audio.setWanted(true);
@@ -451,7 +451,7 @@ window.addEventListener('resize', layout);
     menu.playIntro();
   }
   audio.setWanted(document.hasFocus());
-  // Games installed while wiiOS was in the background show up on return (at most once a minute).
+  // Games installed while WiiOS was in the background show up on return (at most once a minute).
   let lastReload = Date.now();
   window.addEventListener('focus', () => {
     if (Date.now() - lastReload < 60000) return;

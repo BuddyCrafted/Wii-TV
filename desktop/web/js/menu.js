@@ -99,7 +99,7 @@ export class WiiMenu {
     this.handPlaced = false;
     this.mouse = null; // last pointer position in canvas px while the mouse is in charge
     this.colonOn = true;
-    this.settingsLabel = 'wiiOS';
+    this.settingsLabel = 'WiiOS';
     this.backLabel = 'Back';
     this.introAlpha = 0;
     this.introLeaving = false;

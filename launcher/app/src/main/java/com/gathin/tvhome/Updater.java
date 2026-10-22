@@ -155,7 +155,7 @@ final class Updater {
         c.setConnectTimeout(15_000);
         c.setReadTimeout(30_000);
         c.setRequestProperty("Accept", "application/vnd.github+json");
-        c.setRequestProperty("User-Agent", "wiiOS-updater");
+        c.setRequestProperty("User-Agent", "WiiOS-updater");
         c.setInstanceFollowRedirects(true);
         return c;
     }

@@ -63,7 +63,7 @@ public class FireTvHomeService extends AccessibilityService {
     private long lastLaunch;
     private boolean longPressed;
     /**
-     * Set when wiiOS sends you to Fire TV Settings. Fire OS 7.7 answers android.settings.SETTINGS by
+     * Set when WiiOS sends you to Fire TV Settings. Fire OS 7.7 answers android.settings.SETTINGS by
      * showing the Amazon home (HomeActivity_vNext) on its Settings row, so bouncing every Amazon home
      * window back to the menu made Settings flash white and close. Cleared by the next Home press or when the menu is back on screen.
      */

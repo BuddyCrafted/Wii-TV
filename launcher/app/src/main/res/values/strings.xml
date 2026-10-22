@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="app_name">wiiOS</string>
+    <string name="app_name">WiiOS</string>
     <string name="inputs">Inputs</string>
     <string name="wifi">Wi-Fi</string>
     <string name="settings">Settings</string>
@@ -127,8 +127,8 @@
     <string name="wii_message_board">Message Board</string>
     <string name="wii_board_empty">No messages yet. Channels you open will show up here.</string>
     <string name="wii_recent">Last opened: %1$s</string>
-    <string name="np_dream_name">wiiOS Now Playing</string>
-    <string name="np_listener_name">wiiOS Now Playing screensaver</string>
+    <string name="np_dream_name">WiiOS Now Playing</string>
+    <string name="np_listener_name">WiiOS Now Playing screensaver</string>
     <string name="set_title">%1$s Settings</string>
     <string name="set_back">Back</string>
     <string name="set_display">Display &amp; Picture</string>
@@ -157,8 +157,8 @@
     <string name="set_ss_clock">Clock</string>
     <string name="set_ss_wii">Wii</string>
     <string name="set_ss_aquarium">Aquarium</string>
-    <string name="dream_wii">wiiOS Wii</string>
-    <string name="dream_aquarium">wiiOS Aquarium</string>
+    <string name="dream_wii">WiiOS Wii</string>
+    <string name="dream_aquarium">WiiOS Aquarium</string>
     <string name="set_ss_device">Device default</string>
     <string name="set_ss_after">Start screensaver after</string>
     <string name="set_sleep_after">Turn screen off after</string>
@@ -247,7 +247,7 @@
     <string name="set_remote_press">Press the button on your remote now (Back to cancel)</string>
     <string name="set_remote_none">Nothing (system default)</string>
     <string name="set_remote_saved">%1$s now opens %2$s</string>
-    <string name="set_remote_needs">wiiOS couldn\'t switch on its button helper. Run the install script once more.</string>
+    <string name="set_remote_needs">WiiOS couldn\'t switch on its button helper. Run the install script once more.</string>
     <string name="set_weather">Weather</string>
     <string name="set_wx_location">Location</string>
     <string name="set_wx_auto">Automatic</string>
@@ -258,7 +258,7 @@
     <string name="set_upd_version">This version</string>
     <string name="set_upd_check">Check for updates</string>
     <string name="set_upd_auto">Automatic updates</string>
-    <string name="upd_title">wiiOS System Update</string>
+    <string name="upd_title">WiiOS System Update</string>
     <string name="upd_now">Update now (build %1$d)</string>
     <string name="upd_later">Later</string>
     <string name="upd_latest">You have the latest version</string>

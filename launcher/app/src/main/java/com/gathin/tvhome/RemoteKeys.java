@@ -54,9 +54,14 @@ final class RemoteKeys {
     }
 
     /** Opens an app from a remote button: its TV entry if it has one, else its phone entry. */
+    /** Starts the app; `pkg` may list alternatives as "a|b|c", and the first one installed is started. */
     static void launch(Context ctx, String pkg) {
-        Intent open = ctx.getPackageManager().getLeanbackLaunchIntentForPackage(pkg);
-        if (open == null) open = ctx.getPackageManager().getLaunchIntentForPackage(pkg);
+        Intent open = null;
+        for (String p : pkg.split("\\|")) {
+            open = ctx.getPackageManager().getLeanbackLaunchIntentForPackage(p);
+            if (open == null) open = ctx.getPackageManager().getLaunchIntentForPackage(p);
+            if (open != null) break;
+        }
         if (open == null) return;
         try {
             ctx.startActivity(open.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK));

@@ -303,6 +303,18 @@ final class ShopView extends View {
         }
     }
 
+    /** Straight to an app's page (from a request to get it), with its category's list behind it for Back. */
+    void openApp(ShopCatalog.App a) {
+        for (ShopCatalog.Category c : catalog.categories) {
+            if (a.categories.contains(c.id)) {
+                openList(c.id, c.name);
+                break;
+            }
+        }
+        openDetail(a);
+        invalidate();
+    }
+
     private void openDetail(ShopCatalog.App a) {
         app = a;
         latestVersion = null;

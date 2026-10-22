@@ -98,8 +98,9 @@
          it back. The KTC LUMIO VISION remote (Realtek Google TV) sends Netflix 191, YouTube 190, Prime Video 195
          and TL;DR 200. A listed app that is not installed leaves the button doing nothing. Leave empty to omit. -->
     <string-array name="app_keys" translatable="false">
-        <!-- Google TV remotes (onn. 4K / 4K Pro, Chromecast): the YouTube button, which only the stock home answered. -->
-        <item>190:com.google.android.youtube.tv</item>
+        <!-- Google TV remotes (onn. 4K / 4K Pro, Chromecast): the YouTube button, which only the stock home answered.
+             SmartTube when it is installed (the YouTube channel then opens it too), else Google's YouTube app. -->
+        <item>190:org.smarttube.stable|com.liskovsoft.smarttubetv|com.google.android.youtube.tv</item>
     </string-array>
 
     <!-- Show the Solar Hijri (Shamsi) date used in Iran and Afghanistan, e.g. "27 Mehr 1405", above the
@@ -183,11 +184,11 @@
 
     <!-- Channel menu home (WiiMenuActivity). -->
     <!-- The word on the round button bottom left, which opens Android's Settings. -->
-    <string name="wii_settings_label" translatable="false">wiiOS</string>
+    <string name="wii_settings_label" translatable="false">WiiOS</string>
     <!-- Interface sounds when moving, choosing, turning the page and opening menus (res/raw/wii_*.wav). -->
     <bool name="wii_sounds">true</bool>
     <!-- Background music on the channel menu (res/raw/wii_bgm.wav, tools/sounds/make_music.py). The menu's
-         wiiOS button can switch it, and the sounds, on and off; that choice is kept on the device. -->
+         WiiOS button can switch it, and the sounds, on and off; that choice is kept on the device. -->
     <bool name="wii_music">true</bool>
     <!-- Also give channels to apps with only a phone-style launcher entry (many sideloaded apps on Fire TV
          and Google TV). TV apps are preferred when an app has both. -->

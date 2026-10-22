@@ -20,6 +20,8 @@ import java.io.File;
  */
 public class ShopActivity extends Activity implements ShopView.Listener {
     static final String EXTRA_STORE = "store";
+    /** A package to open and, when not installed yet, download straight away (the installer's SmartTube step). */
+    static final String EXTRA_GET = "get";
 
     private ShopCatalog.Store store;
     private ShopView view;
@@ -50,7 +52,17 @@ public class ShopActivity extends Activity implements ShopView.Listener {
         boolean musicOn = prefs.getBoolean("music", getResources().getBoolean(R.bool.wii_music));
         music = store.games() ? new WiiMusic(this, musicOn, MenuMusic.GAMES, "games_music_v1.pcm", "games")
                 : new WiiMusic(this, musicOn, MenuMusic.SHOP, "shop_music_v1.pcm", "shop");
-        view.setCatalog(ShopCatalog.local(this, store));
+        ShopCatalog local = ShopCatalog.local(this, store);
+        view.setCatalog(local);
+        String get = getIntent().getStringExtra(EXTRA_GET);
+        if (get != null) {
+            for (ShopCatalog.App a : local.apps) {
+                if (!a.pkg.equals(get)) continue;
+                view.openApp(a);
+                if (a.direct() && ShopCatalog.installed(this, a) == null) onAction(a, ShopView.Action.DOWNLOAD);
+                break;
+            }
+        }
         ShopCatalog.refresh(this, store, (c, e) -> {
             if (c != null && !isFinishing()) view.setCatalog(c);
         });

@@ -1,6 +1,6 @@
 {
   "$schema": "https://schema.tauri.app/config/2",
-  "productName": "wiiOS",
+  "productName": "WiiOS",
   "version": "1.0.0",
   "identifier": "com.gathin.wiios",
   "build": {
@@ -12,7 +12,7 @@
     "withGlobalTauri": true,
     "windows": [
       {
-        "title": "wiiOS",
+        "title": "WiiOS",
         "width": 1280,
         "height": 720,
         "fullscreen": true,

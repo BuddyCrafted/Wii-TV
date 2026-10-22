@@ -1,4 +1,4 @@
-# wiiOS on a computer (Windows and Linux)
+# WiiOS on a computer (Windows and Linux)
 
 The same channel menu as the TV version, as a full-screen app for a gaming PC, a living-room PC or a laptop
 hooked up to the TV. It looks and sounds the same, because it's drawn from the same measurements, sounds and
@@ -10,15 +10,15 @@ Every release on the [Releases page](https://github.com/BuddyCrafted/Wii-TV/rele
 
 | File | For |
 | --- | --- |
-| `wiiOS-build-N.apk` | TVs and streaming sticks (see [streaming-stick-setup.md](streaming-stick-setup.md)) |
-| `wiiOS-windows-x64.exe` | Windows 10 and 11 (64-bit) |
-| `wiiOS-linux-x86_64.AppImage` | Linux (64-bit), most distributions |
+| `WiiOS-build-N.apk` | TVs and streaming sticks (see [streaming-stick-setup.md](streaming-stick-setup.md)) |
+| `WiiOS-windows-x64.exe` | Windows 10 and 11 (64-bit) |
+| `WiiOS-linux-x86_64.AppImage` | Linux (64-bit), most distributions |
 
 **Windows:** download the `.exe` and run it. There's nothing to install. The first time, Windows SmartScreen
 may say *"Windows protected your PC"*, because the app isn't signed with a paid certificate. Choose
 **More info → Run anyway**. It uses Microsoft Edge WebView2, which Windows 10 and 11 already have.
 
-**Linux:** download the AppImage, make it runnable (`chmod +x wiiOS-linux-x86_64.AppImage`, or tick "Allow
+**Linux:** download the AppImage, make it runnable (`chmod +x WiiOS-linux-x86_64.AppImage`, or tick "Allow
 executing" in its properties), and run it.
 
 ## From a flash drive
@@ -29,28 +29,28 @@ file on the stick, so the stick stays current. Each computer keeps its own chann
 ## Using it
 
 - **Channels** are your installed **Steam** and **Epic Games** games (with their Steam artwork), plus YouTube,
-  Netflix, Spotify and Twitch, which open in your web browser. Games you install while wiiOS is open show up
+  Netflix, Spotify and Twitch, which open in your web browser. Games you install while WiiOS is open show up
   when you come back to it.
 - **Mouse:** the hand follows the mouse like the Wii Remote's pointer. Click to open, right-click a channel for
   Move / Hide, and use the scroll wheel to turn pages.
 - **Game controllers** (Xbox, PlayStation, most USB and Bluetooth pads): D-pad or left stick move, **A** opens
-  (hold for Move / Hide), **B** goes back, **LB/RB** turn the page, and **Start** opens wiiOS Settings.
+  (hold for Move / Hide), **B** goes back, **LB/RB** turn the page, and **Start** opens WiiOS Settings.
 - **Keyboard:** arrows, **Enter** (hold for Move / Hide), **Esc** to go back, **Page Up/Down** to turn pages,
   **Home** for Settings, and **F11** to switch full screen on and off.
-- **wiiOS button:** Settings. **SD card:** your files. **Envelope:** the Message Board, with the channels you
+- **WiiOS button:** Settings. **SD card:** your files. **Envelope:** the Message Board, with the channels you
   opened recently.
 
-## wiiOS Settings
+## WiiOS Settings
 
 Display, Sound, Network & Internet and Controllers & Bluetooth open the computer's own settings pages (Windows
 Settings, or GNOME/KDE settings on Linux). The other settings:
 
-- **Full screen** on or off (or press **F11**). wiiOS starts full screen; switched off, it becomes a normal window you can move and resize, and it remembers your choice.
-- **Start with this computer**: opens wiiOS when you sign in, so the PC starts into the Wii menu like a console.
+- **Full screen** on or off (or press **F11**). WiiOS starts full screen; switched off, it becomes a normal window you can move and resize, and it remembers your choice.
+- **Start with this computer**: opens WiiOS when you sign in, so the PC starts into the Wii menu like a console.
 - **Menu music** and **Sounds** on or off.
 - **Hidden channels** and **Reset channel order**.
 - **Your own channels**: opens `channels.json`. Add anything that opens, such as an emulator, Kodi, a folder or
-  a website, then come back to wiiOS:
+  a website, then come back to WiiOS:
 
   ```json
   {
@@ -64,18 +64,18 @@ Settings, or GNOME/KDE settings on Linux). The other settings:
 
   `image` is optional: a picture file or an `https://` link.
 - **System Update**: check now, or switch automatic updates off.
-- **Power**: Sleep, Restart, Shut down, or Close wiiOS.
+- **Power**: Sleep, Restart, Shut down, or Close WiiOS.
 
 ## Updates
 
-wiiOS checks for a newer release once a day, and you can check any time in **Settings → System Update**. When
+WiiOS checks for a newer release once a day, and you can check any time in **Settings → System Update**. When
 there is one, it asks first, then downloads its own file, checks it against the checksum GitHub lists for it,
 swaps it in and restarts. The TV and computer versions come from the same release, so they stay in step.
 
 ## Not there yet
 
 These are planned for the computer version: the Forecast Channel, the Shop and Games channels, the language
-switch, a Mac version, and a bootable USB stick that starts straight into wiiOS.
+switch, a Mac version, and a bootable USB stick that starts straight into WiiOS.
 
 ## Building it yourself
 

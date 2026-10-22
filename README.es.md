@@ -2,7 +2,7 @@
 
 El menú de canales de la Wii como pantalla de inicio de tu Android TV.
 
-![wiiOS en una Philips 65PUD7906](docs/wii-menu.jpg)
+![WiiOS en una Philips 65PUD7906](docs/wii-menu.jpg)
 
 wii-tv cambia la pantalla de inicio de un Android TV por un menú al estilo del Menú Wii: doce canales por página, el reloj de segmentos, la fecha, los botones redondos, la manito que sigue a lo que elegís y sonidos al moverte. Cada canal es una de tus apps, con su propio banner. Al prender la TV aparece una pantalla de aviso blanca, como en la consola, y con OK pasás al menú.
 
@@ -19,7 +19,7 @@ El repositorio no trae nada de Nintendo: ni logos, ni tipografías, ni imágenes
 - **Canales**: 4 columnas por 3 filas por página. La primera columna de la página siguiente asoma a la derecha y las flechas cambian de página. Tus apps llenan los canales y los que sobran quedan vacíos.
 - **Reloj y fecha**: reloj de segmentos de 12 horas con AM/PM, y la fecha corta en el idioma de la TV.
 - **Botones de abajo**:
-  - **wiiOS** (izquierda) abre los Ajustes de Android TV.
+  - **WiiOS** (izquierda) abre los Ajustes de Android TV.
   - **SD** abre el reproductor multimedia de la TV (pendrive o disco USB).
   - **Sobre** (derecha) abre la lista de entradas HDMI y la TV en vivo.
 - **Manito** que sigue al canal o botón elegido.
@@ -94,7 +94,7 @@ El script:
 1. compila la app de `launcher/`,
 2. la instala y comprueba que abre,
 3. desactiva el launcher original (`com.google.android.tvlauncher` en Android TV, `com.google.android.apps.tv.launcherx` en Google TV),
-4. deja **wiiOS** como pantalla de inicio y verifica que Home lo abra. Si algo sale mal, vuelve a activar el launcher original.
+4. deja **WiiOS** como pantalla de inicio y verifica que Home lo abra. Si algo sale mal, vuelve a activar el launcher original.
 
 Apretá Home en el control para verlo. Si preferís no desactivar el launcher original, usá `STOCK_LAUNCHER=none`. Ojo: en muchas TVs el launcher original tiene prioridad, y mientras siga activo Home lo va a seguir abriendo.
 
@@ -131,7 +131,7 @@ Cambiá lo que quieras y volvé a correr `launcher/build-and-install.sh` para ap
 | --- | --- |
 | Qué apps van primero y en qué orden | `dock_apps` en `launcher/app/src/main/res/values/config.xml`. Son nombres de paquete; las demás apps siguen en orden alfabético. |
 | Apps que no aparecen como canal | `hidden_apps`, en el mismo archivo. |
-| Texto del botón izquierdo | `wii_settings_label` (por defecto `wiiOS`). |
+| Texto del botón izquierdo | `wii_settings_label` (por defecto `WiiOS`). |
 | Sonidos sí o no | `wii_sounds`. |
 | App de TV en vivo de la lista de entradas | `live_tv_package`. |
 | Textos de la pantalla de aviso | `wii_intro_title`, `wii_intro_body` y `wii_intro_continue` en `res/values*/strings.xml`. `values-es-rAR` usa voseo. |
@@ -159,7 +159,7 @@ Para reactivar las apps que desactivaste y volver al launcher original, pasá la
 TV_HOST=192.168.1.50 tools/restore.sh examples/philips-65pud7906/debloat.txt com.google.android.tvlauncher
 ```
 
-En Google TV el último argumento es `com.google.android.apps.tv.launcherx`. Después podés desinstalar wiiOS:
+En Google TV el último argumento es `com.google.android.apps.tv.launcherx`. Después podés desinstalar WiiOS:
 
 ```sh
 TV_HOST=192.168.1.50 tools/venv/bin/python tools/tv.py 'pm uninstall com.gathin.tvhome'

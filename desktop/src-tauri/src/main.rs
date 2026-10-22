@@ -1,4 +1,4 @@
-// wiiOS for computers: the channel menu (web/, shared look and sounds with the TV version) in a full-screen
+// WiiOS for computers: the channel menu (web/, shared look and sounds with the TV version) in a full-screen
 // window, with the computer's games as channels and updates from the project's GitHub releases.
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
@@ -105,5 +105,5 @@ fn main() {
             apply_update
         ])
         .run(tauri::generate_context!())
-        .expect("wiiOS could not start");
+        .expect("WiiOS could not start");
 }

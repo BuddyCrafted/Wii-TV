@@ -1,7 +1,7 @@
 [package]
 name = "wiios"
 version = "1.0.0"
-description = "wiiOS: the channel menu for computers"
+description = "WiiOS: the channel menu for computers"
 edition = "2021"
 license = "MIT"
 

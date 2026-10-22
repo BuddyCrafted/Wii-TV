@@ -1,8 +1,8 @@
-# wiiOS on a 2020–2022 Fire TV Stick
+# WiiOS on a 2020–2022 Fire TV Stick
 
 This page is for the Fire TV Sticks Amazon sold from 2020 to 2022. To check which one you have, go to **Settings → My Fire TV → About**:
 
-| Model | Fire OS | RAM | CPU / GPU | Picture | wiiOS menu runs at |
+| Model | Fire OS | RAM | CPU / GPU | Picture | WiiOS menu runs at |
 | --- | --- | --- | --- | --- | --- |
 | Fire TV Stick (3rd Gen) | 7 (Android 9) | 1 GB | 4 × 1.7 GHz / PowerVR GE8300 | 1080p | 1920 × 1080 |
 | Fire TV Stick Lite | 7 (Android 9) | 1 GB | 4 × 1.7 GHz / PowerVR GE8300 | 1080p | 1920 × 1080 |
@@ -10,17 +10,17 @@ This page is for the Fire TV Sticks Amazon sold from 2020 to 2022. To check whic
 
 Specs are from [Amazon's device specifications](https://developer.amazon.com/docs/device-specs/device-specifications-fire-tv-streaming-media-player.html).
 
-## What wiiOS does on these sticks
+## What WiiOS does on these sticks
 
-- **It doesn't replace Fire OS.** These sticks' bootloaders are locked, so the operating system can't be swapped. wiiOS is an app that becomes the screen you see. Fire OS keeps handling Wi-Fi, Bluetooth, the Appstore, updates and your Amazon account underneath.
-- **Home button:** the "Wii menu as Fire TV home" accessibility service catches Home and opens wiiOS. Holding Home opens Settings. When Fire OS shows its own home anyway (at power-on, or when you back out of an app), wiiOS comes straight back on top. The Amazon home can flash for a split second; that's normal.
-- **Built for 1 GB of RAM:** on the 3rd Gen and Lite, channel art is kept at 16 bits per pixel, which halves its memory. The menu music is generated once and then cached on the stick, so returning to the menu after a big app is quick even when Fire OS has closed wiiOS in the background. The install script also pre-compiles the app (`cmd package compile -m speed`) so it starts faster.
+- **It doesn't replace Fire OS.** These sticks' bootloaders are locked, so the operating system can't be swapped. WiiOS is an app that becomes the screen you see. Fire OS keeps handling Wi-Fi, Bluetooth, the Appstore, updates and your Amazon account underneath.
+- **Home button:** the "Wii menu as Fire TV home" accessibility service catches Home and opens WiiOS. Holding Home opens Settings. When Fire OS shows its own home anyway (at power-on, or when you back out of an app), WiiOS comes straight back on top. The Amazon home can flash for a split second; that's normal.
+- **Built for 1 GB of RAM:** on the 3rd Gen and Lite, channel art is kept at 16 bits per pixel, which halves its memory. The menu music is generated once and then cached on the stick, so returning to the menu after a big app is quick even when Fire OS has closed WiiOS in the background. The install script also pre-compiles the app (`cmd package compile -m speed`) so it starts faster.
 - **Layout:** the whole menu is drawn on a 1920 × 1080 canvas and scaled to the screen, which is exactly what all three sticks give apps. Nothing has to be adjusted per model.
-- **Remote:** arrows and OK move and select. **Back** goes back. **☰ Menu** on a channel opens Move / Hide / App info; elsewhere it opens wiiOS Settings. **⏪ / ⏩** turn the page. Holding **Home** opens Fire TV Settings.
+- **Remote:** arrows and OK move and select. **Back** goes back. **☰ Menu** on a channel opens Move / Hide / App info; elsewhere it opens WiiOS Settings. **⏪ / ⏩** turn the page. Holding **Home** opens Fire TV Settings.
 
 ## Connecting the computer: Wi-Fi (recommended)
 
-You only need the computer for the first install; after that, wiiOS updates itself from GitHub. You don't need the stick to build the app either, because the build happens on the computer or on GitHub.
+You only need the computer for the first install; after that, WiiOS updates itself from GitHub. You don't need the stick to build the app either, because the build happens on the computer or on GitHub.
 
 1. On the stick: **Settings → My Fire TV → About**, then press OK on the device name 7 times until it says you're a developer.
 2. **Settings → My Fire TV → Developer options → ADB debugging → On**.
@@ -39,7 +39,7 @@ Amazon's documentation says most Fire TV devices only accept ADB over the networ
 
 ```sh
 adb devices                      # the stick should be listed as "device"
-adb install -r app-release.apk   # the APK from GitHub Actions (wiiOS-apk) or launcher/app/build/outputs/apk/release/
+adb install -r app-release.apk   # the APK from GitHub Actions (WiiOS-apk) or launcher/app/build/outputs/apk/release/
 adb shell pm grant com.gathin.tvhome android.permission.WRITE_SECURE_SETTINGS
 adb shell appops set com.gathin.tvhome WRITE_SETTINGS allow
 adb shell appops set com.gathin.tvhome REQUEST_INSTALL_PACKAGES allow
@@ -56,7 +56,7 @@ The same commands also work over Wi-Fi with Google's `adb`, after `adb connect <
 ## Things that behave differently on Fire OS 7
 
 - **Updates:** Fire OS 7 is Android 9, so every over-the-air update shows one **Install** confirmation. Silent updates need Android 12 or later.
-- **Settings pages:** Fire TV's settings app doesn't support every standard Android settings shortcut. When it doesn't, a wiiOS Settings button opens the main Fire TV Settings instead of the exact page. Once the stick is connected we can query it (`adb shell cmd package query-activities …`) and point each button at the right Fire TV page.
-- **Screensaver:** Fire OS uses Amazon's photo screensaver by default. Choosing **Now Playing** or **Clock** in wiiOS Settings → Screensaver & Sleep writes the Android screensaver setting. Whether this Fire OS version honours it hasn't been checked on a real stick yet; **Preview screensaver** works either way.
+- **Settings pages:** Fire TV's settings app doesn't support every standard Android settings shortcut. When it doesn't, a WiiOS Settings button opens the main Fire TV Settings instead of the exact page. Once the stick is connected we can query it (`adb shell cmd package query-activities …`) and point each button at the right Fire TV page.
+- **Screensaver:** Fire OS uses Amazon's photo screensaver by default. Choosing **Now Playing** or **Clock** in WiiOS Settings → Screensaver & Sleep writes the Android screensaver setting. Whether this Fire OS version honours it hasn't been checked on a real stick yet; **Preview screensaver** works either way.
 - **No HDMI inputs:** a stick has none, so the envelope button is the Message Board (your recently opened channels).
 - **After a Fire OS system update**, if Home opens the Amazon screen again, run the install script once more. It re-enables the Home redirect.

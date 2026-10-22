@@ -15,7 +15,7 @@ android {
         targetSdk 34
         // CI passes -PwiiosBuild=<run number>; the in-app updater installs a release whose build is higher.
         versionCode 100 + wiiosBuild
-        versionName "wiiOS build ${wiiosBuild}"
+        versionName "WiiOS build ${wiiosBuild}"
         buildConfigField 'int', 'WIIOS_BUILD', "${wiiosBuild}"
     }
 

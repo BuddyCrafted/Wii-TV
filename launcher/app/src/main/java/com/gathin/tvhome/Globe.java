@@ -63,7 +63,7 @@ final class Globe {
             HttpURLConnection conn = (HttpURLConnection) new URL(TEXTURE_URL).openConnection();
             conn.setConnectTimeout(20_000);
             conn.setReadTimeout(60_000);
-            conn.setRequestProperty("User-Agent", "wiiOS");
+            conn.setRequestProperty("User-Agent", "WiiOS");
             try (InputStream in = conn.getInputStream(); OutputStream o = new FileOutputStream(tmp)) {
                 byte[] buf = new byte[64 * 1024];
                 int n;

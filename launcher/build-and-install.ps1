@@ -8,6 +8,7 @@
 #                             input_key_keycodes and app_keys; re-pass on every install
 #        [-HomeKeyService]    remotes whose Home button sends KEYCODE_ALL_APPS (Xiaomi sticks)
 #        [-MusicDir <folder>] your own menu / shop / games music (.mp3, .ogg, .m4a, .flac, .wav), copied to the TV
+#        [-NoSmartTube]       don't add SmartTube (YouTube without ads, shown as the YouTube channel)
 #        Fire TV is detected automatically (see build-and-install.sh): the Amazon launcher is left alone and
 #        the FireTvHomeService accessibility service takes the Home button instead.
 param(
@@ -18,7 +19,8 @@ param(
     # A ready-made APK (e.g. the one CI attaches to each run): skips the build, no JDK or SDK needed.
     [string]$ApkFile = '',
     # Your own music: menu.*, shop.* and games.* in this folder play instead of the built-in tunes.
-    [string]$MusicDir = ''
+    [string]$MusicDir = '',
+    [switch]$NoSmartTube
 )
 $ErrorActionPreference = 'Stop'
 # Pipe plain UTF-8 to native commands; the default here prepends a BOM that corrupts the first command.
@@ -48,6 +50,15 @@ if (-not $ApkFile) {
 $py = '..\tools\venv\Scripts\python.exe'
 $apk = if ($ApkFile) { $ApkFile } else { 'app\build\outputs\apk\release\app-release.apk' }
 if (-not (Test-Path $apk)) { throw "APK not found: $apk" }
+
+# SmartTube: the launcher downloads it from its GitHub page on the TV, and Android asks to confirm there.
+function Get-SmartTube {
+    if ($NoSmartTube) { return }
+    $have = "$(& $py -I ..\tools\tv.py 'pm path org.smarttube.stable; pm path com.liskovsoft.smarttubetv' 2>$null)"
+    if ($have -match 'package:') { Write-Host 'SmartTube is already installed.'; return }
+    & $py -I ..\tools\tv.py 'am start -n com.gathin.tvhome/.WiiMenuActivity --es get org.smarttube.stable' | Out-Null
+    Write-Host 'SmartTube is downloading on the TV: when it asks, choose Install (it shows up as your YouTube channel).'
+}
 
 function Push-Music {
     if (-not $MusicDir) { return }
@@ -86,6 +97,7 @@ if ($maker -like 'Amazon*') {
         "s=`$(settings get secure enabled_accessibility_services); case `"`$s`" in *FireTvHomeService*) ;; null|'') settings put secure enabled_accessibility_services $svc ;; *) settings put secure enabled_accessibility_services `"`$s:$svc`" ;; esac; settings put secure accessibility_enabled 1; echo FireTvHomeService enabled",
         'am start -n com.gathin.tvhome/.WiiMenuActivity'
     ) | & $py -I ..\tools\tv.py --batch
+    Get-SmartTube
     Write-Host 'Installed. Press Home on the remote to see it; hold Home for Settings.'
     exit 0
 }
@@ -166,4 +178,5 @@ function Enable-Service([string]$Name) {
 }
 if ($InputKeyService) { Enable-Service 'InputKeyService' }
 if ($HomeKeyService) { Enable-Service 'HomeKeyService' }
+Get-SmartTube
 Write-Host 'Installed. Press Home on the remote to see it.'
