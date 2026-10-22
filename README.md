@@ -15,6 +15,7 @@ This repository is [MauroProto/wii-tv](https://github.com/MauroProto/wii-tv) wit
 **→ Step-by-step setup for making it your home screen: [docs/streaming-stick-setup.md](docs/streaming-stick-setup.md)**
 **→ 2020–2022 Fire TV Stick (3rd Gen, Lite, 4K Max 1st Gen): [docs/fire-tv-stick-2021.md](docs/fire-tv-stick-2021.md)**
 **→ Which devices it runs on (and which it can't): [docs/devices.md](docs/devices.md)**
+**→ On a Windows or Linux computer (download, flash drive, controllers): [docs/desktop.md](docs/desktop.md)**
 
 What's added on top of upstream:
 
@@ -23,6 +24,7 @@ What's added on top of upstream:
 - **wiiOS Settings.** A full-screen settings screen in the style of the Wii's (big buttons, page arrows, Back) with the device's own settings built in: Display & Picture, Sound & Speakers, Network & Wi-Fi, Remotes, Controllers & Bluetooth, Accounts & Sign-in, Captions, Screensaver & Sleep, Language, HDMI inputs, Date & Time, Accessibility, Apps, Storage, About. Each one opens the system's own page, so networking, Bluetooth and picture settings are the device's, not reimplemented.
 - **English by default, 20+ languages to choose from.** The menu stays English whatever the device language is; Settings → Language switches it on the spot.
 - **Now Playing screensaver.** Blurred album colours behind the artwork, title, artist and progress of whatever's playing (Spotify, podcasts…), plus the clock. It drifts against burn-in and can fade to black while the audio plays on. Screensaver and sleep timers can be set from wiiOS Settings.
+- **Computers too.** `desktop/` is the same menu as a Windows `.exe` and a Linux AppImage (Tauri), with Steam and Epic games as channels, mouse, keyboard and controller support, and Wii-style settings. It shares the TV version's colour tables, music and sounds, and every release carries all versions, each updating itself from it.
 - **Over-the-air updates.** CI publishes every build of `main` as a GitHub release, and the menu installs newer builds itself (Settings → System Update), so the computer is only needed once.
 - **Shop.** A Wii Shop-style store: categories, lists of titles with "Free / Installed / Update", app pages, and a *Downloading…* screen. Play apps open their store page; open-source apps (F-Droid, GitHub, direct links) download and install from the channel. The catalog is a JSON file in this repo, updated on devices without an app update.
 - **Games.** Its own channel, separate from the Shop. **My Games** opens the games already on the device directly, and the other categories work like a store, in the same style, for party games (Jackbox, AirConsole), cloud gaming (GeForce NOW, Boosteroid, Xbox Cloud Gaming, Luna), retro emulators with local multiplayer, and PC streaming. Web games play full screen in the channel. Pages say which account a game needs and what it costs.

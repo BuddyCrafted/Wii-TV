@@ -18,3 +18,9 @@ launcher/replay_pid*.log
 *.aab
 
 .DS_Store
+
+# Desktop build output (desktop/web/gen is copied from the Android sources by scripts/prepare.mjs)
+desktop/node_modules/
+desktop/web/gen/
+desktop/src-tauri/target/
+desktop/src-tauri/gen/
