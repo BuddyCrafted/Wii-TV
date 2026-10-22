@@ -49,8 +49,15 @@ public class FireTvHomeService extends AccessibilityService {
     static final String COVER_FILE = "menu-cover.jpg";
     /** The app-switch delay is 5 s; past this the cover goes even if the menu never arrived. */
     private static final long COVER_TIMEOUT_MS = 8000;
-    /** While the picture is up, ask for the menu again this often, so it takes over as soon as Fire OS lets it. */
-    private static final long RETRY_MS = 250;
+    /**
+     * While the picture is up, ask for the menu again this often, at most RETRIES times. Fire OS does not drop
+     * a start held by the app-switch delay, it queues it and runs every queued start when the delay ends: asking
+     * every 250 ms piled up 20-30 starts of the menu, which then ran back to back and froze a 1 GB stick for
+     * seconds after each Home press. The retries are only there for a start that really was lost (a second Home
+     * press clears the queue).
+     */
+    private static final long RETRY_MS = 1500;
+    private static final int RETRIES = 3;
     /** Amazon home windows this soon after opening Settings are its Settings row, not a Home press. */
     private static final long SETTINGS_GRACE_MS = 4000;
 
@@ -86,6 +93,7 @@ public class FireTvHomeService extends AccessibilityService {
     private static volatile long settingsOpenedAt;
     private View cover;
     private long lastLaunch;
+    private int retriesLeft;
     private boolean longPressed;
     /**
      * Set when WiiOS sends you to Fire TV Settings. Fire OS 7.7 answers android.settings.SETTINGS by
@@ -239,6 +247,7 @@ public class FireTvHomeService extends AccessibilityService {
         if (now - lastLaunch < DEBOUNCE_MS) return;
         lastLaunch = now;
         showCover();
+        retriesLeft = RETRIES;
         startMenu();
         main.removeCallbacks(retry);
         main.postDelayed(retry, RETRY_MS);
@@ -253,7 +262,8 @@ public class FireTvHomeService extends AccessibilityService {
 
     /** Keeps asking for the menu while its picture is up and the real one has not arrived. */
     private void retryMenu() {
-        if (menuVisible || cover == null || amazonScreenAllowed) return;
+        if (menuVisible || cover == null || amazonScreenAllowed || retriesLeft <= 0) return;
+        retriesLeft--;
         startMenu();
         main.postDelayed(retry, RETRY_MS);
     }
