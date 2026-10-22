@@ -25,6 +25,8 @@ jobs:
       - name: Tools virtualenv
         run: |
           python3 -m venv tools/venv
+          # pip 26.2.2+ no longer trusts eMudhra's compromised CA (October 2026).
+          tools/venv/bin/python -m pip install -q --upgrade "pip>=26.2.2"
           tools/venv/bin/pip install -q -r tools/requirements.txt
       - name: Shell helpers against a simulated TV
         run: python3 -m unittest discover -s tests -v

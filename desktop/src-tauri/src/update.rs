@@ -55,13 +55,42 @@ pub fn parse(release: &serde_json::Value, current: u32, asset: &str) -> Option<U
     })
 }
 
+/// True for a root certificate from eMudhra (emSign). Its CA's signing keys were found to be trivially weak in
+/// October 2026 and browsers, Python and others stopped trusting it; the bundled list predates that, so the
+/// updater leaves those roots out itself. GitHub doesn't use them.
+fn distrusted(subject: &[u8]) -> bool {
+    [&b"emSign"[..], &b"eMudhra"[..]].iter().any(|n| subject.windows(n.len()).any(|w| w == *n))
+}
+
+fn roots() -> rustls::RootCertStore {
+    rustls::RootCertStore {
+        roots: webpki_roots::TLS_SERVER_ROOTS.iter().filter(|ta| !distrusted(ta.subject.as_ref())).cloned().collect(),
+    }
+}
+
+/// HTTPS for the updater: ureq's own TLS, with the bundled roots minus distrusted ones.
+fn agent() -> ureq::Agent {
+    static AGENT: std::sync::OnceLock<ureq::Agent> = std::sync::OnceLock::new();
+    AGENT
+        .get_or_init(|| {
+            let provider = std::sync::Arc::new(rustls::crypto::ring::default_provider());
+            let config = rustls::ClientConfig::builder_with_provider(provider)
+                .with_safe_default_protocol_versions()
+                .expect("TLS 1.2 and 1.3 are supported")
+                .with_root_certificates(roots())
+                .with_no_client_auth();
+            ureq::AgentBuilder::new().tls_config(std::sync::Arc::new(config)).build()
+        })
+        .clone()
+}
+
 pub fn check() -> Result<Option<Update>, String> {
     let Some(asset) = asset_name() else { return Ok(None) };
     if build() == 0 {
         return Err("this is a development build; updates come with released builds".into());
     }
     let url = format!("https://api.github.com/repos/{}/releases/latest", REPO);
-    let release: serde_json::Value = ureq::get(&url)
+    let release: serde_json::Value = agent().get(&url)
         .set("User-Agent", "WiiOS-updater")
         .set("Accept", "application/vnd.github+json")
         .call()
@@ -100,7 +129,7 @@ pub fn apply(url: &str, sha256: &str) -> Result<PathBuf, String> {
     let target = target()?;
     let new = sibling(&target, ".new");
     let old = sibling(&target, ".old");
-    let resp = ureq::get(url).set("User-Agent", "WiiOS-updater").call().map_err(|e| e.to_string())?;
+    let resp = agent().get(url).set("User-Agent", "WiiOS-updater").call().map_err(|e| e.to_string())?;
     let mut reader = resp.into_reader();
     let mut file = fs::File::create(&new).map_err(|e| format!("can't write next to {}: {}", target.display(), e))?;
     let mut hash = Sha256::new();
@@ -139,6 +168,17 @@ pub fn apply(url: &str, sha256: &str) -> Result<PathBuf, String> {
 mod tests {
     use super::*;
     use serde_json::json;
+
+    #[test]
+    fn emudhra_roots_are_left_out() {
+        let all = webpki_roots::TLS_SERVER_ROOTS.len();
+        let kept = roots().roots;
+        assert!(kept.iter().all(|ta| !distrusted(ta.subject.as_ref())));
+        // Only eMudhra's few roots go; everything GitHub needs stays.
+        assert!(all - kept.len() <= 6 && kept.len() > 100);
+        assert!(distrusted(b"..emSign Root CA - G1.."));
+        assert!(!distrusted(b"DigiCert Global Root G2"));
+    }
 
     fn release(tag: &str) -> serde_json::Value {
         json!({

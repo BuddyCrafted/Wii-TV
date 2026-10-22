@@ -78,6 +78,7 @@ Run every command from the repository folder, and replace `192.168.1.50` with yo
    git clone https://github.com/MauroProto/wii-tv.git
    cd wii-tv
    python3 -m venv tools/venv
+   tools/venv/bin/python -m pip install --upgrade "pip>=26.2.2"   # older pip trusts a compromised CA
    tools/venv/bin/pip install -r tools/requirements.txt
    TV_HOST=192.168.1.50 tools/venv/bin/python tools/tv.py --probe
    ```

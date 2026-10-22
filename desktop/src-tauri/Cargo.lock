@@ -4032,12 +4032,14 @@ dependencies = [
  "base64 0.22.1",
  "dirs 5.0.1",
  "open",
+ "rustls",
  "serde",
  "serde_json",
  "sha2",
  "tauri",
  "tauri-build",
  "ureq",
+ "webpki-roots 1.0.10",
  "winreg 0.52.0",
 ]
 

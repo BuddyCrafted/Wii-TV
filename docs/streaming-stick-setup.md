@@ -151,7 +151,7 @@ The first channel is the **Mii Channel**: make Miis in the editor and watch them
 
 It's drawn entirely in code. If you want the original channel's look and sounds on your own TV, you can build an optional pack on your computer (WiiOS never includes Nintendo's files):
 
-1. `pip3 install -r tools/miipack/requirements.txt`
+1. `python3 -m pip install --upgrade "pip>=26.2.2"` (older pip still trusts the eMudhra certificate authority whose keys leaked in October 2026), then `pip3 install -r tools/miipack/requirements.txt`
 2. Download the twelve files listed in [tools/miipack/README.md](../tools/miipack/README.md) with your browser into one folder (the sites don't allow scripted downloads), then `python3 tools/miipack/fetch.py --from ~/Downloads`. Each file is checked by its SHA-256.
 3. `tools/miipack/build.sh` (about 3 minutes) writes `tools/miipack/build/out/miipack.zip`.
 4. Load it on the TV (use your TV's IP):

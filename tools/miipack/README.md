@@ -9,6 +9,7 @@ Este repositorio no trae ningún archivo de Nintendo. Estas herramientas toman l
 Python 3 con numpy, pillow y scipy:
 
 ```sh
+python3 -m pip install --upgrade "pip>=26.2.2"
 pip3 install -r tools/miipack/requirements.txt
 ```
 

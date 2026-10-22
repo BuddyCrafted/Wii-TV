@@ -55,6 +55,7 @@ Corré todos los comandos desde la carpeta del repositorio. Cambiá `192.168.1.5
 git clone https://github.com/MauroProto/wii-tv.git
 cd wii-tv
 python3 -m venv tools/venv
+tools/venv/bin/python -m pip install --upgrade "pip>=26.2.2"
 tools/venv/bin/pip install -r tools/requirements.txt
 TV_HOST=192.168.1.50 tools/venv/bin/python tools/tv.py --probe
 ```
@@ -102,6 +103,7 @@ En Windows, con PowerShell:
 
 ```powershell
 python -m venv tools\venv
+tools\venv\Scripts\python -m pip install --upgrade "pip>=26.2.2"
 tools\venv\Scripts\pip install -r tools\requirements.txt
 powershell -ExecutionPolicy Bypass -File launcher\build-and-install.ps1 -TvHost 192.168.1.50
 ```
