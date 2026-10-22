@@ -137,12 +137,7 @@ function mainSettings() {
     { label: 'Sound', action: () => osSettings('sound') },
     { label: 'Network & Internet', action: () => osSettings('network') },
     { label: 'Controllers & Bluetooth', action: () => osSettings('bluetooth') },
-    { label: 'Full screen', value: onOff(fullscreen), action: async () => {
-      fullscreen = !fullscreen;
-      await appWindow()?.setFullscreen(fullscreen);
-      prefs.set('fullscreen', fullscreen);
-      menu.refreshSettings();
-    } },
+    { label: 'Full screen', value: onOff(fullscreen), action: () => setFullscreen(!fullscreen) },
     { label: 'Start with this computer', value: onOff(info.autostart), action: async () => {
       try {
         await invoke('set_autostart', { on: !info.autostart });
@@ -223,6 +218,35 @@ function osSettings(page) {
   invoke('open_settings', { page }).catch((e) => menu.showNotice(String(e)));
 }
 
+/**
+ * Full screen on or off (Settings, F11). In the app a window gets its title bar back so it can be moved and
+ * resized; opened in a browser it uses the browser's full screen.
+ */
+async function setFullscreen(on) {
+  fullscreen = on;
+  prefs.set('fullscreen', on);
+  const w = appWindow();
+  try {
+    if (w) {
+      await w.setDecorations(!on);
+      await w.setFullscreen(on);
+    } else if (on) {
+      await document.documentElement.requestFullscreen();
+    } else if (document.fullscreenElement) {
+      await document.exitFullscreen();
+    }
+  } catch (e) {
+    menu.showNotice(`Couldn't change full screen: ${e}`);
+  }
+  menu.refreshSettings();
+}
+if (!native) {
+  document.addEventListener('fullscreenchange', () => {
+    fullscreen = !!document.fullscreenElement;
+    menu.refreshSettings();
+  });
+}
+
 // ---- Updates: the same GitHub releases as the TV version ---------------------------------------
 
 async function checkForUpdate(manual) {
@@ -295,8 +319,7 @@ window.addEventListener('keydown', (e) => {
   audio.unlock();
   if (e.key === 'F11') {
     e.preventDefault();
-    fullscreen = !fullscreen;
-    appWindow()?.setFullscreen(fullscreen);
+    setFullscreen(!fullscreen);
     return;
   }
   if (e.key === 'Enter' || e.key === ' ') {
@@ -390,8 +413,12 @@ window.addEventListener('resize', layout);
   } catch {
     // keep the defaults
   }
-  fullscreen = prefs.get('fullscreen', true);
-  if (!fullscreen) appWindow()?.setFullscreen(false);
+  // The app opens full screen; a browser can only go full screen after a key or click.
+  if (native) {
+    if (!prefs.get('fullscreen', true)) await setFullscreen(false);
+  } else {
+    fullscreen = !!document.fullscreenElement;
+  }
   menu.setIntroText('Before you start',
     'Sit at a comfortable distance from the screen and rest your eyes now and then. Your games, apps and files are where they always were.',
     'Press OK to continue.');

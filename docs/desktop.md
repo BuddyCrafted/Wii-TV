@@ -45,7 +45,7 @@ file on the stick, so the stick stays current. Each computer keeps its own chann
 Display, Sound, Network & Internet and Controllers & Bluetooth open the computer's own settings pages (Windows
 Settings, or GNOME/KDE settings on Linux). The other settings:
 
-- **Full screen** on or off.
+- **Full screen** on or off (or press **F11**). wiiOS starts full screen; switched off, it becomes a normal window you can move and resize, and it remembers your choice.
 - **Start with this computer**: opens wiiOS when you sign in, so the PC starts into the Wii menu like a console.
 - **Menu music** and **Sounds** on or off.
 - **Hidden channels** and **Reset channel order**.

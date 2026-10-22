@@ -17,6 +17,7 @@
         "height": 720,
         "fullscreen": true,
         "decorations": false,
+        "center": true,
         "backgroundColor": "#e6e6e6"
       }
     ],

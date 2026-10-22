@@ -1,7 +1,7 @@
 {
   "$schema": "../gen/schemas/desktop-schema.json",
   "identifier": "default",
-  "description": "The menu window: its own commands, plus going full screen.",
+  "description": "The menu window: its own commands, plus full screen on and off (with the title bar back when off).",
   "windows": ["main"],
-  "permissions": ["core:default", "core:window:allow-set-fullscreen"]
+  "permissions": ["core:default", "core:window:allow-set-fullscreen", "core:window:allow-set-decorations"]
 }
