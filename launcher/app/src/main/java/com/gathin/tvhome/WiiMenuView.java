@@ -1099,7 +1099,7 @@ public class WiiMenuView extends View {
         drawTiles(c);
         if (theme.deco == Theme.Deco.ISLAND) island.butterflies(c, s, seconds);
         if (theme.deco == Theme.Deco.SNOW) {
-            season.sledders(c, s, seconds);
+            season.winterKids(c, s, seconds);
             season.snow(c, s, seconds, true);
         } else if (theme.deco == Theme.Deco.LEAVES) {
             season.leaves(c, s, seconds, true);

@@ -282,5 +282,8 @@
     <string name="upd_downloading">Downloading the update…</string>
     <string name="upd_error">Update check failed: %1$s</string>
     <string name="upd_failed">The install did not finish. %1$s</string>
+    <string name="upd_installing">Installing… confirm on the next screen if asked.</string>
+    <string name="upd_from_to">Build %1$d → build %2$d</string>
+    <string name="upd_done">WiiOS updated to %1$s</string>
     <string name="wii_no_media">Install Kodi, VLC or a file manager to use the SD button</string>
 </resources>

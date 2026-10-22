@@ -187,6 +187,14 @@
                 android:resource="@xml/fire_tv_home_service" />
         </service>
 
+        <!-- System Update, full screen while it downloads and installs. -->
+        <activity
+            android:name=".UpdateActivity"
+            android:exported="false"
+            android:excludeFromRecents="true"
+            android:screenOrientation="landscape"
+            android:theme="@android:style/Theme.Black.NoTitleBar.Fullscreen" />
+
         <!-- The Wii and Aquarium screensavers (SaverDream), and their preview. -->
         <service
             android:name=".SaverDream$Wii"

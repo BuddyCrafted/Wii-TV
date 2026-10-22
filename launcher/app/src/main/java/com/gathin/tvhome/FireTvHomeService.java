@@ -92,6 +92,8 @@ public class FireTvHomeService extends AccessibilityService {
     };
     private static volatile long settingsOpenedAt;
     private View cover;
+    /** The menu picture, decoded ahead of time so it can go up the instant the Amazon home appears. */
+    private volatile Bitmap coverBitmap;
     private long lastLaunch;
     private int retriesLeft;
     private boolean longPressed;
@@ -149,10 +151,26 @@ public class FireTvHomeService extends AccessibilityService {
         menuVisible = false;
     }
 
+    /** WiiMenuActivity saved a new picture of the menu: decode it now, off the main thread. */
+    static void coverSaved() {
+        FireTvHomeService s = instance;
+        if (s != null) s.loadCover();
+    }
+
+    private void loadCover() {
+        File f = new File(getCacheDir(), COVER_FILE);
+        if (!f.isFile()) return;
+        BitmapFactory.Options o = new BitmapFactory.Options();
+        o.inPreferredConfig = Bitmap.Config.RGB_565;
+        Bitmap b = BitmapFactory.decodeFile(f.getPath(), o);
+        if (b != null) coverBitmap = b;
+    }
+
     @Override
     protected void onServiceConnected() {
         super.onServiceConnected();
         instance = this;
+        new Thread(this::loadCover, "menu-cover-load").start();
         IntentFilter f = new IntentFilter(Intent.ACTION_SCREEN_ON);
         f.addAction(Intent.ACTION_USER_PRESENT);
         f.addAction(Intent.ACTION_DREAMING_STOPPED);
@@ -245,6 +263,8 @@ public class FireTvHomeService extends AccessibilityService {
     private void openMenu() {
         long now = SystemClock.uptimeMillis();
         if (now - lastLaunch < DEBOUNCE_MS) return;
+        // Already covering this Home press: its start is queued, and more Amazon events must not add starts.
+        if (cover != null) return;
         lastLaunch = now;
         showCover();
         retriesLeft = RETRIES;
@@ -278,11 +298,11 @@ public class FireTvHomeService extends AccessibilityService {
             main.postDelayed(removeCover, COVER_TIMEOUT_MS);
             return;
         }
-        File f = new File(getCacheDir(), COVER_FILE);
-        if (!f.isFile()) return;
-        BitmapFactory.Options o = new BitmapFactory.Options();
-        o.inPreferredConfig = Bitmap.Config.RGB_565;
-        Bitmap b = BitmapFactory.decodeFile(f.getPath(), o);
+        Bitmap b = coverBitmap;
+        if (b == null) {
+            loadCover();
+            b = coverBitmap;
+        }
         if (b == null) return;
         ImageView v = new ImageView(this);
         v.setScaleType(ImageView.ScaleType.FIT_XY);

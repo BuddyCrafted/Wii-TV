@@ -41,7 +41,7 @@ import java.util.Set;
 /** Home screen in the style of the old console menu; all of the drawing is in WiiMenuView. */
 public class WiiMenuActivity extends Activity implements WiiMenuView.Listener {
 
-    private static final String PREFS = "wii_menu";
+    static final String PREFS = "wii_menu";
     private static final String KEY_ORDER = "order";
     private static final String KEY_HIDDEN = "hidden";
     /** Prefix of the preference that holds a channel's custom picture (a file name in the tiles folder). */
@@ -135,6 +135,13 @@ public class WiiMenuActivity extends Activity implements WiiMenuView.Listener {
             menu.setRefPose(true);
         }
         liveTvPkg = getString(R.string.live_tv_package);
+        // First start after an update: say so.
+        int lastBuild = prefs.getInt("last_build", BuildConfig.WIIOS_BUILD);
+        if (lastBuild < BuildConfig.WIIOS_BUILD) {
+            Toast.makeText(this, getString(R.string.upd_done, BuildConfig.WIIOS_VERSION + " (build " + BuildConfig.WIIOS_BUILD + ")"),
+                    Toast.LENGTH_LONG).show();
+        }
+        prefs.edit().putInt("last_build", BuildConfig.WIIOS_BUILD).apply();
         handleGet(getIntent());
 
         IntentFilter screen = new IntentFilter(Intent.ACTION_SCREEN_ON);
@@ -204,7 +211,7 @@ public class WiiMenuActivity extends Activity implements WiiMenuView.Listener {
             } finally {
                 shot.recycle();
             }
-            tmp.renameTo(new File(dir, FireTvHomeService.COVER_FILE));
+            if (tmp.renameTo(new File(dir, FireTvHomeService.COVER_FILE))) FireTvHomeService.coverSaved();
         }, "menu-cover").start();
     };
 
@@ -409,7 +416,7 @@ public class WiiMenuActivity extends Activity implements WiiMenuView.Listener {
         items.add(item(R.string.set_display, () -> openSetting(Settings.ACTION_DISPLAY_SETTINGS)));
         items.add(item(R.string.set_sound, () -> openSetting(Settings.ACTION_SOUND_SETTINGS)));
         items.add(item(R.string.wii_network, () -> openSetting(Settings.ACTION_WIFI_SETTINGS)));
-        items.add(item(R.string.set_controllers, () -> openSetting(Settings.ACTION_BLUETOOTH_SETTINGS)));
+        items.add(item(R.string.set_controllers, this::openBluetooth));
         items.add(item(R.string.set_accounts, () -> menu.pushSettings(getString(R.string.set_accounts), this::accountSettings)));
 
         items.add(new WiiMenuView.MenuItem(getString(R.string.set_remote), onOff(RemoteButtons.enabled(this)), () ->
@@ -621,12 +628,10 @@ public class WiiMenuActivity extends Activity implements WiiMenuView.Listener {
                 return;
             }
             List<WiiMenuView.MenuItem> items = new ArrayList<>();
-            items.add(new WiiMenuView.MenuItem(getString(R.string.upd_now, release.build), () -> {
-                Toast.makeText(this, R.string.upd_downloading, Toast.LENGTH_LONG).show();
-                Updater.install(this, release, (v, err) -> {
-                    if (err != null) Toast.makeText(this, getString(R.string.upd_failed, err), Toast.LENGTH_LONG).show();
-                });
-            }));
+            items.add(new WiiMenuView.MenuItem(getString(R.string.upd_now, release.build), () ->
+                    // Full screen in the menu's style while it downloads and installs.
+                    open(new Intent(this, UpdateActivity.class).putExtra(UpdateActivity.EXTRA_URL, release.apkUrl)
+                            .putExtra(UpdateActivity.EXTRA_BUILD, release.build))));
             items.add(new WiiMenuView.MenuItem(getString(R.string.upd_later), () -> { }));
             menu.showMenu(getString(R.string.upd_title), items);
         });
@@ -855,6 +860,34 @@ public class WiiMenuActivity extends Activity implements WiiMenuView.Listener {
             items.add(item(R.string.set_manage_accounts, () -> openSetting(Settings.ACTION_SYNC_SETTINGS)));
         }
         return items;
+    }
+
+    /**
+     * Fire TV's own pages for pairing remotes, game controllers and Bluetooth devices, newest Fire OS first. Fire
+     * OS does not answer Android's Bluetooth settings action, so that only reached the main Settings row.
+     */
+    private static final String[] FIRE_TV_BLUETOOTH = {
+            "com.amazon.tv.settings.v2/com.amazon.tv.settings.v2.tv.controllers_bluetooth_devices.ControllersAndBluetoothActivity",
+            "com.amazon.tv.settings/com.amazon.tv.settings.tv.controllers_bluetooth_devices.ControllersAndBluetoothActivity",
+            "com.amazon.tv.settings/com.amazon.tv.settings.tv.BuellerControllersAndBluetoothActivity",
+    };
+
+    private void openBluetooth() {
+        if (DeviceProfile.fireTv()) {
+            for (String comp : FIRE_TV_BLUETOOTH) {
+                Intent i = new Intent(Intent.ACTION_MAIN).setComponent(android.content.ComponentName.unflattenFromString(comp))
+                        .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+                if (i.resolveActivity(getPackageManager()) == null) continue;
+                try {
+                    FireTvHomeService.allowAmazonUntilHome();
+                    startActivity(i);
+                    return;
+                } catch (ActivityNotFoundException | SecurityException ignored) {
+                    // not exported on this Fire OS: try the next, then the main Settings
+                }
+            }
+        }
+        openSetting(Settings.ACTION_BLUETOOTH_SETTINGS);
     }
 
     private void openSetting(String action) {

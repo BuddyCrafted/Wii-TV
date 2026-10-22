@@ -7,5 +7,5 @@
     android:canRequestFilterKeyEvents="true"
     android:canRetrieveWindowContent="false"
     android:description="@string/fire_home_description"
-    android:notificationTimeout="100"
+    android:notificationTimeout="0"
     android:packageNames="com.amazon.tv.launcher" />
