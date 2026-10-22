@@ -176,6 +176,12 @@ mod tests {
         assert!(kept.iter().all(|ta| !distrusted(ta.subject.as_ref())));
         // Only eMudhra's few roots go; everything GitHub needs stays.
         assert!(all - kept.len() <= 6 && kept.len() > 100);
+        // The roots GitHub's certificates chain to (github.com, api.github.com, release downloads) are kept.
+        let has = |name: &[u8]| kept.iter().any(|ta| ta.subject.as_ref().windows(name.len()).any(|w| w == name));
+        for name in [&b"USERTrust ECC Certification Authority"[..], b"USERTrust RSA Certification Authority",
+                     b"DigiCert Global Root G2", b"DigiCert Global Root G3", b"ISRG Root X1"] {
+            assert!(has(name), "missing {}", String::from_utf8_lossy(name));
+        }
         assert!(distrusted(b"..emSign Root CA - G1.."));
         assert!(!distrusted(b"DigiCert Global Root G2"));
     }
