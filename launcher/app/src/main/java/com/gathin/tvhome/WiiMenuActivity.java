@@ -55,6 +55,8 @@ public class WiiMenuActivity extends Activity implements WiiMenuView.Listener {
     static final String GAMES_KEY = "wiios.games";
     /** Debug: freeze the menu in the reference capture's state, for comparing screenshots against it. */
     static final String EXTRA_REF_POSE = "ref_pose";
+    /** Open wiiOS Settings straight away (Quick Settings' launcher row). */
+    static final String EXTRA_OPEN_SETTINGS = "open_settings";
 
     private WiiMenuView menu;
     private WiiSounds sounds;
@@ -119,6 +121,10 @@ public class WiiMenuActivity extends Activity implements WiiMenuView.Listener {
         setContentView(menu);
         menu.requestFocus();
         introPending = firstStartThisBoot();
+        if (getIntent().getBooleanExtra(EXTRA_OPEN_SETTINGS, false)) {
+            introPending = false;
+            menu.post(this::onSettingsButton);
+        }
         if (getIntent().getBooleanExtra(EXTRA_REF_POSE, false)) {
             introPending = false;
             menu.setRefPose(true);
@@ -223,6 +229,7 @@ public class WiiMenuActivity extends Activity implements WiiMenuView.Listener {
             introPending = false;
             menu.setRefPose(true);
         }
+        if (intent.getBooleanExtra(EXTRA_OPEN_SETTINGS, false)) menu.post(this::onSettingsButton);
     }
 
     @Override

@@ -170,7 +170,7 @@
     <bool name="cinematic_home">false</bool>
 
     <!-- A large title in place of the greeting, clock and date. Empty keeps those. -->
-    <string name="home_title" translatable="false">lainOS</string>
+    <string name="home_title" translatable="false"></string>
     <!-- Animated dither backdrop (DitherView, OpenGL ES 3): noise waves quantised through a Bayer matrix,
          the wave colour drifting round the hue wheel. Replaces the ambient glow. -->
     <bool name="dither_background">true</bool>

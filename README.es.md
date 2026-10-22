@@ -183,7 +183,7 @@ TV_HOST=192.168.1.50 tools/venv/bin/python tools/tv.py 'cmd package set-home-act
 ## Cómo está hecho
 
 - `launcher/` es una app Android en Java. `WiiMenuActivity` es la pantalla de inicio y `WiiMenuView` dibuja todo: canales, reloj, botones, manito, aviso y la lista de entradas. `WiiBase` y `WiiPalette` calculan el fondo rayado y los paneles píxel por píxel, en un hilo aparte. `WiiSounds` reproduce los sonidos.
-- La app también trae el launcher de cleanyourtv (`MainActivity`). Ya no es la pantalla de inicio, pero sigue en el código.
+- El código del launcher de cleanyourtv (`MainActivity`, con el título lainOS) sigue en el proyecto, pero ya no está declarado en el manifiesto: no se abre desde ningún lado. wiiOS es la única pantalla.
 - `tools/` tiene un cliente ADB por red en Python (`tv.py`, no hace falta instalar `adb`), los scripts para desactivar y restaurar apps, el respaldo y el generador de sonidos.
 - `tests/` prueba los scripts contra una TV simulada: `python3 -m unittest discover -s tests`.
 
