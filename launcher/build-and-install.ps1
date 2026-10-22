@@ -7,7 +7,7 @@
 #        [-InputKeyService]   remote's Input button opens the input switcher (Google TV), plus config.xml
 #                             input_key_keycodes and app_keys; re-pass on every install
 #        [-HomeKeyService]    remotes whose Home button sends KEYCODE_ALL_APPS (Xiaomi sticks)
-#        [-MusicDir <folder>] your own menu / shop / games music (.mp3, .ogg, .m4a, .flac, .wav), copied to the TV
+#        [-MusicDir <folder>] your own menu / winter / shop / games music (.mp3, .ogg, .m4a, .flac, .wav), copied to the TV
 #        [-NoSmartTube]       don't add SmartTube (YouTube without ads, shown as the YouTube channel)
 #        Fire TV is detected automatically (see build-and-install.sh): the Amazon launcher is left alone and
 #        the FireTvHomeService accessibility service takes the Home button instead.
@@ -18,7 +18,7 @@ param(
     [switch]$HomeKeyService,
     # A ready-made APK (e.g. the one CI attaches to each run): skips the build, no JDK or SDK needed.
     [string]$ApkFile = '',
-    # Your own music: menu.*, shop.* and games.* in this folder play instead of the built-in tunes.
+    # Your own music: menu.*, winter.*, shop.* and games.* in this folder play instead of the built-in tunes.
     [string]$MusicDir = '',
     [switch]$NoSmartTube
 )
@@ -65,8 +65,8 @@ function Push-Music {
     $dest = '/sdcard/Android/data/com.gathin.tvhome/files/music'
     & $py -I ..\tools\tv.py "mkdir -p $dest" | Out-Null
     $files = Get-ChildItem $MusicDir -File | Where-Object {
-        $_.BaseName -in 'menu', 'shop', 'games' -and $_.Extension -in '.mp3', '.ogg', '.m4a', '.flac', '.wav' }
-    if (-not $files) { Write-Warning "no menu, shop or games music files in $MusicDir"; return }
+        $_.BaseName -in 'menu', 'winter', 'shop', 'games' -and $_.Extension -in '.mp3', '.ogg', '.m4a', '.flac', '.wav' }
+    if (-not $files) { Write-Warning "no menu, winter, shop or games music files in $MusicDir"; return }
     foreach ($f in $files) {
         & $py -I ..\tools\tv.py "rm -f $dest/$($f.BaseName).*" | Out-Null
         & $py -I ..\tools\b64push.py $f.FullName "$dest/$($f.Name)"

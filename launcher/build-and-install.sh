@@ -39,7 +39,7 @@ get_smarttube() {
   echo "SmartTube is downloading on the TV: when it asks, choose Install (it shows up as your YouTube channel)."
 }
 
-# MUSIC_DIR=<folder> copies your own music to the TV: menu, shop and games (.mp3, .ogg, .m4a, .flac or .wav)
+# MUSIC_DIR=<folder> copies your own music to the TV: menu, winter, shop and games (.mp3, .ogg, .m4a, .flac or .wav)
 # play instead of the built-in tunes on those screens. Nothing is added to the APK or the repository.
 push_music() {
   [ -n "${MUSIC_DIR:-}" ] || return 0
@@ -47,14 +47,14 @@ push_music() {
   dest=/sdcard/Android/data/com.gathin.tvhome/files/music
   "$PY" -I ../tools/tv.py "mkdir -p $dest" >/dev/null
   found=0
-  for f in "$MUSIC_DIR"/menu.* "$MUSIC_DIR"/shop.* "$MUSIC_DIR"/games.*; do
+  for f in "$MUSIC_DIR"/menu.* "$MUSIC_DIR"/winter.* "$MUSIC_DIR"/shop.* "$MUSIC_DIR"/games.*; do
     [ -f "$f" ] || continue
     case "$f" in *.mp3|*.ogg|*.m4a|*.flac|*.wav) ;; *) continue ;; esac
     "$PY" -I ../tools/tv.py "rm -f $dest/$(basename "${f%.*}").*" >/dev/null
     "$PY" -I ../tools/b64push.py "$f" "$dest/$(basename "$f")"
     found=1
   done
-  [ "$found" = 1 ] || echo "WARNING: no menu, shop or games music files in $MUSIC_DIR." >&2
+  [ "$found" = 1 ] || echo "WARNING: no menu, winter, shop or games music files in $MUSIC_DIR." >&2
 }
 
 # Fire TV: Fire OS protects its launcher (pm disable-user is refused, set-home-activity is accepted

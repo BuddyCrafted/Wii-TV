@@ -10,7 +10,8 @@ import android.media.AudioTrack;
  * thread, the first time music is wanted; a feeder thread streams it round and round.
  *
  * Your own music file plays instead when there is one in the app's music folder on the device
- * (Android/data/com.gathin.tvhome/files/music/), named for the screen: menu, shop or games, as .mp3, .ogg,
+ * (Android/data/com.gathin.tvhome/files/music/), named for the screen: menu, winter (the Winter theme's menu;
+ * menu is used when there's none), shop or games, as .mp3, .ogg,
  * .m4a, .flac or .wav. The installer copies them there with MUSIC_DIR; nothing is bundled in the APK.
  */
 final class WiiMusic {
@@ -39,7 +40,9 @@ final class WiiMusic {
     WiiMusic(android.content.Context context, boolean enabled, MenuMusic.Song song, String cacheName, String slot) {
         this.enabled = enabled;
         this.song = song;
-        this.custom = customFile(context, slot);
+        java.io.File own = customFile(context, slot);
+        if (own == null && "winter".equals(slot)) own = customFile(context, "menu");
+        this.custom = own;
         // The rendered loop is kept on disk: Android often kills the launcher on a 1 GB stick while another app
         // runs, and reading 1.7 MB back is much cheaper than rendering it again on a 1.7 GHz CPU.
         this.cache = new java.io.File(context.getApplicationContext().getFilesDir(), cacheName);
@@ -55,6 +58,21 @@ final class WiiMusic {
             if (f.isFile() && f.length() > 0) return f;
         }
         return null;
+    }
+
+    /** The menu's music for a theme: Winter plays your own winter file when you've added one. */
+    static WiiMusic forTheme(android.content.Context context, boolean enabled, Theme theme) {
+        if (theme.deco == Theme.Deco.SNOW) {
+            return new WiiMusic(context, enabled, MenuMusic.MENU, "menu_music_v1.pcm", "winter");
+        }
+        return new WiiMusic(context, enabled);
+    }
+
+    /** Whether the menu is in front and wants music (for handing over to another tune). */
+    boolean isWanted() {
+        synchronized (lock) {
+            return wanted;
+        }
     }
 
     /** The menu came to the front. */
