@@ -148,7 +148,7 @@ public class WiiMenuActivity extends Activity implements WiiMenuView.Listener {
         FireTvHomeService.coverAmazonHome();
         if (DeviceProfile.fireTv()) {
             // Once the menu has drawn, drop the picture the Home redirect put up, then refresh that picture.
-            menu.postDelayed(FireTvHomeService::menuShown, 120);
+            menu.postDelayed(() -> { if (resumed) FireTvHomeService.menuShown(); }, 120);
             menu.postDelayed(saveCover, 2500);
         }
         if (appsDirty) reloadApps();
@@ -200,6 +200,7 @@ public class WiiMenuActivity extends Activity implements WiiMenuView.Listener {
     protected void onPause() {
         super.onPause();
         resumed = false;
+        FireTvHomeService.menuHidden();
         menu.removeCallbacks(saveCover);
         menu.stop();
         music.pause();

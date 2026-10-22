@@ -45,12 +45,20 @@ public class FireTvHomeService extends AccessibilityService {
     /** Picture of the menu that WiiMenuActivity saves (cacheDir) and the cover shows. */
     static final String COVER_FILE = "menu-cover.jpg";
     /** The app-switch delay is 5 s; past this the cover goes even if the menu never arrived. */
-    private static final long COVER_TIMEOUT_MS = 7000;
+    private static final long COVER_TIMEOUT_MS = 8000;
+    /** While the picture is up, ask for the menu again this often: a second Home press drops the held start. */
+    private static final long RETRY_MS = 1000;
+    /** Amazon home windows this soon after opening Settings are its Settings row, not a Home press. */
+    private static final long SETTINGS_GRACE_MS = 4000;
 
     private static volatile FireTvHomeService instance;
 
     private final Handler main = new Handler(Looper.getMainLooper());
     private final Runnable removeCover = this::removeCover;
+    private final Runnable retry = this::retryMenu;
+    /** The menu is on screen (resumed and drawn); Amazon window events then mean nothing. */
+    private static volatile boolean menuVisible;
+    private static volatile long settingsOpenedAt;
     private View cover;
     private long lastLaunch;
     private boolean longPressed;
@@ -64,6 +72,7 @@ public class FireTvHomeService extends AccessibilityService {
     /** Leave the Amazon screens on top until the next Home press (call before opening Fire TV Settings). */
     static void allowAmazonUntilHome() {
         amazonScreenAllowed = true;
+        settingsOpenedAt = SystemClock.uptimeMillis();
     }
 
     /** The menu is showing again (WiiMenuActivity.onResume): cover the Amazon home again from now on. */
@@ -73,8 +82,14 @@ public class FireTvHomeService extends AccessibilityService {
 
     /** The menu has drawn itself (WiiMenuActivity): take the picture of it away. */
     static void menuShown() {
+        menuVisible = true;
         FireTvHomeService s = instance;
         if (s != null) s.main.post(s.removeCover);
+    }
+
+    /** The menu went to the background (WiiMenuActivity.onPause). */
+    static void menuHidden() {
+        menuVisible = false;
     }
 
     @Override
@@ -110,15 +125,29 @@ public class FireTvHomeService extends AccessibilityService {
         return true;
     }
 
+    /**
+     * On Fire OS 7.7 the remote's Home button never reaches onKeyEvent: Fire OS handles it first. So the
+     * Amazon home showing up is the only sign of a Home press, and pressing Home while it is already in
+     * front only changes its content. Both kinds of event bring the menu back, unless you are in Settings.
+     */
     @Override
     public void onAccessibilityEvent(AccessibilityEvent event) {
-        if (event.getEventType() == AccessibilityEvent.TYPE_WINDOW_STATE_CHANGED
-                && event.getPackageName() != null
-                && AMAZON_LAUNCHER.contentEquals(event.getPackageName())
-                && !amazonScreenAllowed
-                && !isAmazonSettings(event.getClassName())) {
-            openMenu();
+        int type = event.getEventType();
+        if ((type != AccessibilityEvent.TYPE_WINDOW_STATE_CHANGED && type != AccessibilityEvent.TYPE_WINDOW_CONTENT_CHANGED)
+                || event.getPackageName() == null || !AMAZON_LAUNCHER.contentEquals(event.getPackageName())
+                || menuVisible || isAmazonSettings(event.getClassName())) {
+            return;
         }
+        if (amazonScreenAllowed) {
+            // Moving along the Settings row only changes content. A new Amazon home window after the grace
+            // period is Home pressed (or Back out of a Settings page): Settings is over, back to the menu.
+            if (type != AccessibilityEvent.TYPE_WINDOW_STATE_CHANGED
+                    || SystemClock.uptimeMillis() - settingsOpenedAt < SETTINGS_GRACE_MS) {
+                return;
+            }
+            amazonScreenAllowed = false;
+        }
+        openMenu();
     }
 
     /**
@@ -135,10 +164,23 @@ public class FireTvHomeService extends AccessibilityService {
         if (now - lastLaunch < DEBOUNCE_MS) return;
         lastLaunch = now;
         showCover();
+        startMenu();
+        main.removeCallbacks(retry);
+        main.postDelayed(retry, RETRY_MS);
+    }
+
+    private void startMenu() {
         startActivity(new Intent(this, WiiMenuActivity.class)
                 // No transition: every millisecond of animation here is time the Amazon home stays on screen.
                 .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_REORDER_TO_FRONT
                         | Intent.FLAG_ACTIVITY_NO_ANIMATION));
+    }
+
+    /** Keeps asking for the menu while its picture is up and the real one has not arrived. */
+    private void retryMenu() {
+        if (menuVisible || cover == null || amazonScreenAllowed) return;
+        startMenu();
+        main.postDelayed(retry, RETRY_MS);
     }
 
     /**
@@ -177,6 +219,7 @@ public class FireTvHomeService extends AccessibilityService {
 
     private void removeCover() {
         main.removeCallbacks(removeCover);
+        main.removeCallbacks(retry);
         View v = cover;
         if (v == null) return;
         cover = null;
