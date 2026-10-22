@@ -49,8 +49,8 @@ public class FireTvHomeService extends AccessibilityService {
     static final String COVER_FILE = "menu-cover.jpg";
     /** The app-switch delay is 5 s; past this the cover goes even if the menu never arrived. */
     private static final long COVER_TIMEOUT_MS = 8000;
-    /** While the picture is up, ask for the menu again this often: a second Home press drops the held start. */
-    private static final long RETRY_MS = 1000;
+    /** While the picture is up, ask for the menu again this often, so it takes over as soon as Fire OS lets it. */
+    private static final long RETRY_MS = 250;
     /** Amazon home windows this soon after opening Settings are its Settings row, not a Home press. */
     private static final long SETTINGS_GRACE_MS = 4000;
 
