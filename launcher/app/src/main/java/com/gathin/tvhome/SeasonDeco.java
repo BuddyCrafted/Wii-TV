@@ -208,7 +208,7 @@ final class SeasonDeco {
     private void hockeyScene(Canvas c, float s, float lt, float d) {
         if (lt < WALK_IN || lt > d - WALK_IN) {
             float f = walk(lt, d);
-            float ax = 1960f + (POND_R_X - 55f - 1960f) * f, bx = 1990f + (POND_R_X + 55f - 1990f) * f;
+            float ax = 1960f + (POND_R_X - 70f - 1960f) * f, bx = 1990f + (POND_R_X + 70f - 1990f) * f;
             boolean in = lt < WALK_IN;
             kid(c, s, ax, POND_R_Y, !in, 0xFFE53935, 0xFFE53935, lt, false);
             kid(c, s, bx, POND_R_Y, !in, 0xFF1E88E5, 0xFF1E88E5, lt + 0.4f, false);
@@ -219,7 +219,7 @@ final class SeasonDeco {
 
     /** Two people on the snow beside the ponds throwing snowballs at each other over the date. */
     private void snowballScene(Canvas c, float s, float lt, float d) {
-        float ax0 = 448f, bx0 = 1488f, ground = 1012f;
+        float ax0 = 448f, bx0 = 1545f, ground = 1012f;
         if (lt < WALK_IN || lt > d - WALK_IN) {
             float f = walk(lt, d);
             boolean in = lt < WALK_IN;
@@ -516,7 +516,7 @@ final class SeasonDeco {
     // ---- the frozen ponds: a skater on the left, two hockey players on the right ------------------
 
     static final float POND_L_X = 585f, POND_L_Y = 990f, POND_L_RX = 115f, POND_L_RY = 38f;
-    static final float POND_R_X = 1335f, POND_R_Y = 992f, POND_R_RX = 125f, POND_R_RY = 40f;
+    static final float POND_R_X = 1335f, POND_R_Y = 992f, POND_R_RX = 165f, POND_R_RY = 48f;
 
     /** The two ponds and the hockey nets, baked into the backdrop. */
     static void bakePonds(Canvas c, float s) {
@@ -537,14 +537,76 @@ final class SeasonDeco {
             c.drawLine((x + rx * 0.15f) * s, (y + ry * 0.3f) * s, (x + rx * 0.55f) * s, (y + ry * 0.2f) * s, p);
             p.setStyle(Paint.Style.FILL);
         }
-        // Hockey nets at the right pond's ends.
-        p.setStyle(Paint.Style.STROKE);
-        p.setStrokeWidth(3f * s);
-        p.setColor(0xFFE53935);
-        for (int side = -1; side <= 1; side += 2) {
-            float nx = POND_R_X + side * (POND_R_RX - 16f);
-            c.drawRect((nx - 7f) * s, (POND_R_Y - 16f) * s, (nx + 7f) * s, (POND_R_Y + 6f) * s, p);
+        // Hockey goals at the right pond's ends, mouths facing each other.
+        for (int side = -1; side <= 1; side += 2) net(c, s, p, POND_R_X + side * (POND_R_RX - 24f), POND_R_Y + 6f, side);
+    }
+
+    /**
+     * A hockey goal seen from the side and a little above: red posts and crossbar at the mouth, the frame
+     * curving back to the base, white netting with its mesh. `back` is the side the net bulges toward.
+     */
+    private static void net(Canvas c, float s, Paint p, float x, float y, int back) {
+        final float h = 26f, depth = 22f, skew = 9f;   // skew: the far post sits up and back a little
+        Path side = new Path();
+        // Near and far side panels of the net, then the top.
+        float[][] posts = {{x + back * skew * 0.4f, y - skew}, {x, y}};
+        p.setColor(0x33000000);
+        c.drawOval((x - (back < 0 ? depth + 6f : 6f)) * s, (y - 5f) * s, (x + (back > 0 ? depth + 6f : 6f)) * s,
+                (y + 4f) * s, p);
+        // The netting across the back, between the two side panels.
+        p.setStyle(Paint.Style.FILL);
+        p.setColor(0x80FFFFFF);
+        Path rear = new Path();
+        rear.moveTo((x + back * depth) * s, y * s);
+        rear.lineTo((x + back * (depth + skew * 0.4f)) * s, (y - skew) * s);
+        rear.lineTo((x + back * skew * 0.4f) * s, (y - skew - h) * s);
+        rear.lineTo(x * s, (y - h) * s);
+        rear.close();
+        c.drawPath(rear, p);
+        for (float[] post : posts) {
+            float px = post[0], py = post[1];
+            side.reset();
+            side.moveTo(px * s, py * s);
+            side.lineTo(px * s, (py - h) * s);
+            side.cubicTo((px + back * depth * 0.7f) * s, (py - h) * s, (px + back * depth) * s, (py - h * 0.45f) * s,
+                    (px + back * depth) * s, py * s);
+            side.close();
+            p.setStyle(Paint.Style.FILL);
+            p.setColor(0xB3FFFFFF);
+            c.drawPath(side, p);
+            // The mesh: a diamond grid clipped to the panel.
+            int save = c.save();
+            c.clipPath(side);
+            p.setStyle(Paint.Style.STROKE);
+            p.setStrokeWidth(0.9f * s);
+            p.setColor(0x99788C9C);
+            for (float k = -h; k < depth + h; k += 5f) {
+                float bx = px + back * k;
+                c.drawLine(bx * s, py * s, (bx + back * h) * s, (py - h) * s, p);
+                c.drawLine(bx * s, (py - h) * s, (bx + back * h) * s, py * s, p);
+            }
+            c.restoreToCount(save);
+            // The curved back frame of the panel.
+            p.setStrokeWidth(1.8f * s);
+            p.setColor(0xFFC62828);
+            Path frame = new Path();
+            frame.moveTo(px * s, (py - h) * s);
+            frame.cubicTo((px + back * depth * 0.7f) * s, (py - h) * s, (px + back * depth) * s, (py - h * 0.45f) * s,
+                    (px + back * depth) * s, py * s);
+            c.drawPath(frame, p);
         }
+        p.setStyle(Paint.Style.STROKE);
+        p.setStrokeCap(Paint.Cap.ROUND);
+        // White base bar along the ice, red posts and crossbar at the mouth.
+        p.setStrokeWidth(2f * s);
+        p.setColor(0xFFECEFF1);
+        c.drawLine(x * s, y * s, (x + back * depth) * s, y * s, p);
+        c.drawLine((x + back * skew * 0.4f) * s, (y - skew) * s, (x + back * (depth + skew * 0.4f)) * s, (y - skew) * s, p);
+        p.setStrokeWidth(3.2f * s);
+        p.setColor(0xFFE53935);
+        c.drawLine(x * s, y * s, x * s, (y - h) * s, p);
+        c.drawLine((x + back * skew * 0.4f) * s, (y - skew) * s, (x + back * skew * 0.4f) * s, (y - skew - h) * s, p);
+        c.drawLine(x * s, (y - h) * s, (x + back * skew * 0.4f) * s, (y - skew - h) * s, p);
         p.setStyle(Paint.Style.FILL);
     }
 
@@ -628,8 +690,8 @@ final class SeasonDeco {
             by += (midY - by) * f;
             if (!sticks) {
                 // Sticks lie on the ice behind each of them.
-                dropStick(c, s, POND_R_X - 70f, POND_R_Y + 8f, 0.25f);
-                dropStick(c, s, POND_R_X + 62f, POND_R_Y + 12f, -0.2f);
+                dropStick(c, s, POND_R_X - 82f, POND_R_Y + 10f, 0.25f);
+                dropStick(c, s, POND_R_X + 76f, POND_R_Y + 16f, -0.2f);
                 if (t > STICKS_DOWN + 0.6f && t < STICKS_UP - 0.6f) {
                     punchA = Math.max(0f, (float) Math.sin(t * 8f));
                     punchB = Math.max(0f, (float) Math.sin(t * 8f + Math.PI));
@@ -659,7 +721,7 @@ final class SeasonDeco {
     }
 
     private static float playerX(float t, boolean b) {
-        return POND_R_X + (b ? 55f : -55f) + 18f * (float) Math.sin(t * 0.8f);
+        return POND_R_X + (b ? 70f : -70f) + 18f * (float) Math.sin(t * 0.8f);
     }
 
     private static float playerY(float t, boolean b) {
