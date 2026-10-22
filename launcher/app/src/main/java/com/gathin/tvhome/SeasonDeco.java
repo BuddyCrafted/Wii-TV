@@ -114,8 +114,8 @@ final class SeasonDeco {
 
     private static final float WALK_IN = 4f;
     private static final float SKATE_PERIOD = (float) (2 * Math.PI / 0.5);
-    /** Sledding (two full runs each), skating (three figure-eights), hockey, then a snowball fight. */
-    private static final float[] SCENES = {2 * WALK_IN + 2 * (5f + 0.7f + 8f + 0.6f), 2 * WALK_IN + 3 * SKATE_PERIOD,
+    /** Sledding (two runs each, then off across the screen), skating (three figure-eights), hockey, snowballs. */
+    private static final float[] SCENES = {WALK_IN + 0.6f + (5f + 0.7f + 8f + 0.6f) + 5f + 0.7f + 12f, 2 * WALK_IN + 3 * SKATE_PERIOD,
             2 * WALK_IN + 32f, 2 * WALK_IN + 24f};
     private static float SCENES_TOTAL = 0f;
     static {
@@ -147,15 +147,24 @@ final class SeasonDeco {
     }
 
     private void sledScene(Canvas c, float s, float lt, float d) {
-        if (lt < WALK_IN || lt > d - WALK_IN) {
-            // Walking in from the screen edge to the top of the hill (and back off), sled in tow.
+        if (lt < WALK_IN) {
+            // Walking in from the screen edge to the top of the hill, sled in tow.
             float x = -40f + (TOP + 40f) * walk(lt, d);
-            boolean towardHill = lt < WALK_IN;
-            walkWithSled(c, s, x, false, towardHill, 0xFFE53935, 0xFF1E88E5, lt);
-            walkWithSled(c, s, 1920f - x, true, towardHill, 0xFF43A047, 0xFFFDD835, lt);
+            walkWithSled(c, s, x, false, true, 0xFFE53935, 0xFF1E88E5, lt);
+            walkWithSled(c, s, 1920f - x, true, true, 0xFF43A047, 0xFFFDD835, lt);
             return;
         }
-        float phase = (lt - WALK_IN) % CYCLE;
+        float u = lt - WALK_IN, runs = SIT + CYCLE + SLIDE + STAND;
+        if (u >= runs) {
+            // After the last run they stroll on across the screen, passing each other, and off the far side.
+            float f = (u - runs) / CROSS;
+            float x = BOTTOM + (1960f - BOTTOM) * f;
+            walkWithSled(c, s, x, false, true, 0xFFE53935, 0xFF1E88E5, lt);
+            walkWithSled(c, s, 1920f - x, true, true, 0xFF43A047, 0xFFFDD835, lt);
+            return;
+        }
+        // Sit down on the sled first, then run, walk back up, run again.
+        float phase = u < SIT ? CYCLE - SIT + u : (u - SIT) % CYCLE;
         rider(c, s, phase, lt, false, 0xFFE53935, 0xFF1E88E5);
         rider(c, s, phase, lt, true, 0xFF43A047, 0xFFFDD835);
     }
@@ -219,31 +228,28 @@ final class SeasonDeco {
             kid(c, s, bx, ground, !in, 0xFF26A69A, 0xFFFFCA28, lt, false);
             return;
         }
-        float pt = lt - WALK_IN;
-        float throwEvery = 3f, flight = 1.3f;
-        int n = (int) (pt / throwEvery);
-        float since = pt - n * throwEvery;
+        // They take turns: each one crouches, scoops up snow, packs it, winds up and throws; the other flinches.
+        float pt = lt - WALK_IN, flight = 1.3f;
+        float qa = floorMod(pt - FIRST_THROW, 2 * THROW_GAP), qb = floorMod(pt - FIRST_THROW - THROW_GAP, 2 * THROW_GAP);
+        thrower(c, s, ax0, ground, true, 0xFFFF7043, 0xFF5C6BC0, qa, pt);
+        thrower(c, s, bx0, ground, false, 0xFF26A69A, 0xFFFFCA28, qb, pt);
+        float sinceFirst = pt - FIRST_THROW;
+        if (sinceFirst < 0f) return;
+        int n = (int) (sinceFirst / THROW_GAP);
+        float since = sinceFirst - n * THROW_GAP;
         boolean fromLeft = n % 2 == 0;
         float ay = ground, by = ground;
-        kid(c, s, ax0, ay, true, 0xFFFF7043, 0xFF5C6BC0, pt, true);
-        kid(c, s, bx0, by, false, 0xFF26A69A, 0xFFFFCA28, pt, true);
         if (since < flight) {
-            // The snowball arcs high over the clock to the other kid.
+            // The snowball arcs high over the date to the other one.
             float u = since / flight;
             float x0 = fromLeft ? ax0 + 14f : bx0 - 14f, x1 = fromLeft ? bx0 - 6f : ax0 + 6f;
             float x = x0 + (x1 - x0) * u;
-            float y = (ay - 66f) + ((by - 66f) - (ay - 66f)) * u - 300f * 4f * u * (1f - u);
-            p.setColor(0xFFFFFFFF);
-            c.drawCircle(x * s, y * s, 9f * s, p);
-            p.setStyle(Paint.Style.STROKE);
-            p.setStrokeWidth(2f * s);
-            p.setColor(0xFFB0C8DC);
-            c.drawCircle(x * s, y * s, 9f * s, p);
-            p.setStyle(Paint.Style.FILL);
+            float y = (ay - 74f) + ((by - 62f) - (ay - 74f)) * u - 300f * 4f * u * (1f - u);
+            snowball(c, s, x, y, 9f);
         } else if (since < flight + 0.45f) {
             // A puff of snow where it lands.
             float u = (since - flight) / 0.45f;
-            float hx = fromLeft ? bx0 : ax0, hy = (fromLeft ? by : ay) - 55f;
+            float hx = fromLeft ? bx0 : ax0, hy = (fromLeft ? by : ay) - 60f;
             p.setColor(0xFFFFFFFF);
             p.setAlpha(Math.round(255 * (1f - u)));
             for (int i = 0; i < 6; i++) {
@@ -254,7 +260,135 @@ final class SeasonDeco {
         }
     }
 
-    private static final float SLIDE = 5f, STAND = 0.7f, WALK = 8f, SIT = 0.6f, CYCLE = SLIDE + STAND + WALK + SIT;
+    private static final float FIRST_THROW = 1.5f, THROW_GAP = 3.5f;
+
+    private static float floorMod(float a, float m) {
+        float r = a % m;
+        return r < 0f ? r + m : r;
+    }
+
+    private static float ramp(float q, float from, float to) {
+        float u = Math.max(0f, Math.min(1f, (q - from) / (to - from)));
+        return u * u * (3f - 2f * u);
+    }
+
+    private void snowball(Canvas c, float s, float x, float y, float r) {
+        p.setStyle(Paint.Style.FILL);
+        p.setColor(0xFFFFFFFF);
+        c.drawCircle(x * s, y * s, r * s, p);
+        p.setStyle(Paint.Style.STROKE);
+        p.setStrokeWidth(2f * s);
+        p.setColor(0xFFB0C8DC);
+        c.drawCircle(x * s, y * s, r * s, p);
+        p.setStyle(Paint.Style.FILL);
+    }
+
+    /**
+     * A snowball thrower with arms. `q` is the time since their last throw, in a 7 s round: idle, flinch when
+     * the other one's snowball lands (4.8 s), crouch and scoop (5.1), stand and pack it (5.9), wind up (6.4)
+     * and throw at 7 s / 0.
+     */
+    private void thrower(Canvas c, float s, float x, float y, boolean facingRight, int coat, int hat, float q, float t) {
+        float crouch = ramp(q, 5.1f, 5.4f) * (1f - ramp(q, 5.8f, 6.1f));
+        float flinch = ramp(q, 4.8f, 4.9f) * (1f - ramp(q, 4.95f, 5.15f));
+        // Arm angles in degrees from hanging straight down; positive swings forward, 180 is straight up.
+        float front, back;
+        boolean holding = q >= 5.55f;
+        if (q < 0.25f) {
+            front = 205f - 150f * ramp(q, 0f, 0.25f);  // the throw and follow-through
+            back = 70f;
+        } else if (q < 0.7f) {
+            front = 55f - 40f * ramp(q, 0.25f, 0.7f);
+            back = 70f - 85f * ramp(q, 0.25f, 0.7f);
+        } else if (q < 5.1f) {
+            front = 15f + 120f * flinch;
+            back = -15f + 150f * flinch;
+        } else if (q < 6.1f) {
+            float scoop = crouch;  // hands down to the snow and back up to the chest
+            front = 15f + 45f * scoop + 50f * ramp(q, 5.8f, 6.1f);
+            back = -15f + 75f * scoop + 30f * ramp(q, 5.8f, 6.1f);
+        } else if (q < 6.4f) {
+            front = 110f;  // packing it, hands together in front
+            back = 90f;
+        } else {
+            front = 110f + 95f * ramp(q, 6.4f, 6.9f);  // the wind-up, back over the head
+            back = 90f - 10f * ramp(q, 6.4f, 6.9f);
+        }
+        float lean = 38f * crouch - 12f * flinch + (q > 6.4f ? -8f * ramp(q, 6.4f, 6.9f) : 0f)
+                + (q < 0.5f ? 14f * (1f - ramp(q, 0.15f, 0.5f)) * ramp(q, 0f, 0.1f) : 0f);
+        int save = c.save();
+        c.translate(x * s, y * s);
+        c.scale((facingRight ? s : -s) * BIG, s * BIG);
+        float hipY = -18f + 7f * crouch;
+        // Legs, knees bending forward in the crouch.
+        p.setStyle(Paint.Style.STROKE);
+        p.setStrokeCap(Paint.Cap.ROUND);
+        p.setStrokeWidth(5f);
+        p.setColor(0xFF283593);
+        float kneeX = 7f * crouch, kneeY = hipY + (0f - hipY) * 0.5f - 2f * crouch;
+        c.drawLine(0f, hipY, kneeX + 2f, kneeY, p);
+        c.drawLine(kneeX + 2f, kneeY, 5f, 0f, p);
+        c.drawLine(0f, hipY, kneeX - 3f, kneeY, p);
+        c.drawLine(kneeX - 3f, kneeY, -5f, 0f, p);
+        c.rotate(lean, 0f, hipY);
+        float shX = 1f, shY = hipY - 20f;
+        int sleeve = darker(coat);
+        arm(c, shX, shY, back, sleeve, hat);
+        p.setStyle(Paint.Style.FILL);
+        p.setColor(coat);
+        c.drawRoundRect(-8f, hipY - 24f, 8f, hipY + 2f, 7f, 7f, p);
+        scarf(c, hat, 0f, hipY - 23f, t);
+        head(c, hat, 0f, hipY - 32f);
+        float[] hand = arm(c, shX, shY, front, sleeve, hat);
+        if (holding) {
+            // The snowball grows as they scoop and pack it.
+            float r = 2.5f + 3.5f * ramp(q, 5.55f, 6.3f);
+            if (q >= 6.1f && q < 6.4f) {
+                snowballLocal(c, hand[0] + 2f, hand[1] - 2f, r);
+            } else {
+                snowballLocal(c, hand[0], hand[1] - 3f, r);
+            }
+        }
+        c.restoreToCount(save);
+    }
+
+    private final float[] hand = new float[2];
+
+    /** Draws one arm from the shoulder and returns where the mitten is (reused between calls). */
+    private float[] arm(Canvas c, float sx, float sy, float degrees, int sleeve, int mitten) {
+        double a = Math.toRadians(degrees);
+        float ex = sx + 14f * (float) Math.sin(a), ey = sy + 14f * (float) Math.cos(a);
+        p.setStyle(Paint.Style.STROKE);
+        p.setStrokeCap(Paint.Cap.ROUND);
+        p.setStrokeWidth(4.5f);
+        p.setColor(sleeve);
+        c.drawLine(sx, sy, ex, ey, p);
+        p.setStyle(Paint.Style.FILL);
+        p.setColor(mitten);
+        c.drawCircle(ex, ey, 3.4f, p);
+        hand[0] = ex;
+        hand[1] = ey;
+        return hand;
+    }
+
+    private void snowballLocal(Canvas c, float x, float y, float r) {
+        p.setStyle(Paint.Style.FILL);
+        p.setColor(0xFFFFFFFF);
+        c.drawCircle(x, y, r, p);
+        p.setStyle(Paint.Style.STROKE);
+        p.setStrokeWidth(1.4f);
+        p.setColor(0xFFB0C8DC);
+        c.drawCircle(x, y, r, p);
+        p.setStyle(Paint.Style.FILL);
+    }
+
+    private static int darker(int colour) {
+        int r = (colour >> 16 & 0xFF) * 3 / 4, g = (colour >> 8 & 0xFF) * 3 / 4, b = (colour & 0xFF) * 3 / 4;
+        return 0xFF000000 | r << 16 | g << 8 | b;
+    }
+
+    private static final float SLIDE = 5f, STAND = 0.7f, WALK = 8f, SIT = 0.6f, CYCLE = SLIDE + STAND + WALK + SIT,
+            CROSS = 12f;
     // The run ends where the line flattens, clear of the clock's AM/PM on the right-hand side.
     private static final float TOP = 150f, BOTTOM = 700f;
     /** Riders and skaters are a third bigger than reference px, so they read across the room. */
