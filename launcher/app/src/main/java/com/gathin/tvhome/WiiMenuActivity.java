@@ -57,6 +57,9 @@ public class WiiMenuActivity extends Activity implements WiiMenuView.Listener {
     static final String EXTRA_REF_POSE = "ref_pose";
     /** Open WiiOS Settings straight away (Quick Settings' launcher row). */
     static final String EXTRA_OPEN_SETTINGS = "open_settings";
+    /** Pick a theme and accent from adb or an installer: --es theme dark --ei accent 0x22C55E (0 = theme's own). */
+    static final String EXTRA_THEME = "theme";
+    static final String EXTRA_ACCENT = "accent";
 
     private WiiMenuView menu;
     private WiiSounds sounds;
@@ -118,6 +121,7 @@ public class WiiMenuActivity extends Activity implements WiiMenuView.Listener {
         menu.setSettingsLabel(getString(R.string.wii_settings_label));
         menu.setBackLabel(getString(R.string.set_back));
         menu.setLowMemory(DeviceProfile.lowMemory(this));
+        themeFromIntent(getIntent());
         menu.setTheme(Theme.load(prefs));
         setContentView(menu);
         menu.requestFocus();
@@ -156,7 +160,7 @@ public class WiiMenuActivity extends Activity implements WiiMenuView.Listener {
         FireTvHomeService.coverAmazonHome();
         if (DeviceProfile.fireTv()) {
             // Once the menu has drawn, drop the picture the Home redirect put up, then refresh that picture.
-            menu.postDelayed(() -> { if (resumed) FireTvHomeService.menuShown(); }, 120);
+            menu.postDelayed(() -> { if (resumed) FireTvHomeService.menuShown(); }, 60);
             menu.postDelayed(saveCover, 2500);
         }
         if (appsDirty) reloadApps();
@@ -245,6 +249,7 @@ public class WiiMenuActivity extends Activity implements WiiMenuView.Listener {
             menu.setRefPose(true);
         }
         if (intent.getBooleanExtra(EXTRA_OPEN_SETTINGS, false)) menu.post(this::onSettingsButton);
+        if (themeFromIntent(intent)) applyTheme();
     }
 
     @Override
@@ -668,6 +673,22 @@ public class WiiMenuActivity extends Activity implements WiiMenuView.Listener {
             }));
         }
         return items;
+    }
+
+    /** Saves a theme or accent passed in the intent; true when it changed something. */
+    private boolean themeFromIntent(Intent intent) {
+        if (intent == null) return false;
+        boolean changed = false;
+        String id = intent.getStringExtra(EXTRA_THEME);
+        if (id != null) {
+            prefs.edit().putString(Theme.KEY_THEME, Theme.byId(id).id).apply();
+            changed = true;
+        }
+        if (intent.hasExtra(EXTRA_ACCENT)) {
+            prefs.edit().putInt(Theme.KEY_ACCENT, intent.getIntExtra(EXTRA_ACCENT, 0) & 0xFFFFFF).apply();
+            changed = true;
+        }
+        return changed;
     }
 
     private void applyTheme() {
