@@ -30,7 +30,7 @@ public final class QuickSettingsActivity extends Activity {
         addRow(rows, R.drawable.ic_wifi, R.string.quick_network, 0, new Intent(Settings.ACTION_WIFI_SETTINGS));
         addRow(rows, R.drawable.ic_apps, R.string.quick_apps, R.string.quick_apps_hint,
                 new Intent(Settings.ACTION_MANAGE_APPLICATIONS_SETTINGS));
-        // wiiOS Settings, on the channel menu.
+        // WiiOS Settings, on the channel menu.
         addRow(rows, R.drawable.ic_home_settings, R.string.launcher_settings, 0,
                 new Intent(this, WiiMenuActivity.class).putExtra(WiiMenuActivity.EXTRA_OPEN_SETTINGS, true));
         rows.getChildAt(0).requestFocus();

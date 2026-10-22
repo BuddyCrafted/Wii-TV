@@ -55,7 +55,7 @@ public class WiiMenuActivity extends Activity implements WiiMenuView.Listener {
     static final String GAMES_KEY = "wiios.games";
     /** Debug: freeze the menu in the reference capture's state, for comparing screenshots against it. */
     static final String EXTRA_REF_POSE = "ref_pose";
-    /** Open wiiOS Settings straight away (Quick Settings' launcher row). */
+    /** Open WiiOS Settings straight away (Quick Settings' launcher row). */
     static final String EXTRA_OPEN_SETTINGS = "open_settings";
 
     private WiiMenuView menu;
