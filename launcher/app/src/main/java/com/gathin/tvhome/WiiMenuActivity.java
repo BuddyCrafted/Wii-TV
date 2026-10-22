@@ -679,6 +679,7 @@ public class WiiMenuActivity extends Activity implements WiiMenuView.Listener {
     }
 
     private void openSetting(String action) {
+        if (DeviceProfile.fireTv()) FireTvHomeService.allowAmazonUntilHome();
         Intent intent = new Intent(action).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
         if (!Settings.ACTION_SETTINGS.equals(action) && intent.resolveActivity(getPackageManager()) == null) {
             intent = new Intent(Settings.ACTION_SETTINGS).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);

@@ -30,6 +30,17 @@ public class FireTvHomeService extends AccessibilityService {
 
     private long lastLaunch;
     private boolean longPressed;
+    /**
+     * Set when wiiOS sends you to Fire TV Settings. Fire OS 7.7 answers android.settings.SETTINGS by
+     * showing the Amazon home (HomeActivity_vNext) on its Settings row, so bouncing every Amazon home
+     * window back to the menu made Settings flash white and close. Cleared by the next Home press.
+     */
+    private static volatile boolean amazonScreenAllowed;
+
+    /** Leave the Amazon screens on top until the next Home press (call before opening Fire TV Settings). */
+    static void allowAmazonUntilHome() {
+        amazonScreenAllowed = true;
+    }
 
     @Override
     protected boolean onKeyEvent(KeyEvent event) {
@@ -42,6 +53,7 @@ public class FireTvHomeService extends AccessibilityService {
                 openSettings();
             }
         } else if (event.getAction() == KeyEvent.ACTION_UP && !event.isCanceled() && !longPressed) {
+            amazonScreenAllowed = false;
             openMenu();
         }
         // Swallow both down and up so Fire OS never sees Home.
@@ -53,6 +65,7 @@ public class FireTvHomeService extends AccessibilityService {
         if (event.getEventType() == AccessibilityEvent.TYPE_WINDOW_STATE_CHANGED
                 && event.getPackageName() != null
                 && AMAZON_LAUNCHER.contentEquals(event.getPackageName())
+                && !amazonScreenAllowed
                 && !isAmazonSettings(event.getClassName())) {
             openMenu();
         }
@@ -76,6 +89,7 @@ public class FireTvHomeService extends AccessibilityService {
     }
 
     private void openSettings() {
+        allowAmazonUntilHome();
         try {
             startActivity(new Intent(Settings.ACTION_SETTINGS).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK));
         } catch (ActivityNotFoundException e) {
