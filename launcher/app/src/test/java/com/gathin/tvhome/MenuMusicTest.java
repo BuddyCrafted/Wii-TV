@@ -35,14 +35,22 @@ public class MenuMusicTest {
     }
 
     @Test
-    public void storeTunesRenderAtTheirLength() {
-        for (MenuMusic.Song song : new MenuMusic.Song[] {MenuMusic.SHOP, MenuMusic.GAMES}) {
+    public void otherTunesRenderAtTheirLength() {
+        for (MenuMusic.Song song : new MenuMusic.Song[] {MenuMusic.SHOP, MenuMusic.GAMES, MenuMusic.WINTER}) {
             short[] pcm = MenuMusic.render(song);
             assertEquals(MenuMusic.length(song), pcm.length);
             int peak = 0;
             for (short s : pcm) peak = Math.max(peak, Math.abs(s));
             assertTrue(peak > 20000 && peak < 24000);
         }
+    }
+
+    @Test
+    public void winterTuneFitsItsBarsAndIsQuieter() {
+        MenuMusic.Song w = MenuMusic.WINTER;
+        assertEquals(w.chords.length, w.roots.length);
+        for (double[] m : w.melody) assertTrue(m[0] * w.bar + (m[1] + m[3]) * w.beat <= w.bar * w.chords.length + 1e-9);
+        assertTrue(w.piano && w.volume < MenuMusic.MENU.volume);
     }
 
     @Test

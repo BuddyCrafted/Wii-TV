@@ -21,8 +21,19 @@ final class MenuMusic {
         final int[][] chords;
         final int[] roots;
         final double[][] melody, comp, bass;
+        /** Played as a soft solo piano (broken chords, sleigh bells) instead of the lounge band. */
+        final boolean piano;
+        /** Playback volume relative to the other tunes. */
+        final float volume;
 
         Song(double bpm, int[][] chords, int[] roots, double[][] melody, double[][] comp, double[][] bass) {
+            this(bpm, chords, roots, melody, comp, bass, false, 1f);
+        }
+
+        Song(double bpm, int[][] chords, int[] roots, double[][] melody, double[][] comp, double[][] bass,
+             boolean piano, float volume) {
+            this.piano = piano;
+            this.volume = volume;
             this.beat = 60.0 / bpm;
             this.bar = 4 * beat;
             this.chords = chords;
@@ -132,6 +143,62 @@ final class MenuMusic {
             new double[][] {{0.5, 0.3}, {1.5, 0.3}, {2.5, 0.3}, {3.5, 0.3}},
             new double[][] {{0, 0.8}, {1, 0.4}, {2, 0.8}, {3, 0.4}});
 
+    private static final int[] C = {48, 55, 60, 64}, F = {41, 53, 57, 60}, G7 = {43, 53, 55, 59},
+            D7 = {38, 54, 57, 60}, DM = {38, 53, 57, 62}, G = {43, 55, 59, 62};
+
+    /**
+     * Winter's lobby music: "Jingle Bells" (James Lord Pierpont, 1857, public domain), verse then chorus,
+     * arranged here for soft solo piano with a hint of sleigh bells, at an easy 92 BPM. Quieter than the
+     * other tunes so it sits in the background.
+     */
+    static final Song WINTER = new Song(92,
+            new int[][] {
+                C, C, C, F, DM, G, G7, C, C, C, C, F, DM, G, G7, C,
+                C, C, C, C, F, C, D7, G, C, C, C, C, F, C, G7, C,
+            },
+            new int[] {36, 36, 36, 41, 38, 43, 43, 36, 36, 36, 36, 41, 38, 43, 43, 36,
+                    36, 36, 36, 36, 41, 36, 38, 43, 36, 36, 36, 36, 41, 36, 43, 36},
+            new double[][] {
+                // Dashing through the snow, in a one-horse open sleigh...
+                {0, 0, 67, 1}, {0, 1, 76, 1}, {0, 2, 74, 1}, {0, 3, 72, 1},
+                {1, 0, 67, 3}, {1, 3, 67, 0.5}, {1, 3.5, 67, 0.5},
+                {2, 0, 67, 1}, {2, 1, 76, 1}, {2, 2, 74, 1}, {2, 3, 72, 1},
+                {3, 0, 69, 4},
+                {4, 0, 69, 1}, {4, 1, 77, 1}, {4, 2, 76, 1}, {4, 3, 74, 1},
+                {5, 0, 71, 4},
+                {6, 0, 79, 1}, {6, 1, 79, 1}, {6, 2, 77, 1}, {6, 3, 74, 1},
+                {7, 0, 76, 4},
+                {8, 0, 67, 1}, {8, 1, 76, 1}, {8, 2, 74, 1}, {8, 3, 72, 1},
+                {9, 0, 67, 4},
+                {10, 0, 67, 1}, {10, 1, 76, 1}, {10, 2, 74, 1}, {10, 3, 72, 1},
+                {11, 0, 69, 3}, {11, 3, 69, 1},
+                {12, 0, 69, 1}, {12, 1, 77, 1}, {12, 2, 76, 1}, {12, 3, 74, 1},
+                {13, 0, 79, 1}, {13, 1, 79, 1}, {13, 2, 79, 1}, {13, 3, 79, 1},
+                {14, 0, 81, 1}, {14, 1, 79, 1}, {14, 2, 77, 1}, {14, 3, 74, 1},
+                {15, 0, 72, 2}, {15, 2, 79, 2},
+                // Jingle bells, jingle bells, jingle all the way...
+                {16, 0, 76, 1}, {16, 1, 76, 1}, {16, 2, 76, 2},
+                {17, 0, 76, 1}, {17, 1, 76, 1}, {17, 2, 76, 2},
+                {18, 0, 76, 1}, {18, 1, 79, 1}, {18, 2, 72, 1.5}, {18, 3.5, 74, 0.5},
+                {19, 0, 76, 4},
+                {20, 0, 77, 1}, {20, 1, 77, 1}, {20, 2, 77, 1.5}, {20, 3.5, 77, 0.5},
+                {21, 0, 77, 1}, {21, 1, 76, 1}, {21, 2, 76, 1}, {21, 3, 76, 0.5}, {21, 3.5, 76, 0.5},
+                {22, 0, 76, 1}, {22, 1, 74, 1}, {22, 2, 74, 1}, {22, 3, 76, 1},
+                {23, 0, 74, 2}, {23, 2, 79, 2},
+                {24, 0, 76, 1}, {24, 1, 76, 1}, {24, 2, 76, 2},
+                {25, 0, 76, 1}, {25, 1, 76, 1}, {25, 2, 76, 2},
+                {26, 0, 76, 1}, {26, 1, 79, 1}, {26, 2, 72, 1.5}, {26, 3.5, 74, 0.5},
+                {27, 0, 76, 4},
+                {28, 0, 77, 1}, {28, 1, 77, 1}, {28, 2, 77, 1.5}, {28, 3.5, 77, 0.5},
+                {29, 0, 77, 1}, {29, 1, 76, 1}, {29, 2, 76, 1}, {29, 3, 76, 0.5}, {29, 3.5, 76, 0.5},
+                {30, 0, 79, 1}, {30, 1, 79, 1}, {30, 2, 77, 1}, {30, 3, 74, 1},
+                {31, 0, 72, 4},
+            },
+            // Left hand: a broken chord on the eighths. Bass: the root on beats 1 and 3.
+            new double[][] {{0, 0.5}, {0.5, 0.5}, {1, 0.5}, {1.5, 0.5}, {2, 0.5}, {2.5, 0.5}, {3, 0.5}, {3.5, 0.5}},
+            new double[][] {{0, 2}, {2, 2}},
+            true, 0.75f);
+
     static double hz(double midi) {
         return 440.0 * Math.pow(2, (midi - 69) / 12.0);
     }
@@ -151,6 +218,7 @@ final class MenuMusic {
 
     /** The whole loop as 16-bit mono PCM at RATE. */
     static short[] render(Song song) {
+        if (song.piano) return renderPiano(song);
         float[] buf = new float[length(song)];
         Random rng = new Random(11);
         for (int b = 0; b < song.chords.length; b++) {
@@ -174,6 +242,37 @@ final class MenuMusic {
             musicBox(buf, hz(m[2]), m[3] * song.beat + 0.5, 0.16, at);
             musicBox(buf, hz(m[2] + 12), m[3] * song.beat + 0.3, 0.03, at + 0.004);
         }
+        return finish(buf);
+    }
+
+    /** Solo piano: a rolling broken chord in the left hand, the tune on top, sleigh bells on 2 and 4. */
+    private static short[] renderPiano(Song song) {
+        float[] buf = new float[length(song)];
+        Random rng = new Random(7);
+        int[] order = {0, 1, 2, 3, 2, 1, 2, 3};
+        for (int b = 0; b < song.chords.length; b++) {
+            double t0 = b * song.bar;
+            int[] ch = song.chords[b];
+            for (int i = 0; i < song.comp.length; i++) {
+                int note = ch[order[i % order.length]] + (order[i % order.length] == 0 ? 12 : 0);
+                piano(buf, hz(note), song.beat * 1.6, 0.05, t0 + song.comp[i][0] * song.beat);
+            }
+            for (double[] hit : song.bass) {
+                piano(buf, hz(song.roots[b]), hit[1] * song.beat, 0.11, t0 + hit[0] * song.beat);
+            }
+            for (int e = 1; e < 4; e += 2) {
+                bells(buf, 0.25, 0.012, t0 + e * song.beat, rng);
+            }
+        }
+        for (double[] m : song.melody) {
+            double at = m[0] * song.bar + m[1] * song.beat;
+            piano(buf, hz(m[2]), m[3] * song.beat + 0.4, 0.2, at);
+            musicBox(buf, hz(m[2] + 12), m[3] * song.beat + 0.2, 0.018, at + 0.006);
+        }
+        return finish(buf);
+    }
+
+    private static short[] finish(float[] buf) {
         // Soft limiter, then normalise with headroom under the interface sounds.
         float peak = 1e-6f;
         for (int i = 0; i < buf.length; i++) {
@@ -199,6 +298,37 @@ final class MenuMusic {
             mix(buf, start + i, v * env * Math.min(1.0, i / attack) * gain);
             env *= envK;
             bell *= bellK;
+        }
+    }
+
+    /** A soft piano note: warm partials that fade faster the higher they are, eased out at the end. */
+    private static void piano(float[] buf, double f, double seconds, double gain, double at) {
+        Osc o1 = new Osc(f), o2 = new Osc(f * 2), o3 = new Osc(f * 3);
+        int n = (int) (seconds * RATE), start = (int) (at * RATE);
+        double e1 = 1, e2 = 0.45, e3 = 0.18;
+        double k1 = Math.exp(-1.0 / (1.4 * RATE)), k2 = Math.exp(-1.0 / (0.5 * RATE)), k3 = Math.exp(-1.0 / (0.18 * RATE));
+        double attack = 0.004 * RATE, release = 0.06 * RATE;
+        for (int i = 0; i < n; i++) {
+            double v = e1 * o1.next() + e2 * o2.next() + e3 * o3.next();
+            double shape = Math.min(1.0, i / attack) * Math.min(1.0, (n - i) / release);
+            mix(buf, start + i, v * shape * gain);
+            e1 *= k1;
+            e2 *= k2;
+            e3 *= k3;
+        }
+    }
+
+    /** A light shake of sleigh bells: a few high, quickly fading tinkles. */
+    private static void bells(float[] buf, double seconds, double gain, double at, Random rng) {
+        for (int j = 0; j < 4; j++) {
+            double f = 3800 + rng.nextDouble() * 2600;
+            Osc o = new Osc(f), o2 = new Osc(f * 1.47);
+            int n = (int) (seconds * RATE), start = (int) ((at + j * 0.018) * RATE);
+            double env = 1, k = Math.exp(-1.0 / (0.06 * RATE));
+            for (int i = 0; i < n; i++) {
+                mix(buf, start + i, (o.next() + 0.6 * o2.next()) * env * Math.min(1.0, i / 40.0) * gain);
+                env *= k;
+            }
         }
     }
 
