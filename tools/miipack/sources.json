@@ -1,0 +1,98 @@
+[
+ {
+  "name": "cuerpos",
+  "page": "https://models.spriters-resource.com/wii/miichannel/asset/348210/",
+  "url": "https://models.spriters-resource.com/media/assets/345/348210.zip?updated=1755513722",
+  "file": "cuerpos.zip",
+  "sha256": "720ceb7959a56010db500c3254f1f935d507f50c9360b5bbf41043e87c4a619d",
+  "into": "modelos_3d/cuerpos/"
+ },
+ {
+  "name": "cabellos",
+  "page": "https://models.spriters-resource.com/wii/miichannel/asset/354343/",
+  "url": "https://models.spriters-resource.com/media/assets/351/354343.zip?updated=1755515818",
+  "file": "cabellos.zip",
+  "sha256": "03dbdb53ce508d1a1b87e70995539b95e9216fd150f7ef7ac8aeab04dbcac89e",
+  "into": "modelos_3d/cabellos/"
+ },
+ {
+  "name": "cabezas",
+  "page": "https://models.spriters-resource.com/wii/miichannel/asset/354342/",
+  "url": "https://models.spriters-resource.com/media/assets/351/354342.zip?updated=1755515818",
+  "file": "cabezas.zip",
+  "sha256": "a4ea0219949cbaa2bf76693cc2442c12f2f915b435fa924814b8d3c95498ec53",
+  "into": "modelos_3d/cabezas/"
+ },
+ {
+  "name": "barbas",
+  "page": "https://models.spriters-resource.com/wii/miichannel/asset/354344/",
+  "url": "https://models.spriters-resource.com/media/assets/351/354344.zip?updated=1755515819",
+  "file": "barbas.zip",
+  "sha256": "4c1ad122ac91a2d164d1d2dd28c798eb26ec25df2e88bd6b3a99d38dbc8d12fe",
+  "into": "modelos_3d/barbas/"
+ },
+ {
+  "name": "narices",
+  "page": "https://models.spriters-resource.com/wii/miichannel/asset/354345/",
+  "url": "https://models.spriters-resource.com/media/assets/351/354345.zip?updated=1755515819",
+  "file": "narices.zip",
+  "sha256": "1d51dfbd5b33182178eaa4cc77a77f0d34ba2d8145adfc1957e901ce0349c3b5",
+  "into": "modelos_3d/narices/"
+ },
+ {
+  "name": "Body_Part_Icons",
+  "page": "https://www.spriters-resource.com/wii/miichannel/asset/64626/",
+  "url": "https://www.spriters-resource.com/media/assets/61/64626.png?updated=1755473496",
+  "file": "Body_Part_Icons.png",
+  "sha256": "02a822fece832050ecf656764b519ea45a5d0490b11bbfb0ac5db93b6a296cb5",
+  "into": "interfaz_y_texturas/sprites/Body_Part_Icons.png"
+ },
+ {
+  "name": "Channel_Icon",
+  "page": "https://www.spriters-resource.com/wii/miichannel/asset/607367/",
+  "url": "https://www.spriters-resource.com/media/assets/586/607367.png?updated=1789632821",
+  "file": "Channel_Icon.png",
+  "sha256": "5dac0ac3d0fc73e2c86f03dc4b75a9bd66e8229297ef0773d35288f23beaab1e",
+  "into": "interfaz_y_texturas/sprites/Channel_Icon.png"
+ },
+ {
+  "name": "Font",
+  "page": "https://www.spriters-resource.com/wii/miichannel/asset/64627/",
+  "url": "https://www.spriters-resource.com/media/assets/61/64627.png?updated=1755473496",
+  "file": "Font.png",
+  "sha256": "3a543c18b59342a7aae76d690edfc0abe9309cbb898b9b40c4249425bbc64ff2",
+  "into": "interfaz_y_texturas/sprites/Font.png"
+ },
+ {
+  "name": "Mii_Plaza",
+  "page": "https://www.spriters-resource.com/wii/miichannel/asset/65079/",
+  "url": "https://www.spriters-resource.com/media/assets/62/65079.png?updated=1755473507",
+  "file": "Mii_Plaza.png",
+  "sha256": "f861bca043a2ffa53deb09253dfb42564fcce92bf2d556b692b741651ffc8136",
+  "into": "interfaz_y_texturas/sprites/Mii_Plaza.png"
+ },
+ {
+  "name": "Wii_Menu_Banner",
+  "page": "https://www.spriters-resource.com/wii/miichannel/asset/64625/",
+  "url": "https://www.spriters-resource.com/media/assets/61/64625.png?updated=1755473496",
+  "file": "Wii_Menu_Banner.png",
+  "sha256": "945b24865ff3e77b1aa8dff5401b6813653093597c6ed21f28f9cc876d20d937",
+  "into": "interfaz_y_texturas/sprites/Wii_Menu_Banner.png"
+ },
+ {
+  "name": "Floor",
+  "page": "https://textures.spriters-resource.com/wii/miichannel/asset/378756/",
+  "url": "https://textures.spriters-resource.com/media/assets/376/378756.png?updated=1755522897",
+  "file": "Floor.png",
+  "sha256": "4832e6bc83115b044e5655282d054f0b9f947136e6317bdac90f0aa97819c89f",
+  "into": "interfaz_y_texturas/textures/Floor.png"
+ },
+ {
+  "name": "sonidos",
+  "page": "https://sounds.spriters-resource.com/wii/miichannel/asset/423107/",
+  "url": "https://sounds.spriters-resource.com/media/assets/420/423107.zip?updated=1755543405",
+  "file": "Sound_Effects.zip",
+  "sha256": "3e6a44f8de77c7e508f48cd0d20961d5fe22ea3c17bcb3bf9403151b09ac1451",
+  "into": "sonidos/"
+ }
+]

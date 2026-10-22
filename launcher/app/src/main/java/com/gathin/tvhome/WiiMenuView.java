@@ -43,6 +43,11 @@ import java.util.Locale;
  */
 public class WiiMenuView extends View {
 
+    /** A tile picture that changes over time (the Mii Channel's crowd); the menu keeps redrawing while one is on screen. */
+    interface LiveArt {
+        boolean animating();
+    }
+
     interface Listener {
         void onChannel(Channel channel);
         void onSettingsButton();
@@ -233,6 +238,8 @@ public class WiiMenuView extends View {
     private String backLabel = "Back";
     /** 1 GB devices: channel art at 16 bits a pixel (tiles are opaque, so nothing is lost but a little banding). */
     private boolean lowMemory;
+    /** Set while drawing when a live tile is on screen. */
+    private boolean liveShown;
 
     /** OK went down on a channel; it opens on release, or shows the options if held. */
     private boolean okPending;
@@ -293,7 +300,7 @@ public class WiiMenuView extends View {
     }
 
     /** The variable font at a real weight; Typeface.create(f, BOLD) would only smear the 500 outlines. */
-    private static Typeface weight(Context context, Typeface fallback, int wght) {
+    static Typeface weight(Context context, Typeface fallback, int wght) {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
             try {
                 Font font = new Font.Builder(context.getResources(), R.font.outfit)
@@ -1135,11 +1142,13 @@ public class WiiMenuView extends View {
         else {
             lastFrameNanos = 0;
             // Snow, sledders and leaves keep moving at 25 frames a second, light enough for a 1 GB stick.
-            if (seasonal && started) postInvalidateDelayed(40);
+            // A live tile (the Mii Channel's crowd) keeps moving at 30 frames a second.
+            if ((seasonal || liveShown) && started) postInvalidateDelayed(seasonal ? 40 : 33);
         }
     }
 
     private void drawTiles(Canvas c) {
+        liveShown = false;
         int total = pages * SLOTS_PER_PAGE;
         for (int sl = 0; sl < total; sl++) {
             if (sl == focus) continue;
@@ -1229,7 +1238,15 @@ public class WiiMenuView extends View {
             c.restoreToCount(save);
             return;
         }
-        if (ch != null) {
+        if (ch != null && ch.banner instanceof LiveArt && ((LiveArt) ch.banner).animating()) {
+            // Straight into the frame: a tile bitmap redrawn every frame flickers on the TV, as the render thread
+            // can still be reading it while the next frame paints it over.
+            liveShown = true;
+            int clip = c.save();
+            c.clipPath(tilePath);
+            drawCropped(c, ch.banner, Math.round(r.width()), Math.round(r.height()));
+            c.restoreToCount(clip);
+        } else if (ch != null) {
             ensureArt(ch, Math.round(r.width()), Math.round(r.height()));
             artPaint.setShader(ch.shader);
             c.drawPath(tilePath, artPaint);

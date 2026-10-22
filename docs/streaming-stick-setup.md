@@ -145,6 +145,24 @@ The round buttons and the SD card:
 - **SD**: opens your media or file app. That's the first one installed of Kodi, VLC, X-plore, Files, Photos or Plex (list: `sd_apps` in `launcher/app/src/main/res/values/config.xml`).
 - **Envelope** (bottom right): the **Message Board**, with the channels you opened most recently, newest first. On a TV with HDMI ports, the inputs come first.
 
+## Mii Channel
+
+The first channel is the **Mii Channel**: make Miis in the editor and watch them walk around the plaza. Its buttons (left and right sides) edit a Mii, make a new one, delete, help, parade, remote and mail, and the whistle (bottom right) lines everyone up by name, favourite, colour or gender. Miis are saved on the TV.
+
+It's drawn entirely in code. If you want the original channel's look and sounds on your own TV, you can build an optional pack on your computer (WiiOS never includes Nintendo's files):
+
+1. `pip3 install -r tools/miipack/requirements.txt`
+2. Download the twelve files listed in [tools/miipack/README.md](../tools/miipack/README.md) with your browser into one folder (the sites don't allow scripted downloads), then `python3 tools/miipack/fetch.py --from ~/Downloads`. Each file is checked by its SHA-256.
+3. `tools/miipack/build.sh` (about 3 minutes) writes `tools/miipack/build/out/miipack.zip`.
+4. Load it on the TV (use your TV's IP):
+
+   ```sh
+   TV_HOST=192.168.1.50 tools/venv/bin/python tools/b64push.py tools/miipack/build/out/miipack.zip /data/local/tmp/miipack.zip
+   TV_HOST=192.168.1.50 tools/venv/bin/python tools/tv.py 'content write --uri content://com.gathin.tvhome.theme/miipack.zip < /data/local/tmp/miipack.zip; rm /data/local/tmp/miipack.zip; am force-stop com.gathin.tvhome'
+   ```
+
+   Press Home and the channel uses it. To take it off: `tools/tv.py 'content delete --uri content://com.gathin.tvhome.theme/miipack.zip; am force-stop com.gathin.tvhome'`.
+
 ## Updates over the air
 
 You only need the computer for the first install. After that, WiiOS updates itself from this repository's GitHub releases:

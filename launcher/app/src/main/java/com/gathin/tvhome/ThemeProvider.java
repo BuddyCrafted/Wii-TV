@@ -16,6 +16,7 @@ import java.io.FileNotFoundException;
  *
  *   content write --uri content://com.gathin.tvhome.theme/config.json < /data/local/tmp/config.json
  *   content write --uri content://com.gathin.tvhome.theme/wallpapers/dusk.jpg < /data/local/tmp/dusk.jpg
+ *   content write --uri content://com.gathin.tvhome.theme/miipack.zip < /data/local/tmp/miipack.zip
  *   content delete --uri content://com.gathin.tvhome.theme/config.json
  *   content delete --uri content://com.gathin.tvhome.theme/wallpapers      (every image in the collection)
  */

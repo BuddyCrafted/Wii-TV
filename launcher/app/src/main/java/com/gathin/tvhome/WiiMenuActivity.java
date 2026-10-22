@@ -77,6 +77,9 @@ public class WiiMenuActivity extends Activity implements WiiMenuView.Listener {
     private boolean appsDirty = true;
     private boolean resumed;
     private String liveTvPkg;
+    private MiiStore miiStore;
+    private int miiVersion = -1;
+    private Typeface miiFace;
 
     private final BroadcastReceiver screenReceiver = new BroadcastReceiver() {
         @Override
@@ -149,6 +152,7 @@ public class WiiMenuActivity extends Activity implements WiiMenuView.Listener {
             menu.setRefPose(true);
         }
         liveTvPkg = getString(R.string.live_tv_package);
+        miiStore = new MiiStore(this);
         // First start after an update: say so.
         int lastBuild = prefs.getInt("last_build", BuildConfig.WIIOS_BUILD);
         if (lastBuild < BuildConfig.WIIOS_BUILD) {
@@ -185,7 +189,7 @@ public class WiiMenuActivity extends Activity implements WiiMenuView.Listener {
             menu.postDelayed(saveCover, 2500);
         }
         if (Profiles.current(this) != profileId) switchProfile();
-        if (appsDirty) reloadApps();
+        if (appsDirty || miiStore.version() != miiVersion) reloadApps();
         // Automatic theme: a new month may bring a new look.
         if (!Theme.load(my).id.equals(musicTheme.id)) applyTheme();
         menu.start();
@@ -389,6 +393,7 @@ public class WiiMenuActivity extends Activity implements WiiMenuView.Listener {
                     new Intent(this, ForecastActivity.class)));
         }
 
+        allChannels.put(miiKey(), miiChannel());
         allChannels.put(SHOP_KEY, new WiiMenuView.Channel(SHOP_KEY, getString(R.string.shop_channel),
                 new ShopBanner(getString(R.string.shop_channel)), null, new Intent(this, ShopActivity.class)));
         allChannels.put(GAMES_KEY, new WiiMenuView.Channel(GAMES_KEY, getString(R.string.games_channel),
@@ -400,8 +405,9 @@ public class WiiMenuActivity extends Activity implements WiiMenuView.Listener {
         for (WiiMenuView.Channel ch : allChannels.values()) {
             if (!userHidden.contains(ch.key)) channels.add(withCustomPicture(ch));
         }
-        // The Forecast Channel comes first until it is moved, like the console's own channels.
+        // The Mii Channel, then the Forecast Channel, come first until they are moved, like the console's own channels.
         List<String> dock = new ArrayList<>();
+        dock.add(miiKey());
         dock.add(FORECAST_KEY);
         dock.add(SHOP_KEY);
         dock.add(GAMES_KEY);
@@ -416,6 +422,29 @@ public class WiiMenuActivity extends Activity implements WiiMenuView.Listener {
             launch.put(ch.key, ch.intent);
         }
         RemoteServer.setChannels(forPhone, launch);
+    }
+
+    private String miiKey() {
+        return getPackageName() + ".mii";
+    }
+
+    /** The built-in Mii Channel (MauroProto/wii-tv); its tile shows the plaza's residents walking about. */
+    private WiiMenuView.Channel miiChannel() {
+        if (miiFace == null) {
+            Typeface regular;
+            try {
+                regular = getResources().getFont(R.font.outfit_medium);
+            } catch (RuntimeException e) {
+                regular = Typeface.SANS_SERIF;
+            }
+            miiFace = WiiMenuView.weight(this, regular, 620);
+        }
+        String name = getString(R.string.mii_channel_name);
+        MiiPack.get(this);
+        List<Mii> miis = miiStore.loadOrSeed(new java.util.Random(), MiiChannelView.SEED_COUNT);
+        miiVersion = miiStore.version();
+        return new WiiMenuView.Channel(miiKey(), name, new MiiBanner(miis, name, miiFace), null,
+                new Intent(this, MiiChannelActivity.class));
     }
 
     /** SmartTube's stable and beta packages (new and old names), shown as a YouTube channel. */

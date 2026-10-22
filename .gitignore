@@ -1,6 +1,8 @@
 # Python tools
 tools/venv/
 __pycache__/
+# The Mii pack's downloads and build: Nintendo's files stay on your computer.
+tools/miipack/build/
 # The ADB key: whoever has it gets a shell on every TV that accepted it.
 tools/adbkey/
 # Your TV's backups and dumps (serial number, android_id, network names) stay on your computer.
