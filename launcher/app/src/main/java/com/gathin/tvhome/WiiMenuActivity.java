@@ -125,6 +125,7 @@ public class WiiMenuActivity extends Activity implements WiiMenuView.Listener {
         menu.setSettingsLabel(getString(R.string.wii_settings_label));
         menu.setBackLabel(getString(R.string.set_back));
         menu.setLowMemory(DeviceProfile.lowMemory(this));
+        SystemSettings.applyDefaultSleep(this, prefs);
         menu.setTheme(Theme.load(prefs));
         setContentView(menu);
         menu.requestFocus();

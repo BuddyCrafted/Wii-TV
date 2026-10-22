@@ -21,6 +21,21 @@ final class SystemSettings {
     static final String SCREENSAVER_COMPONENTS = "screensaver_components";
     static final String SCREENSAVER_ENABLED = "screensaver_enabled";
     static final int NEVER = -1;
+    /** The shortest no-input-at-all timeout we set: long enough for a film. */
+    static final int ATTENTIVE_MIN = 4 * 60 * 60_000;
+    /** Out of the box the TV goes to sleep after an hour without use. */
+    static final int DEFAULT_SLEEP = 60 * 60_000;
+
+    /**
+     * Sets the sleep timer to an hour once, if it was off (never), so an idle TV turns itself off. Done
+     * only once, so a later choice in Settings sticks; tried again next start while the grant is missing.
+     */
+    static void applyDefaultSleep(Context c, android.content.SharedPreferences prefs) {
+        if (prefs.getBoolean("sleep_default_done", false)) return;
+        if (sleepAfter(c) != NEVER || setSleepAfter(c, DEFAULT_SLEEP)) {
+            prefs.edit().putBoolean("sleep_default_done", true).apply();
+        }
+    }
 
     /** Idle time before the screensaver starts, in ms; NEVER for never. */
     static int screensaverDelay(Context c) {
@@ -48,10 +63,10 @@ final class SystemSettings {
         ContentResolver cr = c.getContentResolver();
         try {
             boolean ok = Settings.Secure.putInt(cr, SLEEP_TIMEOUT, ms == NEVER ? -1 : ms);
-            // Android 10+ also turns the TV off after this much time with no remote input at all, even
-            // while something plays; keep it in step so the choice here is the one that counts.
+            // Android 10+ also turns the TV off after a stretch with no remote input at all, even while a
+            // film plays. Keep it in step, but never under 4 hours, so a long film isn't cut off.
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
-                Settings.Secure.putInt(cr, ATTENTIVE_TIMEOUT, ms == NEVER ? -1 : ms);
+                Settings.Secure.putInt(cr, ATTENTIVE_TIMEOUT, ms == NEVER ? -1 : Math.max(ms, ATTENTIVE_MIN));
             }
             return ok;
         } catch (RuntimeException e) {

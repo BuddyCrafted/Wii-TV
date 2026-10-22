@@ -86,11 +86,17 @@ final class WiiBase {
         return i >= 0 && i < WiiPalette.TRACK_DELTA.length ? WiiPalette.TRACK_DELTA[i] : 0f;
     }
 
-    /** Grey offset the button tracks and sockets add to the panel at a mirrored point (left half). */
-    private static float socketDelta(float xm, float y, boolean rightSide) {
+    /**
+     * Grey offset the button tracks and sockets add to the panel at a mirrored point (left half). `tracks`
+     * off leaves just the seat round the button, for the scenery themes where grooves in the snow or
+     * leaves would read as boxes.
+     */
+    private static float socketDelta(float xm, float y, boolean rightSide, boolean tracks) {
         if (xm > 330f || y < 780f) return 0f;
         float delta = 0f;
-        if (xm <= TRACK_END_X) {
+        if (!tracks) {
+            // no grooves
+        } else if (xm <= TRACK_END_X) {
             float dl = trackDelta(y);
             // The upper grooves stop short of the button; the lower edge runs on round the track's end.
             if (y < 870f) dl *= clamp01((165f - xm) / 45f);
@@ -124,6 +130,7 @@ final class WiiBase {
     static int[] backdrop(int w, int h, Theme theme) {
         float s = w / 1920f;
         boolean recolour = !theme.classic;
+        boolean tracks = theme.deco != Theme.Deco.SNOW && theme.deco != Theme.Deco.LEAVES;
         int lineR = theme.untouched() ? LINE_R : (theme.accent >> 16) & 255;
         int lineG = theme.untouched() ? LINE_G : (theme.accent >> 8) & 255;
         int lineB = theme.untouched() ? LINE_B : theme.accent & 255;
@@ -173,7 +180,7 @@ final class WiiBase {
                     }
                 } else {
                     int c = panel(colXm[x], dY);
-                    float dl = socketDelta(colXm[x], ry, colRight[x]);
+                    float dl = socketDelta(colXm[x], ry, colRight[x], tracks);
                     r = ((c >> 16) & 255) + dl;
                     g = ((c >> 8) & 255) + dl;
                     b = (c & 255) + dl;
