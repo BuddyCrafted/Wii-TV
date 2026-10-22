@@ -118,6 +118,7 @@ public class WiiMenuActivity extends Activity implements WiiMenuView.Listener {
         menu.setSettingsLabel(getString(R.string.wii_settings_label));
         menu.setBackLabel(getString(R.string.set_back));
         menu.setLowMemory(DeviceProfile.lowMemory(this));
+        menu.setTheme(Theme.load(prefs));
         setContentView(menu);
         menu.requestFocus();
         introPending = firstStartThisBoot();
@@ -395,6 +396,11 @@ public class WiiMenuActivity extends Activity implements WiiMenuView.Listener {
      */
     private List<WiiMenuView.MenuItem> mainSettings() {
         List<WiiMenuView.MenuItem> items = new ArrayList<>();
+        Theme current = Theme.load(prefs);
+        items.add(new WiiMenuView.MenuItem(getString(R.string.set_theme), themeName(Theme.byId(current.id)), () ->
+                menu.pushSettings(getString(R.string.set_theme), this::themeSettings)));
+        items.add(new WiiMenuView.MenuItem(getString(R.string.set_accent), accentName(prefs.getInt(Theme.KEY_ACCENT, 0)), () ->
+                menu.pushSettings(getString(R.string.set_accent), this::accentSettings)));
         items.add(item(R.string.set_display, () -> openSetting(Settings.ACTION_DISPLAY_SETTINGS)));
         items.add(item(R.string.set_sound, () -> openSetting(Settings.ACTION_SOUND_SETTINGS)));
         items.add(item(R.string.wii_network, () -> openSetting(Settings.ACTION_WIFI_SETTINGS)));
@@ -619,6 +625,59 @@ public class WiiMenuActivity extends Activity implements WiiMenuView.Listener {
             items.add(new WiiMenuView.MenuItem(getString(R.string.upd_later), () -> { }));
             menu.showMenu(getString(R.string.upd_title), items);
         });
+    }
+
+    private static final int[] THEME_NAMES = {R.string.theme_classic, R.string.theme_dark, R.string.theme_winter,
+            R.string.theme_fall, R.string.theme_halloween, R.string.theme_beach};
+    private static final int[] ACCENT_NAMES = {R.string.accent_theme, R.string.accent_blue, R.string.accent_green,
+            R.string.accent_pink, R.string.accent_purple, R.string.accent_amber, R.string.accent_graphite};
+
+    private String themeName(Theme t) {
+        for (int i = 0; i < Theme.ALL.length; i++) if (Theme.ALL[i] == t) return getString(THEME_NAMES[i]);
+        return getString(THEME_NAMES[0]);
+    }
+
+    private String accentName(int rgb) {
+        for (int i = 0; i < Theme.ACCENTS.length; i++) if (Theme.ACCENTS[i] == rgb) return getString(ACCENT_NAMES[i]);
+        return getString(ACCENT_NAMES[0]);
+    }
+
+    /** Settings > Theme: picking one repaints the menu behind the sheet straight away. */
+    private List<WiiMenuView.MenuItem> themeSettings() {
+        List<WiiMenuView.MenuItem> items = new ArrayList<>();
+        String chosen = Theme.byId(prefs.getString(Theme.KEY_THEME, Theme.CLASSIC.id)).id;
+        for (int i = 0; i < Theme.ALL.length; i++) {
+            Theme t = Theme.ALL[i];
+            items.add(new WiiMenuView.MenuItem(getString(THEME_NAMES[i]), t.id.equals(chosen) ? onOff(true) : null, () -> {
+                prefs.edit().putString(Theme.KEY_THEME, t.id).apply();
+                applyTheme();
+            }));
+        }
+        return items;
+    }
+
+    /** Settings > Accent color: the focus glow, the line, the button rings, arrows, SD card and cursor. */
+    private List<WiiMenuView.MenuItem> accentSettings() {
+        List<WiiMenuView.MenuItem> items = new ArrayList<>();
+        int chosen = prefs.getInt(Theme.KEY_ACCENT, 0);
+        for (int i = 0; i < Theme.ACCENTS.length; i++) {
+            int rgb = Theme.ACCENTS[i];
+            items.add(new WiiMenuView.MenuItem(getString(ACCENT_NAMES[i]), rgb == chosen ? onOff(true) : null, () -> {
+                prefs.edit().putInt(Theme.KEY_ACCENT, rgb).apply();
+                applyTheme();
+            }));
+        }
+        return items;
+    }
+
+    private void applyTheme() {
+        menu.setTheme(Theme.load(prefs));
+        menu.refreshSettings();
+        // The Home redirect's picture of the menu should show the new look too.
+        if (DeviceProfile.fireTv()) {
+            menu.removeCallbacks(saveCover);
+            menu.postDelayed(saveCover, 2500);
+        }
     }
 
     private WiiMenuView.MenuItem item(int label, Runnable action) {
