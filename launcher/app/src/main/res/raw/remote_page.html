@@ -1,0 +1,190 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+<meta name="theme-color" content="#f3f7fa">
+<title>WiiOS Remote</title>
+<style>
+  :root { --accent: #34beed; --ink: #4a4a4a; --soft: #8a8a8a; --card: #ffffff; --line: #c9d6de; }
+  * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  html, body { margin: 0; height: 100%; }
+  body {
+    font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; color: var(--ink);
+    background: repeating-linear-gradient(#fff 0 7px, #f1f4f6 7px 9px);
+    display: flex; flex-direction: column; align-items: center; user-select: none; -webkit-user-select: none;
+  }
+  header { width: 100%; max-width: 480px; padding: 18px 20px 6px; display: flex; align-items: center; gap: 10px; }
+  header h1 { font-size: 22px; margin: 0; flex: 1; color: #7c7c7c; }
+  .dot { width: 12px; height: 12px; border-radius: 50%; background: #ccc; }
+  .dot.on { background: #43a047; }
+  nav { display: flex; gap: 8px; padding: 6px 16px 12px; }
+  nav button { border: 2px solid var(--line); background: #fff; border-radius: 22px; padding: 8px 18px; font-size: 16px;
+    color: var(--soft); font-weight: 600; }
+  nav button.sel { border-color: var(--accent); color: var(--ink); }
+  main { width: 100%; max-width: 480px; flex: 1; padding: 0 16px 24px; }
+  .tab { display: none; }
+  .tab.sel { display: block; }
+  .pad { position: relative; width: min(84vw, 340px); aspect-ratio: 1; margin: 12px auto 24px; border-radius: 50%;
+    background: #fff; border: 3px solid var(--line); box-shadow: 0 6px 18px rgba(0,0,0,.08); }
+  .pad button { position: absolute; border: none; background: none; font-size: 34px; color: #9fb3c0; }
+  .pad .up { top: 4%; left: 35%; width: 30%; height: 28%; }
+  .pad .down { bottom: 4%; left: 35%; width: 30%; height: 28%; }
+  .pad .left { left: 4%; top: 35%; width: 28%; height: 30%; }
+  .pad .right { right: 4%; top: 35%; width: 28%; height: 30%; }
+  .pad .ok { left: 32%; top: 32%; width: 36%; height: 36%; border-radius: 50%; background: #f7fafc;
+    border: 4px solid var(--accent); color: var(--ink); font-size: 26px; font-weight: 700; }
+  .pad button:active { color: var(--accent); transform: scale(.94); }
+  .row { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; }
+  .round { aspect-ratio: 1; border-radius: 50%; border: 3px solid var(--line); background: #fff; font-size: 15px;
+    font-weight: 600; color: var(--ink); box-shadow: 0 3px 10px rgba(0,0,0,.06); }
+  .round:active, .chan:active { border-color: var(--accent); transform: scale(.95); }
+  .grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; }
+  .chan { border: 3px solid var(--line); background: #fff; border-radius: 18px; padding: 22px 10px; font-size: 17px;
+    font-weight: 600; color: var(--ink); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  textarea, input { width: 100%; font-size: 18px; padding: 14px; border-radius: 16px; border: 3px solid var(--line);
+    font-family: inherit; color: var(--ink); background: #fff; }
+  textarea:focus, input:focus { outline: none; border-color: var(--accent); }
+  .wide { width: 100%; margin-top: 12px; padding: 16px; border-radius: 30px; border: none; background: var(--accent);
+    color: #fff; font-size: 18px; font-weight: 700; }
+  .hint { color: var(--soft); font-size: 14px; text-align: center; margin: 14px 4px; line-height: 1.4; }
+  #toast { position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%); background: rgba(40,40,40,.9);
+    color: #fff; padding: 12px 18px; border-radius: 20px; font-size: 15px; opacity: 0; transition: opacity .2s;
+    pointer-events: none; max-width: 90vw; text-align: center; }
+  #toast.show { opacity: 1; }
+  #pair { display: none; }
+</style>
+</head>
+<body>
+<header><span class="dot" id="dot"></span><h1>WiiOS Remote</h1></header>
+<section id="pair" class="tab" style="max-width:480px;width:100%;padding:0 16px">
+  <p class="hint">Enter the code shown on the TV in <b>WiiOS Settings → Phone remote</b>, or scan its QR code.</p>
+  <input id="pin" inputmode="numeric" maxlength="6" placeholder="6-digit code" autocomplete="off">
+  <button class="wide" id="pairBtn">Connect</button>
+</section>
+<nav id="nav">
+  <button data-tab="remote" class="sel">Remote</button>
+  <button data-tab="channels">Channels</button>
+  <button data-tab="type">Type</button>
+</nav>
+<main id="main">
+  <section class="tab sel" id="remote">
+    <div class="pad">
+      <button class="up" data-key="up" aria-label="Up">▲</button>
+      <button class="left" data-key="left" aria-label="Left">◀</button>
+      <button class="ok" data-key="ok">OK</button>
+      <button class="right" data-key="right" aria-label="Right">▶</button>
+      <button class="down" data-key="down" aria-label="Down">▼</button>
+    </div>
+    <div class="row">
+      <button class="round" data-key="back">Back</button>
+      <button class="round" data-key="home">Home</button>
+      <button class="round" data-key="menu">Menu</button>
+      <button class="round" data-key="playpause">▶︎❚❚</button>
+    </div>
+    <p class="hint">Hold an arrow to keep moving.</p>
+  </section>
+  <section class="tab" id="channels">
+    <div class="grid" id="chanGrid"></div>
+    <p class="hint" id="chanHint">Tap a channel to open it on the TV.</p>
+  </section>
+  <section class="tab" id="type">
+    <textarea id="text" rows="3" placeholder="Type here, then send it to the box on the TV"></textarea>
+    <button class="wide" id="send">Send to TV</button>
+    <p class="hint">Works in WiiOS's own text boxes, like the weather city search and profile names.</p>
+  </section>
+</main>
+<div id="toast"></div>
+<script>
+(function () {
+  var pin = '';
+  try { pin = localStorage.getItem('wiios_pin') || ''; } catch (e) {}
+  var fromHash = (location.hash || '').replace('#', '');
+  if (/^\d{6}$/.test(fromHash)) {
+    pin = fromHash;
+    try { localStorage.setItem('wiios_pin', pin); } catch (e) {}
+    history.replaceState(null, '', location.pathname);
+  }
+  var $ = function (id) { return document.getElementById(id); };
+  var toastTimer;
+  function toast(msg) {
+    var t = $('toast'); t.textContent = msg; t.classList.add('show');
+    clearTimeout(toastTimer); toastTimer = setTimeout(function () { t.classList.remove('show'); }, 2200);
+  }
+  function api(path, body) {
+    return fetch(path, { method: 'POST', headers: { 'X-Pin': pin }, body: body || '' }).then(function (r) {
+      if (r.status === 403) { showPair(); throw new Error('pin'); }
+      $('dot').classList.add('on');
+      return r.json();
+    }).catch(function (e) {
+      if (e.message !== 'pin') { $('dot').classList.remove('on'); toast('Can’t reach the TV. Is the phone on the same Wi‑Fi?'); }
+      throw e;
+    });
+  }
+  function showPair() {
+    $('pair').style.display = 'block'; $('nav').style.display = 'none'; $('main').style.display = 'none';
+  }
+  function showRemote() {
+    $('pair').style.display = 'none'; $('nav').style.display = 'flex'; $('main').style.display = 'block';
+  }
+  function press(key) {
+    if (navigator.vibrate) navigator.vibrate(12);
+    api('/api/key', key).then(function (r) {
+      if (!r.ok && r.app) toast('This app only listens to the TV remote for that.');
+    }).catch(function () {});
+  }
+  document.querySelectorAll('[data-key]').forEach(function (b) {
+    var key = b.getAttribute('data-key'), repeat, delay;
+    var arrow = ['up', 'down', 'left', 'right'].indexOf(key) >= 0;
+    b.addEventListener('pointerdown', function (e) {
+      e.preventDefault(); press(key);
+      if (arrow) delay = setTimeout(function () { repeat = setInterval(function () { press(key); }, 160); }, 420);
+    });
+    ['pointerup', 'pointerleave', 'pointercancel'].forEach(function (ev) {
+      b.addEventListener(ev, function () { clearTimeout(delay); clearInterval(repeat); });
+    });
+  });
+  document.querySelectorAll('nav button').forEach(function (b) {
+    b.addEventListener('click', function () {
+      document.querySelectorAll('nav button').forEach(function (x) { x.classList.remove('sel'); });
+      document.querySelectorAll('main .tab').forEach(function (x) { x.classList.remove('sel'); });
+      b.classList.add('sel'); $(b.getAttribute('data-tab')).classList.add('sel');
+      if (b.getAttribute('data-tab') === 'channels') loadChannels();
+    });
+  });
+  function loadChannels() {
+    api('/api/channels').then(function (list) {
+      var g = $('chanGrid'); g.innerHTML = '';
+      list.forEach(function (ch) {
+        var b = document.createElement('button'); b.className = 'chan'; b.textContent = ch.label;
+        b.addEventListener('click', function () {
+          if (navigator.vibrate) navigator.vibrate(12);
+          api('/api/open', ch.key).then(function (r) { toast(r.ok ? 'Opening ' + ch.label : 'Couldn’t open ' + ch.label); });
+        });
+        g.appendChild(b);
+      });
+      $('chanHint').textContent = list.length ? 'Tap a channel to open it on the TV.' : 'Open the WiiOS menu on the TV once, then try again.';
+    }).catch(function () {});
+  }
+  $('send').addEventListener('click', function () {
+    var v = $('text').value;
+    api('/api/text', v).then(function (r) {
+      if (r.ok) { toast('Sent'); $('text').value = ''; }
+      else toast('Select a text box on the TV first.');
+    }).catch(function () {});
+  });
+  $('pairBtn').addEventListener('click', function () {
+    var v = $('pin').value.trim();
+    if (!/^\d{6}$/.test(v)) { toast('The code has 6 digits.'); return; }
+    pin = v;
+    api('/api/hello').then(function () {
+      try { localStorage.setItem('wiios_pin', pin); } catch (e) {}
+      showRemote(); toast('Connected');
+    }).catch(function () { toast('That code didn’t work.'); });
+  });
+  if (!pin) showPair();
+  else api('/api/hello').then(showRemote).catch(function () {});
+})();
+</script>
+</body>
+</html>

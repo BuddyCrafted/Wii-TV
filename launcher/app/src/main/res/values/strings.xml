@@ -150,6 +150,16 @@
     <string name="set_prof_edit">Edit my look and name</string>
     <string name="set_prof_add">Add a profile</string>
     <string name="set_prof_ask">Ask who\'s watching when the TV turns on</string>
+    <string name="remote_title">Phone remote</string>
+    <string name="remote_scan">Scan with your phone\'s camera</string>
+    <string name="remote_or_type">or open %1$s and enter %2$s</string>
+    <string name="remote_same_wifi">Your phone needs to be on the same Wi-Fi as the TV. Press OK to close.</string>
+    <string name="remote_no_network">Connect the TV to Wi-Fi first</string>
+    <string name="set_phone_remote">Phone remote</string>
+    <string name="set_remote_connect">Connect a phone</string>
+    <string name="set_remote_on">Phone remote on</string>
+    <string name="set_remote_new_code">New code (disconnects phones)</string>
+    <string name="set_remote_new_code_done">New code made: phones need to scan again</string>
     <string name="theme_auto">Automatic (changes with the seasons)</string>
     <string name="theme_auto_now">Automatic: %1$s</string>
     <string name="accent_theme">Theme\'s own</string>

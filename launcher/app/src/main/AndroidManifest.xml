@@ -195,6 +195,14 @@
             android:screenOrientation="landscape"
             android:theme="@android:style/Theme.Black.NoTitleBar.Fullscreen" />
 
+        <!-- Phone remote: the QR code to scan. -->
+        <activity
+            android:name=".PhoneRemoteActivity"
+            android:exported="false"
+            android:excludeFromRecents="true"
+            android:screenOrientation="landscape"
+            android:theme="@android:style/Theme.Black.NoTitleBar.Fullscreen" />
+
         <!-- Who's watching? and the profile look editor. -->
         <activity
             android:name=".ProfilesActivity"

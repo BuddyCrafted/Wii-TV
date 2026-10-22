@@ -169,6 +169,7 @@ public class FireTvHomeService extends AccessibilityService {
     @Override
     protected void onServiceConnected() {
         super.onServiceConnected();
+        RemoteServer.attach(this);
         instance = this;
         new Thread(this::loadCover, "menu-cover-load").start();
         IntentFilter f = new IntentFilter(Intent.ACTION_SCREEN_ON);
@@ -183,6 +184,7 @@ public class FireTvHomeService extends AccessibilityService {
 
     @Override
     public void onDestroy() {
+        RemoteServer.detach(this);
         try {
             unregisterReceiver(wake);
         } catch (IllegalArgumentException ignored) {

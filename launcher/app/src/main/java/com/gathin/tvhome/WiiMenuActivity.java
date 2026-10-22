@@ -135,6 +135,7 @@ public class WiiMenuActivity extends Activity implements WiiMenuView.Listener {
             if (Profiles.ask(this) && resumed) startActivity(new Intent(this, ProfilesActivity.class));
         });
         SystemSettings.applyDefaultSleep(this, prefs);
+        RemoteServer.start(this);
         menu.setTheme(Theme.load(my));
         setContentView(menu);
         menu.requestFocus();
@@ -307,6 +308,30 @@ public class WiiMenuActivity extends Activity implements WiiMenuView.Listener {
         Toast.makeText(this, getString(R.string.prof_hi, Profiles.name(this, profileId)), Toast.LENGTH_SHORT).show();
     }
 
+    /** Settings > Phone remote. */
+    private List<WiiMenuView.MenuItem> phoneRemoteSettings() {
+        List<WiiMenuView.MenuItem> items = new ArrayList<>();
+        boolean on = RemoteServer.enabled(this);
+        if (on) {
+            items.add(new WiiMenuView.MenuItem(getString(R.string.set_remote_connect), () ->
+                    startActivity(new Intent(this, PhoneRemoteActivity.class))));
+        }
+        items.add(new WiiMenuView.MenuItem(getString(R.string.set_remote_on), onOff(on), () -> {
+            prefs.edit().putBoolean(RemoteServer.KEY_ON, !on).apply();
+            if (on) RemoteServer.stop();
+            else RemoteServer.start(this);
+            menu.popSettings();
+            menu.pushSettings(getString(R.string.set_phone_remote), this::phoneRemoteSettings);
+        }));
+        if (on) {
+            items.add(new WiiMenuView.MenuItem(getString(R.string.set_remote_new_code), () -> {
+                RemoteServer.newPin(this);
+                Toast.makeText(this, R.string.set_remote_new_code_done, Toast.LENGTH_SHORT).show();
+            }));
+        }
+        return items;
+    }
+
     /** Settings > Profile. */
     private List<WiiMenuView.MenuItem> profileSettings() {
         List<WiiMenuView.MenuItem> items = new ArrayList<>();
@@ -384,6 +409,13 @@ public class WiiMenuActivity extends Activity implements WiiMenuView.Listener {
         ChannelOrder.sort(channels, c -> c.key, c -> c.label,
                 ChannelOrder.split(my.getString(KEY_ORDER, "")), dock);
         menu.setChannels(channels);
+        List<String[]> forPhone = new ArrayList<>();
+        Map<String, Intent> launch = new LinkedHashMap<>();
+        for (WiiMenuView.Channel ch : channels) {
+            forPhone.add(new String[] {ch.key, ch.label});
+            launch.put(ch.key, ch.intent);
+        }
+        RemoteServer.setChannels(forPhone, launch);
     }
 
     /** SmartTube's stable and beta packages (new and old names), shown as a YouTube channel. */
@@ -453,6 +485,8 @@ public class WiiMenuActivity extends Activity implements WiiMenuView.Listener {
         List<WiiMenuView.MenuItem> items = new ArrayList<>();
         items.add(new WiiMenuView.MenuItem(getString(R.string.set_profile), Profiles.name(this, profileId), () ->
                 menu.pushSettings(getString(R.string.set_profile), this::profileSettings)));
+        items.add(new WiiMenuView.MenuItem(getString(R.string.set_phone_remote), onOff(RemoteServer.enabled(this)), () ->
+                menu.pushSettings(getString(R.string.set_phone_remote), this::phoneRemoteSettings)));
         Theme current = Theme.load(my);
         items.add(new WiiMenuView.MenuItem(getString(R.string.set_theme), Theme.automatic(my)
                 ? getString(R.string.theme_auto_now, themeName(Theme.byId(current.id))) : themeName(Theme.byId(current.id)), () ->
@@ -617,6 +651,7 @@ public class WiiMenuActivity extends Activity implements WiiMenuView.Listener {
         android.widget.EditText field = new android.widget.EditText(this);
         field.setSingleLine(true);
         field.setHint(R.string.set_wx_search);
+        RemoteServer.offerText(field);
         new android.app.AlertDialog.Builder(this, android.R.style.Theme_DeviceDefault_Dialog_Alert)
                 .setTitle(R.string.set_wx_search)
                 .setView(field)

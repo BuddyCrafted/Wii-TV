@@ -30,6 +30,7 @@ public class HomeKeyService extends AccessibilityService {
     @Override
     protected void onServiceConnected() {
         super.onServiceConnected();
+        RemoteServer.attach(this);
         settingsScancodes = getResources().getIntArray(R.array.settings_key_scancodes);
         // Keycodes and the panel choice can also come from a theme; theme.sh restarts this service.
         Config config = Config.load(this);
@@ -78,5 +79,11 @@ public class HomeKeyService extends AccessibilityService {
 
     @Override
     public void onInterrupt() {
+    }
+
+    @Override
+    public void onDestroy() {
+        RemoteServer.detach(this);
+        super.onDestroy();
     }
 }

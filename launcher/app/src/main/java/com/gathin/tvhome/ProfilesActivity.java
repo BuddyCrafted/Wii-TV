@@ -223,6 +223,7 @@ public class ProfilesActivity extends Activity {
         field.setSingleLine(true);
         field.setText(name);
         field.setSelectAllOnFocus(true);
+        RemoteServer.offerText(field);
         new AlertDialog.Builder(this, android.R.style.Theme_DeviceDefault_Dialog_Alert)
                 .setTitle(R.string.prof_name_title)
                 .setView(field)

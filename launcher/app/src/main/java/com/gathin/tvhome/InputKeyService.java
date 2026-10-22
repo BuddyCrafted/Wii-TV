@@ -32,6 +32,7 @@ public class InputKeyService extends AccessibilityService {
     @Override
     protected void onServiceConnected() {
         super.onServiceConnected();
+        RemoteServer.attach(this);
         // From config.xml or a theme's config.json; theme.sh rebinds this service after a push.
         Config config = Config.load(this);
         inputKeycodes = config.inputKeycodes;
@@ -46,6 +47,7 @@ public class InputKeyService extends AccessibilityService {
 
     @Override
     public void onDestroy() {
+        RemoteServer.detach(this);
         RemoteButtons.prefs(this).unregisterOnSharedPreferenceChangeListener(prefsChanged);
         super.onDestroy();
     }
