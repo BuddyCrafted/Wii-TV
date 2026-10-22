@@ -13,7 +13,7 @@ final class Theme {
     static final String KEY_THEME = "theme";
     static final String KEY_ACCENT = "theme_accent";
 
-    enum Deco { NONE, SNOW, WAVE, LEAVES }
+    enum Deco { NONE, SNOW, WAVE, LEAVES, ISLAND }
 
     final String id;
     /** Colours below are 0xRRGGBB (opaque) unless they end in an alpha byte in front. */
@@ -94,7 +94,16 @@ final class Theme {
             0xE2C78E, 0xF6E3B8, 0xEEDDB6, 0xFFF8E6, 0xE7D9B8, 0xF7EFDA,
             0x16A3C4, 0x3E8597, 0x2F6E80, 0x3B7F93, 0xBCD7DC, 0xFFFFFF, 0xF3EEDF, 0x2F6E80, Deco.WAVE);
 
-    static final Theme[] ALL = {CLASSIC, DARK, WINTER, FALL, HALLOWEEN, BEACH};
+    /**
+     * Island village: its own scenery (IslandScene) instead of the stripes and panel, so only the colours for
+     * the buttons, signs, clock and focus ring below matter.
+     */
+    static final Theme ISLAND = new Theme("island", false,
+            0x67BFEF, 0xC9EBFB, 0x67BFEF, 0xC9EBFB,
+            0x76C95B, 0x9CDB7B, 0xF0E0BC, 0xFFF8E7, 0xF3E6C8, 0xFFF9EA,
+            0xF5B82E, 0xFFF8EC, 0xFFF8EC, 0x8B6A3E, 0xE6D3A8, 0xFFFBF0, 0xF6ECD3, 0x6B4F2A, Deco.ISLAND);
+
+    static final Theme[] ALL = {CLASSIC, DARK, WINTER, FALL, HALLOWEEN, BEACH, ISLAND};
 
     /** Accent picker: 0 means the theme's own. Names in strings.xml (accent_*), same order. */
     static final int[] ACCENTS = {0, 0x34BEED, 0x22C55E, 0xF43F5E, 0xA855F7, 0xF59E0B, 0x111827};

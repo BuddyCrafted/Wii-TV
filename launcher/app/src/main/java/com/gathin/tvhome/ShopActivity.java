@@ -144,6 +144,8 @@ public class ShopActivity extends Activity implements ShopView.Listener {
                 break;
             case STORE: {
                 Intent store = ShopCatalog.storeIntent(this, app);
+                // Fire TV: the Appstore's pages belong to the Amazon launcher; let them stay up.
+                if (store != null && DeviceProfile.fireTv()) FireTvHomeService.allowAmazonStore();
                 if (store != null) startActivity(store);
                 else Toast.makeText(this, R.string.shop_no_store, Toast.LENGTH_LONG).show();
                 break;

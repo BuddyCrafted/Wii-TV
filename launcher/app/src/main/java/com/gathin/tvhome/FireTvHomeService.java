@@ -100,9 +100,32 @@ public class FireTvHomeService extends AccessibilityService {
         settingsOpenedAt = SystemClock.uptimeMillis();
     }
 
+    /**
+     * Set when WiiOS opens an Appstore page (Shop or Games, "Get it from the store"). On Fire OS those pages and
+     * the store search are the Amazon launcher's own windows, so they were covered by the menu at once and the
+     * store never seemed to open. During the visit only the Amazon home screen itself (Home pressed) brings the
+     * menu back; Back returns to WiiOS's Shop as usual.
+     */
+    private static volatile boolean storeVisit;
+    private static volatile long storeOpenedAt;
+    /** Launcher windows this soon after opening a store page belong to it, whatever they are. */
+    private static final long STORE_GRACE_MS = 3000;
+
+    /** Leave the Amazon store pages on top until the Amazon home screen shows (call before opening one). */
+    static void allowAmazonStore() {
+        storeVisit = true;
+        storeOpenedAt = SystemClock.uptimeMillis();
+    }
+
+    /** The Amazon home screen itself, as opposed to the launcher's store, search or Settings windows. */
+    static boolean isAmazonHome(CharSequence className) {
+        return className != null && className.toString().contains("HomeActivity");
+    }
+
     /** The menu is showing again (WiiMenuActivity.onResume): cover the Amazon home again from now on. */
     static void coverAmazonHome() {
         amazonScreenAllowed = false;
+        storeVisit = false;
     }
 
     /** The menu has drawn itself (WiiMenuActivity): take the picture of it away. */
@@ -177,6 +200,14 @@ public class FireTvHomeService extends AccessibilityService {
                 || event.getPackageName() == null || !AMAZON_LAUNCHER.contentEquals(event.getPackageName())
                 || menuVisible || isAmazonSettings(event.getClassName())) {
             return;
+        }
+        if (storeVisit) {
+            if (type != AccessibilityEvent.TYPE_WINDOW_STATE_CHANGED
+                    || SystemClock.uptimeMillis() - storeOpenedAt < STORE_GRACE_MS
+                    || !isAmazonHome(event.getClassName())) {
+                return;
+            }
+            storeVisit = false;
         }
         if (amazonScreenAllowed) {
             // Moving along the Settings row only changes content. A new Amazon home window after the grace

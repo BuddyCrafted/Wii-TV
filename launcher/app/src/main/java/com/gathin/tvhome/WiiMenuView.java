@@ -187,6 +187,7 @@ public class WiiMenuView extends View {
     private int accentArgb = 0xFF3FC0EC;
     private Theme theme = Theme.CLASSIC;
     private final SeasonDeco season = new SeasonDeco();
+    private final IslandScene island = new IslandScene();
     /** Segment bits a-g per digit; the original's 7 keeps the upper-left bar. */
     private static final int[] SEGMENTS = {0x3F, 0x06, 0x5B, 0x4F, 0x66, 0x6D, 0x7D, 0x27, 0x7F, 0x6F};
     /** The previous version's hand was drawn in units of 1/1024 of the width. */
@@ -873,14 +874,20 @@ public class WiiMenuView extends View {
         final String label = settingsLabel;
         final Theme th0 = theme;
         new Thread(() -> {
-            int[] px = WiiBase.backdrop(bw, bh, th0);
-            Bitmap bg = Bitmap.createBitmap(bw, bh, Bitmap.Config.ARGB_8888);
-            bg.setPixels(px, 0, bw, 0, 0, bw, bh);
-            px = null;
-            drawDecorations(new Canvas(bg), bw, bh, bs, th0);
+            boolean island = th0.deco == Theme.Deco.ISLAND;
+            Bitmap bg;
+            if (island) {
+                bg = IslandScene.backdrop(bw, bh, bs);
+            } else {
+                int[] px = WiiBase.backdrop(bw, bh, th0);
+                bg = Bitmap.createBitmap(bw, bh, Bitmap.Config.ARGB_8888);
+                bg.setPixels(px, 0, bw, 0, 0, bw, bh);
+                px = null;
+                drawDecorations(new Canvas(bg), bw, bh, bs, th0);
+            }
             int size = (int) Math.ceil(2f * (WiiBase.BTN_RING + WiiBase.BTN_RING_HALF + 2f) * bs);
-            int[] bp = WiiBase.button(size, bs, th0);
-            Bitmap left = Bitmap.createBitmap(bp, size, size, Bitmap.Config.ARGB_8888).copy(Bitmap.Config.ARGB_8888, true);
+            Bitmap left = island ? IslandScene.button(size, bs)
+                    : Bitmap.createBitmap(WiiBase.button(size, bs, th0), size, size, Bitmap.Config.ARGB_8888).copy(Bitmap.Config.ARGB_8888, true);
             Bitmap right = left.copy(Bitmap.Config.ARGB_8888, true);
             drawWordmark(new Canvas(left), size, bs, label);
             drawEnvelope(new Canvas(right), size, bs);
@@ -1083,11 +1090,14 @@ public class WiiMenuView extends View {
 
         if (base != null) c.drawBitmap(base, 0f, 0f, null);
         else c.drawColor(theme.classic ? 0xFFE9E9E9 : Theme.argb(theme.bgTopLight));
-        boolean seasonal = theme.deco == Theme.Deco.SNOW || theme.deco == Theme.Deco.LEAVES;
+        boolean seasonal = theme.deco == Theme.Deco.SNOW || theme.deco == Theme.Deco.LEAVES
+                || theme.deco == Theme.Deco.ISLAND;
         float seconds = SystemClock.uptimeMillis() / 1000f;
         if (theme.deco == Theme.Deco.SNOW) season.snow(c, s, seconds, false);
         else if (theme.deco == Theme.Deco.LEAVES) season.leaves(c, s, seconds, false);
+        else if (theme.deco == Theme.Deco.ISLAND) island.clouds(c, s, seconds);
         drawTiles(c);
+        if (theme.deco == Theme.Deco.ISLAND) island.butterflies(c, s, seconds);
         if (theme.deco == Theme.Deco.SNOW) {
             season.sledders(c, s, seconds);
             season.snow(c, s, seconds, true);
@@ -1203,6 +1213,13 @@ public class WiiMenuView extends View {
         int save = c.save();
         c.translate(r.left, r.top);
         Channel ch = slot < channels.size() ? channels.get(slot) : null;
+        if (theme.deco == Theme.Deco.ISLAND) {
+            // A cream signboard; its face shows the channel's banner, custom picture, or icon and name.
+            if (ch != null) ensureArt(ch, IslandScene.innerW(r.width(), s), IslandScene.innerH(r.height(), s));
+            island.sign(c, s, r.width(), r.height(), ch == null ? null : ch.shader, lf, accentArgb);
+            c.restoreToCount(save);
+            return;
+        }
         if (ch != null) {
             ensureArt(ch, Math.round(r.width()), Math.round(r.height()));
             artPaint.setShader(ch.shader);
@@ -1376,6 +1393,13 @@ public class WiiMenuView extends View {
             minute = now.get(Calendar.MINUTE);
             pm = now.get(Calendar.AM_PM) == Calendar.PM;
         }
+        if (theme.deco == Theme.Deco.ISLAND) {
+            // Island village: plain time and the full date on the wooden sign.
+            Locale locale = getResources().getConfiguration().getLocales().get(0);
+            String date = refPose ? "Friday, March 22" : new SimpleDateFormat("EEEE, MMMM d", locale).format(new java.util.Date());
+            island.clock(c, s, hour + ":" + (minute < 10 ? "0" : "") + minute, pm ? "PM" : "AM", date);
+            return;
+        }
         fill.setColor(Theme.argb(theme.clock));
         if (hour >= 10) drawDigit(c, DIGIT_X[0], hour / 10);
         drawDigit(c, DIGIT_X[1], hour % 10);
@@ -1440,6 +1464,7 @@ public class WiiMenuView extends View {
     }
 
     private void drawDate(Canvas c) {
+        if (theme.deco == Theme.Deco.ISLAND) return;   // on the clock's sign
         String date;
         if (refPose) {
             date = "Fri 3/22";

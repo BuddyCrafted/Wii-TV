@@ -633,7 +633,7 @@ public class WiiMenuActivity extends Activity implements WiiMenuView.Listener {
     }
 
     private static final int[] THEME_NAMES = {R.string.theme_classic, R.string.theme_dark, R.string.theme_winter,
-            R.string.theme_fall, R.string.theme_halloween, R.string.theme_beach};
+            R.string.theme_fall, R.string.theme_halloween, R.string.theme_beach, R.string.theme_island};
     private static final int[] ACCENT_NAMES = {R.string.accent_theme, R.string.accent_blue, R.string.accent_green,
             R.string.accent_pink, R.string.accent_purple, R.string.accent_amber, R.string.accent_graphite};
 
