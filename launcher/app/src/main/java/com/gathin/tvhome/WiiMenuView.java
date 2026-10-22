@@ -378,6 +378,7 @@ public class WiiMenuView extends View {
         if (introAlpha <= 0f || introLeaving) return;
         introLeaving = true;
         removeCallbacks(autoContinue);
+        playEntrance();
         invalidate();
     }
 
@@ -1019,8 +1020,11 @@ public class WiiMenuView extends View {
 
         if (introLeaving) {
             introAlpha = approach(introAlpha, 0f, 1f - (float) Math.exp(-dt / 0.2f), 0.004f);
-            if (introAlpha == 0f) introLeaving = false;
-            else moving = true;
+            if (introAlpha == 0f) {
+                introLeaving = false;
+            } else {
+                moving = true;
+            }
         }
         return moving;
     }
@@ -1037,18 +1041,25 @@ public class WiiMenuView extends View {
         if (base != null) c.drawBitmap(base, 0f, 0f, null);
         else c.drawColor(0xFFE9E9E9);
         drawTiles(c);
-        drawArrows(c);
-        drawButton(c, btnLeft, WiiBase.BTN_CX, BTN_SETTINGS);
-        drawButton(c, btnRight, BTN_RIGHT_CX, BTN_INPUTS);
-        drawSd(c);
-        drawClock(c);
-        drawDate(c);
+        float panel = entering() ? entrance(ENTRANCE_PANEL_DELAY_MS) : 1f;
+        if (panel > 0f) {
+            // Entrance: the buttons, clock and date rise into place after the channels.
+            int sv = panel < 1f ? c.saveLayerAlpha(0, 0, w, h, Math.round(panel * 255)) : c.save();
+            c.translate(0f, (1f - ease(panel)) * 70f * s);
+            if (panel >= 1f) drawArrows(c);
+            drawButton(c, btnLeft, WiiBase.BTN_CX, BTN_SETTINGS);
+            drawButton(c, btnRight, BTN_RIGHT_CX, BTN_INPUTS);
+            drawSd(c);
+            drawClock(c);
+            drawDate(c);
+            c.restoreToCount(sv);
+        }
         if (settingsAlpha > 0f) drawSettings(c);
         drawHand(c);
         if (menuAlpha > 0f) drawMenu(c);
         if (introAlpha > 0f) drawIntro(c);
 
-        if (animating || introAlpha > 0f || moving) postInvalidateOnAnimation();
+        if (animating || introAlpha > 0f || moving || entering()) postInvalidateOnAnimation();
         else lastFrameNanos = 0;
     }
 
@@ -1058,7 +1069,7 @@ public class WiiMenuView extends View {
             if (sl == focus) continue;
             slotRect(sl, pagePos, rect);
             if (rect.right < -10f * s || rect.left > w + 10f * s) continue;
-            drawTile(c, sl, rect, lift[sl]);
+            drawTileEntering(c, sl, rect, lift[sl]);
         }
         if (focus >= 0) {
             slotRect(focus, pagePos, rect);
@@ -1075,9 +1086,60 @@ public class WiiMenuView extends View {
                 drawTile(c, focus, rect, 1f);
                 c.restoreToCount(sv);
             } else if (rect.right >= 0 && rect.left <= w) {
-                drawTile(c, focus, rect, lift[focus]);
+                drawTileEntering(c, focus, rect, lift[focus]);
             }
         }
+    }
+
+    // ---- start-up entrance: after the welcome screen the channels pop in, a diagonal wave from the top left,
+    // then the buttons, clock and date rise into place. Our own take on the console's start-up.
+
+    private static final long ENTRANCE_STEP_MS = 70, ENTRANCE_TILE_MS = 420, ENTRANCE_PANEL_DELAY_MS = 520,
+            ENTRANCE_MS = 1400;
+    private long entranceStart = -1;
+
+    /** Starts a moment after the welcome screen begins to fade, so the channels pop in as it clears. */
+    void playEntrance() {
+        entranceStart = SystemClock.uptimeMillis() + 180;
+        lastFrameNanos = 0;
+        invalidate();
+    }
+
+    private boolean entering() {
+        if (entranceStart < 0) return false;
+        if (SystemClock.uptimeMillis() - entranceStart < ENTRANCE_MS) return true;
+        entranceStart = -1;
+        return false;
+    }
+
+    /** 0..1 progress of a part that starts `delay` ms into the entrance. */
+    private float entrance(long delay) {
+        float p = (SystemClock.uptimeMillis() - entranceStart - delay) / (float) ENTRANCE_TILE_MS;
+        return Math.max(0f, Math.min(1f, p));
+    }
+
+    /** Ease out with a small overshoot, so each tile pops past full size and settles. */
+    private static float ease(float p) {
+        float q = p - 1f;
+        return 1f + q * q * (2.7f * q + 1.7f);
+    }
+
+    private void drawTileEntering(Canvas c, int slot, RectF r, float lf) {
+        if (!entering()) {
+            drawTile(c, slot, r, lf);
+            return;
+        }
+        int i = slot % SLOTS_PER_PAGE;
+        int pg = slot / SLOTS_PER_PAGE;
+        int col = i % 4 + (pg - page) * 4, row = i / 4;
+        float p = entrance((col + row) * ENTRANCE_STEP_MS);
+        if (p <= 0f) return;
+        float sc = 0.35f + 0.65f * ease(p);
+        int sv = c.save();
+        c.scale(sc, sc, r.centerX(), r.centerY());
+        if (p < 1f) c.saveLayerAlpha(r.left - 20f * s, r.top - 20f * s, r.right + 20f * s, r.bottom + 20f * s, Math.round(p * 255));
+        drawTile(c, slot, r, lf);
+        c.restoreToCount(sv);
     }
 
     private void drawTile(Canvas c, int slot, RectF r, float lf) {

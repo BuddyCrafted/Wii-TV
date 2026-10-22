@@ -38,6 +38,12 @@ const CLOCK_COLOR = 0xff9a9a9a, DATE_COLOR = 0xff7c7c7c;
 const BLUE = 0xff3fc0ec;
 const SEGMENTS = [0x3f, 0x06, 0x5b, 0x4f, 0x66, 0x6d, 0x7d, 0x27, 0x7f, 0x6f];
 const HAND_UNIT = 1920 / 1024, HAND_SCALE = 0.8;
+const ENTRANCE_STEP_MS = 70, ENTRANCE_TILE_MS = 420, ENTRANCE_PANEL_DELAY_MS = 520, ENTRANCE_MS = 1400;
+/** Ease out with a small overshoot, so each tile pops past full size and settles. */
+const ease = (p) => {
+  const q = p - 1;
+  return 1 + q * q * (2.7 * q + 1.7);
+};
 
 const css = (c) => `rgba(${(c >> 16) & 255},${(c >> 8) & 255},${c & 255},${(((c >>> 24) & 255) / 255).toFixed(3)})`;
 const withAlpha = (c, a) => ((c & 0xffffff) | (Math.max(0, Math.min(255, a | 0)) << 24)) >>> 0;
@@ -174,6 +180,7 @@ export class WiiMenu {
     if (this.introAlpha <= 0 || this.introLeaving) return;
     this.introLeaving = true;
     clearTimeout(this.introTimer);
+    this.playEntrance();
     this.invalidate();
   }
 
@@ -741,8 +748,11 @@ export class WiiMenu {
     }
     if (this.introLeaving) {
       this.introAlpha = approach(this.introAlpha, 0, 1 - Math.exp(-dt / 0.2), 0.004);
-      if (this.introAlpha === 0) this.introLeaving = false;
-      else moving = true;
+      if (this.introAlpha === 0) {
+        this.introLeaving = false;
+      } else {
+        moving = true;
+      }
     }
     return moving;
   }
@@ -760,18 +770,26 @@ export class WiiMenu {
       c.fillRect(0, 0, this.w, this.h);
     }
     this.drawTiles(c);
-    this.drawArrows(c);
-    this.drawButton(c, this.btnLeft, B.BTN_CX, BTN_SETTINGS);
-    this.drawButton(c, this.btnRight, BTN_RIGHT_CX, BTN_INPUTS);
-    this.drawSd(c);
-    this.drawClock(c);
-    this.drawDate(c);
+    const panel = this.entering() ? this.entrance(ENTRANCE_PANEL_DELAY_MS) : 1;
+    if (panel > 0) {
+      // Entrance: the buttons, clock and date rise into place after the channels.
+      c.save();
+      c.globalAlpha = panel;
+      c.translate(0, (1 - ease(panel)) * 70 * this.s);
+      if (panel >= 1) this.drawArrows(c);
+      this.drawButton(c, this.btnLeft, B.BTN_CX, BTN_SETTINGS);
+      this.drawButton(c, this.btnRight, BTN_RIGHT_CX, BTN_INPUTS);
+      this.drawSd(c);
+      this.drawClock(c);
+      this.drawDate(c);
+      c.restore();
+    }
     if (this.settingsAlpha > 0) this.withAlphaLayer(this.settingsAlpha, (lc) => this.drawSettings(lc));
     if (this.menuAlpha > 0) this.withAlphaLayer(this.menuAlpha, (lc) => this.drawMenu(lc));
     drawHand(c, this.handX, this.handY, HAND_UNIT * this.s * HAND_SCALE, FONT);
     if (this.introAlpha > 0) this.withAlphaLayer(this.introAlpha, (lc) => this.drawIntro(lc));
     if (this.notice && performance.now() < this.noticeUntil) this.drawNotice(c);
-    if (animating || this.introAlpha > 0 || this.moving) this.invalidate();
+    if (animating || this.introAlpha > 0 || this.moving || this.entering()) this.invalidate();
     else this.lastFrame = 0;
   }
 
@@ -803,7 +821,7 @@ export class WiiMenu {
       if (sl === this.focus) continue;
       const r = this.slotRect(sl, this.pagePos);
       if (r.r < -10 * s || r.l > this.w + 10 * s) continue;
-      this.drawTile(c, sl, r, this.lift[sl]);
+      this.drawTileEntering(c, sl, r, this.lift[sl]);
     }
     if (this.focus >= 0) {
       const r = this.slotRect(this.focus, this.pagePos);
@@ -824,9 +842,45 @@ export class WiiMenu {
         this.drawTile(c, this.focus, rr, 1);
         c.restore();
       } else if (r.r >= 0 && r.l <= this.w) {
-        this.drawTile(c, this.focus, r, this.lift[this.focus]);
+        this.drawTileEntering(c, this.focus, r, this.lift[this.focus]);
       }
     }
+  }
+
+  // ---- start-up entrance (as in WiiMenuView): after the welcome screen the channels pop in, a diagonal wave
+  // from the top left, then the buttons, clock and date rise into place.
+
+  /** Starts a moment after the welcome screen begins to fade, so the channels pop in as it clears. */
+  playEntrance() {
+    this.entranceStart = performance.now() + 180;
+    this.invalidate();
+  }
+
+  entering() {
+    if (this.entranceStart == null) return false;
+    if (performance.now() - this.entranceStart < ENTRANCE_MS) return true;
+    this.entranceStart = null;
+    return false;
+  }
+
+  entrance(delay) {
+    return Math.max(0, Math.min(1, (performance.now() - this.entranceStart - delay) / ENTRANCE_TILE_MS));
+  }
+
+  drawTileEntering(c, slot, r, lf) {
+    if (!this.entering()) return this.drawTile(c, slot, r, lf);
+    const i = slot % SLOTS, pg = Math.floor(slot / SLOTS);
+    const col = (i % 4) + (pg - this.page) * 4, row = Math.floor(i / 4);
+    const p = this.entrance((col + row) * ENTRANCE_STEP_MS);
+    if (p <= 0) return;
+    const sc = 0.35 + 0.65 * ease(p), cx = (r.l + r.r) / 2, cy = (r.t + r.b) / 2;
+    c.save();
+    c.globalAlpha = p;
+    c.translate(cx, cy);
+    c.scale(sc, sc);
+    c.translate(-cx, -cy);
+    this.drawTile(c, slot, r, lf);
+    c.restore();
   }
 
   drawTile(c, slot, r, lf) {

@@ -2,13 +2,16 @@ package com.gathin.tvhome;
 
 import android.accessibilityservice.AccessibilityService;
 import android.content.ActivityNotFoundException;
+import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
+import android.content.IntentFilter;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.graphics.PixelFormat;
 import android.os.Handler;
 import android.os.Looper;
+import android.os.PowerManager;
 import android.os.SystemClock;
 import android.provider.Settings;
 import android.view.KeyEvent;
@@ -58,6 +61,28 @@ public class FireTvHomeService extends AccessibilityService {
     private final Runnable retry = this::retryMenu;
     /** The menu is on screen (resumed and drawn); Amazon window events then mean nothing. */
     private static volatile boolean menuVisible;
+    /** When the menu last drew itself, and when the Amazon home last came up (uptime ms). */
+    private static volatile long menuShownAt;
+    private volatile long amazonAt;
+
+    /**
+     * Fire OS can switch to its home while the screen is off (sleep, or a long stretch without a key press). The
+     * menu can't come up then, and on waking the Amazon home is already there, so no new window event arrives.
+     * So on wake (screen on, unlock, screensaver ending), the menu comes back if the Amazon home appeared after
+     * the menu was last on screen.
+     */
+    private final BroadcastReceiver wake = new BroadcastReceiver() {
+        @Override
+        public void onReceive(Context context, Intent intent) {
+            main.removeCallbacks(checkWake);
+            main.postDelayed(checkWake, 500);
+        }
+    };
+    private final Runnable checkWake = () -> {
+        if (menuVisible || amazonScreenAllowed || amazonAt <= menuShownAt) return;
+        lastLaunch = 0;
+        openMenu();
+    };
     private static volatile long settingsOpenedAt;
     private View cover;
     private long lastLaunch;
@@ -83,6 +108,7 @@ public class FireTvHomeService extends AccessibilityService {
     /** The menu has drawn itself (WiiMenuActivity): take the picture of it away. */
     static void menuShown() {
         menuVisible = true;
+        menuShownAt = SystemClock.uptimeMillis();
         FireTvHomeService s = instance;
         if (s != null) s.main.post(s.removeCover);
     }
@@ -96,10 +122,24 @@ public class FireTvHomeService extends AccessibilityService {
     protected void onServiceConnected() {
         super.onServiceConnected();
         instance = this;
+        IntentFilter f = new IntentFilter(Intent.ACTION_SCREEN_ON);
+        f.addAction(Intent.ACTION_USER_PRESENT);
+        f.addAction(Intent.ACTION_DREAMING_STOPPED);
+        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.TIRAMISU) {
+            registerReceiver(wake, f, Context.RECEIVER_NOT_EXPORTED);
+        } else {
+            registerReceiver(wake, f);
+        }
     }
 
     @Override
     public void onDestroy() {
+        try {
+            unregisterReceiver(wake);
+        } catch (IllegalArgumentException ignored) {
+            // never registered (the service was not connected)
+        }
+        main.removeCallbacks(checkWake);
         removeCover();
         if (instance == this) instance = null;
         super.onDestroy();
@@ -147,6 +187,10 @@ public class FireTvHomeService extends AccessibilityService {
             }
             amazonScreenAllowed = false;
         }
+        amazonAt = SystemClock.uptimeMillis();
+        // Screen off: nothing can come to the front now; the wake check brings the menu back.
+        PowerManager pm = (PowerManager) getSystemService(Context.POWER_SERVICE);
+        if (pm != null && !pm.isInteractive()) return;
         openMenu();
     }
 
