@@ -99,7 +99,54 @@ def start():
     return buf * 0.30
 
 
-def write(name, sig):
+def noise_hp(n, seed, a=0.85):
+    """White noise through a one-pole high-pass: the slap of a hit without any boom."""
+    x = np.random.default_rng(seed).standard_normal(n)
+    y = np.empty(n)
+    prev_x = prev_y = 0.0
+    for i in range(n):
+        prev_y = a * (prev_y + x[i] - prev_x)
+        prev_x = x[i]
+        y[i] = prev_y
+    return y
+
+
+def punch():
+    """Winter hockey fight: a cartoon slap, a sharp smack over a short low thud."""
+    t = t_axis(0.2)
+    smack = noise_hp(len(t), 3) * np.minimum(1.0, t / 0.0008) * np.exp(-t / 0.018)
+    f = 150 - 70 * np.minimum(1.0, t / 0.08)
+    thud = np.sin(2 * np.pi * np.cumsum(f) / RATE) * np.minimum(1.0, t / 0.002) * np.exp(-t / 0.045)
+    return smack * 0.55 + thud * 0.6
+
+
+def slapshot():
+    """Winter hockey: the stick's crack on the ice and the puck snapping off it."""
+    buf = np.zeros(int(RATE * 0.22))
+    t = t_axis(0.12)
+    crack = noise_hp(len(t), 5, 0.95) * np.minimum(1.0, t / 0.0004) * np.exp(-t / 0.01)
+    knock = np.sin(2 * np.pi * 420 * t) * np.exp(-t / 0.025)
+    place(buf, crack * 0.8 + knock * 0.35, 0.0)
+    place(buf, bell(1900, 0.08, 0.012) * 0.25, 0.012)
+    return buf
+
+
+def goal():
+    """Winter hockey: a short goal horn, two buzzy blasts."""
+    buf = np.zeros(int(RATE * 0.75))
+    for at, length in ((0.0, 0.22), (0.3, 0.42)):
+        t = t_axis(length)
+        f = 233.0
+        tone = sum((1.0 / k) * np.sin(2 * np.pi * f * k * t) for k in range(1, 9))
+        env = np.minimum(1.0, t / 0.02) * np.minimum(1.0, (length - t) / 0.04)
+        place(buf, tone * env * 0.35, at)
+    return buf
+
+
+def write(name, sig, rate=RATE):
+    if rate != RATE:
+        # Background effects are kept at half rate, halving their size in the APK.
+        sig = (sig[0:len(sig) // 2 * 2:2] + sig[1:len(sig) // 2 * 2:2]) / 2
     sig = np.clip(sig, -1.0, 1.0)
     tail = int(RATE * 0.004)
     sig[-tail:] *= np.linspace(1.0, 0.0, tail)
@@ -108,7 +155,7 @@ def write(name, sig):
     with wave.open(path, 'wb') as w:
         w.setnchannels(1)
         w.setsampwidth(2)
-        w.setframerate(RATE)
+        w.setframerate(rate)
         w.writeframes(pcm.tobytes())
     print('wrote', os.path.relpath(path), len(pcm), 'samples')
 
@@ -117,3 +164,5 @@ if __name__ == '__main__':
     os.makedirs(OUT, exist_ok=True)
     for fn in (move, select, page, back, menu, start):
         write('wii_' + fn.__name__, fn())
+    for fn in (punch, slapshot, goal):
+        write('fx_' + fn.__name__, fn(), RATE // 2)

@@ -122,6 +122,19 @@ final class SeasonDeco {
         for (float d : SCENES) SCENES_TOTAL += d;
     }
 
+    /** Plays one of WiiSounds' scene effects; null keeps the scenes silent. */
+    interface Sfx {
+        void play(int which);
+    }
+
+    Sfx sfx;
+    /** The hockey scene's time at the last frame, to fire each sound once as its moment passes. */
+    private float lastHockeyT = -1f;
+
+    private void cue(float at, float t, int which) {
+        if (sfx != null && lastHockeyT >= 0f && t - lastHockeyT < 0.5f && lastHockeyT < at && t >= at) sfx.play(which);
+    }
+
     /** Which time round the scenes are on; every third hockey game ends in a fight. */
     private int round;
 
@@ -704,6 +717,17 @@ final class SeasonDeco {
             }
             fumeB = ramp(shot, WIND + SHOT_FLIGHT, WIND + SHOT_FLIGHT + 0.5f);
         }
+        if (fight) {
+            cue(SHOT_AT + WIND, t, WiiSounds.SLAPSHOT);
+            cue(SHOT_AT + WIND + SHOT_FLIGHT, t, WiiSounds.GOAL);
+            // A slap each time a fist lands: sin(8t) peaks for Red, and half a cycle later for Blue.
+            float from = STICKS_DOWN + 0.6f, to = STICKS_UP - 0.6f;
+            double period = Math.PI / 4, first = Math.PI / 16;
+            for (double hit = first; hit < to; hit += period / 2) {
+                if (hit > from) cue((float) hit, t, WiiSounds.PUNCH);
+            }
+        }
+        lastHockeyT = t;
         float f = 0f, punchA = 0f, punchB = 0f;
         boolean sticks = true;
         if (fight && t > FIGHT_FROM && t < FIGHT_TO) {

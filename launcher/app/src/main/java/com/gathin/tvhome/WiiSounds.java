@@ -15,11 +15,15 @@ final class WiiSounds {
     static final int BACK = 3;
     static final int MENU = 4;
     static final int START = 5;
+    /** Winter's hockey scene, quieter than the interface: a punch, a slapshot, the goal horn. */
+    static final int PUNCH = 6;
+    static final int SLAPSHOT = 7;
+    static final int GOAL = 8;
 
-    private static final float VOLUME = 0.6f;
+    private static final float VOLUME = 0.6f, SCENE_VOLUME = 0.3f;
 
     private final SoundPool pool;
-    private final int[] ids = new int[6];
+    private final int[] ids = new int[9];
     private boolean enabled;
 
     WiiSounds(Context context, boolean enabled) {
@@ -36,10 +40,14 @@ final class WiiSounds {
         ids[BACK] = pool.load(context, R.raw.wii_back, 1);
         ids[MENU] = pool.load(context, R.raw.wii_menu, 1);
         ids[START] = pool.load(context, R.raw.wii_start, 1);
+        ids[PUNCH] = pool.load(context, R.raw.fx_punch, 1);
+        ids[SLAPSHOT] = pool.load(context, R.raw.fx_slapshot, 1);
+        ids[GOAL] = pool.load(context, R.raw.fx_goal, 1);
     }
 
     void play(int which) {
-        if (enabled && ids[which] != 0) pool.play(ids[which], VOLUME, VOLUME, 1, 0, 1f);
+        float v = which >= PUNCH ? SCENE_VOLUME : VOLUME;
+        if (enabled && ids[which] != 0) pool.play(ids[which], v, v, 1, 0, 1f);
     }
 
     void setEnabled(boolean on) {

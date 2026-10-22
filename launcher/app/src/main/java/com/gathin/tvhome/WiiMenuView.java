@@ -557,6 +557,7 @@ public class WiiMenuView extends View {
 
     void setSounds(WiiSounds sounds) {
         this.sounds = sounds;
+        season.sfx = this::sound;
     }
 
     private void sound(int which) {
