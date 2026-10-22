@@ -10,8 +10,10 @@ import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
 import android.content.pm.ResolveInfo;
 import android.graphics.Bitmap;
+import android.graphics.BitmapFactory;
 import android.graphics.Canvas;
 import android.graphics.Typeface;
+import android.graphics.drawable.BitmapDrawable;
 import android.graphics.drawable.Drawable;
 import android.media.tv.TvContract;
 import android.media.tv.TvInputInfo;
@@ -42,6 +44,8 @@ public class WiiMenuActivity extends Activity implements WiiMenuView.Listener {
     private static final String PREFS = "wii_menu";
     private static final String KEY_ORDER = "order";
     private static final String KEY_HIDDEN = "hidden";
+    /** Prefix of the preference that holds a channel's custom picture (a file name in the tiles folder). */
+    private static final String KEY_PICTURE_PREFIX = "picture.";
     private static final String KEY_RECENT = "recent";
     private static final String KEY_SOUNDS = "sounds";
     private static final String KEY_MUSIC = "music";
@@ -291,7 +295,7 @@ public class WiiMenuActivity extends Activity implements WiiMenuView.Listener {
         Set<String> userHidden = userHidden();
         List<WiiMenuView.Channel> channels = new ArrayList<>();
         for (WiiMenuView.Channel ch : allChannels.values()) {
-            if (!userHidden.contains(ch.key)) channels.add(ch);
+            if (!userHidden.contains(ch.key)) channels.add(withCustomPicture(ch));
         }
         // The Forecast Channel comes first until it is moved, like the console's own channels.
         List<String> dock = new ArrayList<>();
@@ -771,12 +775,79 @@ public class WiiMenuActivity extends Activity implements WiiMenuView.Listener {
             Toast.makeText(this, getString(R.string.wii_hidden_toast, channel.label,
                     getString(R.string.set_title, getString(R.string.wii_settings_label))), Toast.LENGTH_LONG).show();
         }));
+        items.add(new WiiMenuView.MenuItem(getString(R.string.wii_change_picture), () -> pickPicture(channel)));
         if (!channel.key.startsWith("wiios.")) {
             items.add(new WiiMenuView.MenuItem(getString(R.string.library_app_info), () ->
                     open(new Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS, Uri.parse("package:" + channel.key))
                             .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))));
         }
         menu.showMenu(channel.label, items);
+    }
+
+    /** Your own tile pictures: any .png, .jpg or .webp in this folder (put there over adb or a file manager). */
+    private File tilesDir() {
+        File dir = getExternalFilesDir("tiles");
+        if (dir != null) dir.mkdirs();
+        return dir;
+    }
+
+    private static String pictureKey(String channelKey) {
+        return KEY_PICTURE_PREFIX + channelKey;
+    }
+
+    /** The channel with the picture you chose for it, if that file is still in the tiles folder. */
+    private WiiMenuView.Channel withCustomPicture(WiiMenuView.Channel ch) {
+        String name = prefs.getString(pictureKey(ch.key), null);
+        File dir = name == null ? null : tilesDir();
+        if (dir == null) return ch;
+        Drawable art = loadPicture(new File(dir, name));
+        return art == null ? ch : new WiiMenuView.Channel(ch.key, ch.label, art, null, ch.intent);
+    }
+
+    /** Decodes a picture at no more than about 640 px wide, 16 bits per pixel: tiles are small, RAM is not. */
+    private Drawable loadPicture(File f) {
+        if (!f.isFile()) return null;
+        BitmapFactory.Options o = new BitmapFactory.Options();
+        o.inJustDecodeBounds = true;
+        BitmapFactory.decodeFile(f.getPath(), o);
+        if (o.outWidth <= 0) return null;
+        int sample = 1;
+        while (o.outWidth / (sample * 2) >= 640) sample *= 2;
+        o = new BitmapFactory.Options();
+        o.inSampleSize = sample;
+        o.inPreferredConfig = Bitmap.Config.RGB_565;
+        Bitmap b = BitmapFactory.decodeFile(f.getPath(), o);
+        return b == null ? null : new BitmapDrawable(getResources(), b);
+    }
+
+    /** Channel options → Change picture: every picture in the tiles folder, plus the original. */
+    private void pickPicture(WiiMenuView.Channel channel) {
+        File dir = tilesDir();
+        File[] files = dir == null ? null : dir.listFiles((d, n) -> {
+            String l = n.toLowerCase(Locale.ROOT);
+            return l.endsWith(".png") || l.endsWith(".jpg") || l.endsWith(".jpeg") || l.endsWith(".webp");
+        });
+        List<WiiMenuView.MenuItem> items = new ArrayList<>();
+        items.add(new WiiMenuView.MenuItem(getString(R.string.wii_original_picture), () -> {
+            prefs.edit().remove(pictureKey(channel.key)).apply();
+            reloadApps();
+        }));
+        if (files != null) {
+            Arrays.sort(files, (a, b) -> a.getName().compareToIgnoreCase(b.getName()));
+            for (File f : files) {
+                String name = f.getName();
+                String title = name.substring(0, name.lastIndexOf('.')).replace('_', ' ').replace('-', ' ');
+                items.add(new WiiMenuView.MenuItem(title, () -> {
+                    prefs.edit().putString(pictureKey(channel.key), name).apply();
+                    reloadApps();
+                }));
+            }
+        }
+        if (items.size() == 1) {
+            Toast.makeText(this, getString(R.string.wii_no_pictures,
+                    dir == null ? "Android/data/" + getPackageName() + "/files/tiles" : dir.getPath()), Toast.LENGTH_LONG).show();
+        }
+        menu.showMenu(getString(R.string.wii_change_picture), items);
     }
 
     @Override

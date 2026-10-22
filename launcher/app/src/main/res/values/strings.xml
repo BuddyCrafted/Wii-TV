@@ -119,6 +119,9 @@
     <string name="wii_order_reset">Channels are back in their original order</string>
     <string name="wii_move">Move</string>
     <string name="wii_hide">Hide channel</string>
+    <string name="wii_change_picture">Change picture</string>
+    <string name="wii_original_picture">Original picture</string>
+    <string name="wii_no_pictures">No pictures yet. Put .png or .jpg files in %1$s, then try again.</string>
     <string name="wii_hidden_toast">%1$s hidden. Bring it back from the %2$s menu.</string>
     <string name="wii_move_hint">Use the arrows to move it, then press OK</string>
     <string name="wii_message_board">Message Board</string>
