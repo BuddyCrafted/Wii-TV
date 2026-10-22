@@ -113,8 +113,30 @@ final class Theme {
         return CLASSIC;
     }
 
+    /** The theme setting that follows the calendar instead of naming one theme. */
+    static final String AUTO = "auto";
+
+    /**
+     * Automatic: Winter from December to February, the Island village through spring, Beach in summer,
+     * Fall in September and November, and Halloween all October.
+     */
+    static Theme forMonth(int month) {   // Calendar.JANUARY == 0
+        switch (month) {
+            case 11: case 0: case 1: return WINTER;
+            case 2: case 3: case 4: return ISLAND;
+            case 5: case 6: case 7: return BEACH;
+            case 9: return HALLOWEEN;
+            default: return FALL;
+        }
+    }
+
+    static boolean automatic(SharedPreferences prefs) {
+        return AUTO.equals(prefs.getString(KEY_THEME, CLASSIC.id));
+    }
+
     static Theme load(SharedPreferences prefs) {
-        Theme t = byId(prefs.getString(KEY_THEME, CLASSIC.id));
+        Theme t = automatic(prefs) ? forMonth(java.util.Calendar.getInstance().get(java.util.Calendar.MONTH))
+                : byId(prefs.getString(KEY_THEME, CLASSIC.id));
         int accent = prefs.getInt(KEY_ACCENT, 0);
         return accent != 0 ? t.withAccent(accent) : t;
     }

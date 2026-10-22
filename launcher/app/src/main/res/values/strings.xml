@@ -128,6 +128,8 @@
     <string name="theme_halloween">Halloween</string>
     <string name="theme_beach">Beach</string>
     <string name="theme_island">Island village</string>
+    <string name="theme_auto">Automatic (changes with the seasons)</string>
+    <string name="theme_auto_now">Automatic: %1$s</string>
     <string name="accent_theme">Theme\'s own</string>
     <string name="accent_blue">Blue</string>
     <string name="accent_green">Green</string>

@@ -175,6 +175,8 @@ public class WiiMenuActivity extends Activity implements WiiMenuView.Listener {
             menu.postDelayed(saveCover, 2500);
         }
         if (appsDirty) reloadApps();
+        // Automatic theme: a new month may bring a new look.
+        if (!Theme.load(prefs).id.equals(musicTheme.id)) applyTheme();
         menu.start();
         music.resume();
         UpdateReceiver.ensureFireTvHome(this);
@@ -413,7 +415,8 @@ public class WiiMenuActivity extends Activity implements WiiMenuView.Listener {
     private List<WiiMenuView.MenuItem> mainSettings() {
         List<WiiMenuView.MenuItem> items = new ArrayList<>();
         Theme current = Theme.load(prefs);
-        items.add(new WiiMenuView.MenuItem(getString(R.string.set_theme), themeName(Theme.byId(current.id)), () ->
+        items.add(new WiiMenuView.MenuItem(getString(R.string.set_theme), Theme.automatic(prefs)
+                ? getString(R.string.theme_auto_now, themeName(Theme.byId(current.id))) : themeName(Theme.byId(current.id)), () ->
                 menu.pushSettings(getString(R.string.set_theme), this::themeSettings)));
         items.add(new WiiMenuView.MenuItem(getString(R.string.set_accent), accentName(prefs.getInt(Theme.KEY_ACCENT, 0)), () ->
                 menu.pushSettings(getString(R.string.set_accent), this::accentSettings)));
@@ -659,7 +662,11 @@ public class WiiMenuActivity extends Activity implements WiiMenuView.Listener {
     /** Settings > Theme: picking one repaints the menu behind the sheet straight away. */
     private List<WiiMenuView.MenuItem> themeSettings() {
         List<WiiMenuView.MenuItem> items = new ArrayList<>();
-        String chosen = Theme.byId(prefs.getString(Theme.KEY_THEME, Theme.CLASSIC.id)).id;
+        String chosen = Theme.automatic(prefs) ? Theme.AUTO : Theme.byId(prefs.getString(Theme.KEY_THEME, Theme.CLASSIC.id)).id;
+        items.add(new WiiMenuView.MenuItem(getString(R.string.theme_auto), Theme.AUTO.equals(chosen) ? onOff(true) : null, () -> {
+            prefs.edit().putString(Theme.KEY_THEME, Theme.AUTO).apply();
+            applyTheme();
+        }));
         for (int i = 0; i < Theme.ALL.length; i++) {
             Theme t = Theme.ALL[i];
             items.add(new WiiMenuView.MenuItem(getString(THEME_NAMES[i]), t.id.equals(chosen) ? onOff(true) : null, () -> {
@@ -690,7 +697,7 @@ public class WiiMenuActivity extends Activity implements WiiMenuView.Listener {
         boolean changed = false;
         String id = intent.getStringExtra(EXTRA_THEME);
         if (id != null) {
-            prefs.edit().putString(Theme.KEY_THEME, Theme.byId(id).id).apply();
+            prefs.edit().putString(Theme.KEY_THEME, Theme.AUTO.equals(id) ? Theme.AUTO : Theme.byId(id).id).apply();
             changed = true;
         }
         if (intent.hasExtra(EXTRA_ACCENT)) {
