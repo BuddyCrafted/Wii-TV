@@ -52,9 +52,19 @@ public class FireTvHomeService extends AccessibilityService {
     public void onAccessibilityEvent(AccessibilityEvent event) {
         if (event.getEventType() == AccessibilityEvent.TYPE_WINDOW_STATE_CHANGED
                 && event.getPackageName() != null
-                && AMAZON_LAUNCHER.contentEquals(event.getPackageName())) {
+                && AMAZON_LAUNCHER.contentEquals(event.getPackageName())
+                && !isAmazonSettings(event.getClassName())) {
             openMenu();
         }
+    }
+
+    /**
+     * Fire OS answers android.settings.SETTINGS with the Amazon launcher's own SettingsActivity
+     * (com.amazon.tv.launcher/.ui.SettingsActivity on Fire OS 7.7). Bouncing that window back to the
+     * menu made Settings, Accounts and Sign-in, and hold-Home all look like they did nothing.
+     */
+    static boolean isAmazonSettings(CharSequence className) {
+        return className != null && className.toString().contains("Settings");
     }
 
     private void openMenu() {
