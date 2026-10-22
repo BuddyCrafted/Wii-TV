@@ -135,6 +135,8 @@ public class WiiMenuActivity extends Activity implements WiiMenuView.Listener {
     protected void onResume() {
         super.onResume();
         resumed = true;
+        // Back on the menu, so any Settings visit is over: the Amazon home gets covered again.
+        FireTvHomeService.coverAmazonHome();
         if (appsDirty) reloadApps();
         menu.start();
         music.resume();

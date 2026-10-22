@@ -33,13 +33,18 @@ public class FireTvHomeService extends AccessibilityService {
     /**
      * Set when wiiOS sends you to Fire TV Settings. Fire OS 7.7 answers android.settings.SETTINGS by
      * showing the Amazon home (HomeActivity_vNext) on its Settings row, so bouncing every Amazon home
-     * window back to the menu made Settings flash white and close. Cleared by the next Home press.
+     * window back to the menu made Settings flash white and close. Cleared by the next Home press or when the menu is back on screen.
      */
     private static volatile boolean amazonScreenAllowed;
 
     /** Leave the Amazon screens on top until the next Home press (call before opening Fire TV Settings). */
     static void allowAmazonUntilHome() {
         amazonScreenAllowed = true;
+    }
+
+    /** The menu is showing again (WiiMenuActivity.onResume): cover the Amazon home again from now on. */
+    static void coverAmazonHome() {
+        amazonScreenAllowed = false;
     }
 
     @Override
@@ -85,7 +90,9 @@ public class FireTvHomeService extends AccessibilityService {
         if (now - lastLaunch < DEBOUNCE_MS) return;
         lastLaunch = now;
         startActivity(new Intent(this, WiiMenuActivity.class)
-                .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_REORDER_TO_FRONT));
+                // No transition: every millisecond of animation here is time the Amazon home stays on screen.
+                .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_REORDER_TO_FRONT
+                        | Intent.FLAG_ACTIVITY_NO_ANIMATION));
     }
 
     private void openSettings() {
