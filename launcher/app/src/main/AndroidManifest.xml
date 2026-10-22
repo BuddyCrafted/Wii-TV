@@ -71,12 +71,9 @@
             android:clearTaskOnLaunch="true"
             android:configChanges="orientation|screenSize|keyboard|keyboardHidden|uiMode"
             android:screenOrientation="landscape">
-            <!-- Not a HOME candidate: WiiMenuActivity is the only one, so Home and power-on land on it even
-                 when Android drops the saved home preference. Still in the TV's own app list. -->
-            <intent-filter>
-                <action android:name="android.intent.action.MAIN" />
-                <category android:name="android.intent.category.LEANBACK_LAUNCHER" />
-            </intent-filter>
+            <!-- Not a HOME candidate and not in the TV's app list: WiiMenuActivity is both, so Home, power-on and
+                 the wiiOS icon all open the channel menu (the icon used to open this older grid, titled lainOS).
+                 Still reached from Quick Settings for the launcher settings. -->
         </activity>
 
         <!-- The home screen, in the style of the old console channel menu. -->
@@ -93,6 +90,10 @@
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.HOME" />
                 <category android:name="android.intent.category.DEFAULT" />
+            </intent-filter>
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LEANBACK_LAUNCHER" />
             </intent-filter>
         </activity>
 
