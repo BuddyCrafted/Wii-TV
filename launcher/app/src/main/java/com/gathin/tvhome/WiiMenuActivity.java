@@ -64,8 +64,6 @@ public class WiiMenuActivity extends Activity implements WiiMenuView.Listener {
     private WiiMenuView menu;
     private WiiSounds sounds;
     private WiiMusic music;
-    /** The theme the current music was picked for. */
-    private Theme musicTheme;
     private SharedPreferences prefs;
     /** Every channel found on the last reload, hidden ones included, by package. */
     private final Map<String, WiiMenuView.Channel> allChannels = new LinkedHashMap<>();
@@ -118,13 +116,12 @@ public class WiiMenuActivity extends Activity implements WiiMenuView.Listener {
                 getString(R.string.wii_intro_continue));
         prefs = getSharedPreferences(PREFS, MODE_PRIVATE);
         sounds = new WiiSounds(this, prefs.getBoolean(KEY_SOUNDS, getResources().getBoolean(R.bool.wii_sounds)));
-        themeFromIntent(getIntent());
-        musicTheme = Theme.load(prefs);
-        music = WiiMusic.forTheme(this, prefs.getBoolean(KEY_MUSIC, getResources().getBoolean(R.bool.wii_music)), musicTheme);
+        music = new WiiMusic(this, prefs.getBoolean(KEY_MUSIC, getResources().getBoolean(R.bool.wii_music)));
         menu.setSounds(sounds);
         menu.setSettingsLabel(getString(R.string.wii_settings_label));
         menu.setBackLabel(getString(R.string.set_back));
         menu.setLowMemory(DeviceProfile.lowMemory(this));
+        themeFromIntent(getIntent());
         menu.setTheme(Theme.load(prefs));
         setContentView(menu);
         menu.requestFocus();
@@ -700,17 +697,7 @@ public class WiiMenuActivity extends Activity implements WiiMenuView.Listener {
     }
 
     private void applyTheme() {
-        Theme theme = Theme.load(prefs);
-        menu.setTheme(theme);
-        if ((theme.deco == Theme.Deco.SNOW) != (musicTheme.deco == Theme.Deco.SNOW)) {
-            // Winter has its own tune: swap it in, carrying on playing if the menu is in front.
-            boolean wanted = music.isWanted();
-            boolean on = music.isEnabled();
-            music.release();
-            music = WiiMusic.forTheme(this, on, theme);
-            if (wanted) music.resume();
-        }
-        musicTheme = theme;
+        menu.setTheme(Theme.load(prefs));
         menu.refreshSettings();
         // The Home redirect's picture of the menu should show the new look too.
         if (DeviceProfile.fireTv()) {

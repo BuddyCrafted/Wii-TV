@@ -10,7 +10,7 @@ import android.media.AudioTrack;
  * thread, the first time music is wanted; a feeder thread streams it round and round.
  *
  * Your own music file plays instead when there is one in the app's music folder on the device
- * (Android/data/com.gathin.tvhome/files/music/), named for the screen: menu, winter, shop or games, as .mp3, .ogg,
+ * (Android/data/com.gathin.tvhome/files/music/), named for the screen: menu, shop or games, as .mp3, .ogg,
  * .m4a, .flac or .wav. The installer copies them there with MUSIC_DIR; nothing is bundled in the APK.
  */
 final class WiiMusic {
@@ -55,21 +55,6 @@ final class WiiMusic {
             if (f.isFile() && f.length() > 0) return f;
         }
         return null;
-    }
-
-    /** The menu's music for a theme: Winter has its own quieter piano tune. */
-    static WiiMusic forTheme(android.content.Context context, boolean enabled, Theme theme) {
-        if (theme.deco == Theme.Deco.SNOW) {
-            return new WiiMusic(context, enabled, MenuMusic.WINTER, "winter_music_v1.pcm", "winter");
-        }
-        return new WiiMusic(context, enabled);
-    }
-
-    /** Whether the menu is in front and wants music (for handing over to another tune). */
-    boolean isWanted() {
-        synchronized (lock) {
-            return wanted;
-        }
     }
 
     /** The menu came to the front. */
@@ -142,7 +127,7 @@ final class WiiMusic {
                         .build());
                 player.setDataSource(custom.getPath());
                 player.setLooping(true);
-                player.setVolume(VOLUME * song.volume, VOLUME * song.volume);
+                player.setVolume(VOLUME, VOLUME);
                 player.prepare();
             } catch (java.io.IOException | RuntimeException e) {
                 if (player != null) player.release();
@@ -198,7 +183,7 @@ final class WiiMusic {
                     .setBufferSizeInBytes(Math.max(min, CHUNK * 4))
                     .setTransferMode(AudioTrack.MODE_STREAM)
                     .build();
-            t.setVolume(VOLUME * song.volume);
+            t.setVolume(VOLUME);
         } catch (RuntimeException e) {
             return; // no audio output: the menu simply stays quiet
         }

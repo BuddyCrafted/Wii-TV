@@ -204,7 +204,7 @@ The sign-in form itself is always Google's (or Amazon's). That's on purpose: a h
 
 ## Your own music
 
-WiiOS plays its own original tunes on the menu, in the Shop and in Games, and the Winter theme's menu plays a soft piano "Jingle Bells" (a public-domain carol) a little quieter. To play your own music instead, put files named **menu**, **winter**, **shop** and/or **games** (`.mp3`, `.ogg`, `.m4a`, `.flac` or `.wav`) in a folder and install with `MUSIC_DIR` (or `-MusicDir` on Windows):
+WiiOS plays its own original tunes on the menu, in the Shop and in Games. To play your own music instead, put files named **menu**, **shop** and/or **games** (`.mp3`, `.ogg`, `.m4a`, `.flac` or `.wav`) in a folder and install with `MUSIC_DIR` (or `-MusicDir` on Windows):
 
 ```sh
 MUSIC_DIR=~/wiios-music TV_HOST=192.168.1.50 launcher/build-and-install.sh
