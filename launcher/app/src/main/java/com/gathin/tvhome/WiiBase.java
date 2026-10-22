@@ -113,7 +113,20 @@ final class WiiBase {
     }
 
     static int[] backdrop(int w, int h) {
+        return backdrop(w, h, Theme.CLASSIC);
+    }
+
+    /**
+     * The backdrop in a theme's colours. Classic keeps the measured greys; other themes map the stripe
+     * brightness onto their dark and light colours (blended top to bottom) and the panel's greys onto theirs,
+     * so the stripes, the panel's shading and the button tracks keep their shape in any colour.
+     */
+    static int[] backdrop(int w, int h, Theme theme) {
         float s = w / 1920f;
+        boolean recolour = !theme.classic;
+        int lineR = theme.untouched() ? LINE_R : (theme.accent >> 16) & 255;
+        int lineG = theme.untouched() ? LINE_G : (theme.accent >> 8) & 255;
+        int lineB = theme.untouched() ? LINE_B : theme.accent & 255;
         int[] out = new int[w * h];
         float[] colLine = new float[w], colCos = new float[w], colBase = new float[w], colAmp = new float[w];
         float[] colXm = new float[w];
@@ -148,19 +161,34 @@ final class WiiBase {
                 if (dp < 0f) {
                     float hd = dp - HIGHLIGHT_D;
                     float v = colBase[x] + colAmp[x] * k + HIGHLIGHT_AMP * (float) Math.exp(-hd * hd / (2f * HIGHLIGHT_SIGMA * HIGHLIGHT_SIGMA));
-                    r = g = b = v;
+                    if (recolour) {
+                        float fy = clamp01(ry / LINE_TOP);
+                        int c = Theme.mix(Theme.mix(theme.bgTopDark, theme.bgBottomDark, fy),
+                                Theme.mix(theme.bgTopLight, theme.bgBottomLight, fy), clamp01((v - 218f) / 36f));
+                        r = (c >> 16) & 255;
+                        g = (c >> 8) & 255;
+                        b = c & 255;
+                    } else {
+                        r = g = b = v;
+                    }
                 } else {
                     int c = panel(colXm[x], dY);
                     float dl = socketDelta(colXm[x], ry, colRight[x]);
                     r = ((c >> 16) & 255) + dl;
                     g = ((c >> 8) & 255) + dl;
                     b = (c & 255) + dl;
+                    if (recolour) {
+                        int m = Theme.mix(theme.panelDark, theme.panelLight, clamp01(((r + g + b) / 3f - 150f) / 70f));
+                        r = (m >> 16) & 255;
+                        g = (m >> 8) & 255;
+                        b = m & 255;
+                    }
                 }
                 float cov = clamp01((LINE_HALF - Math.abs(dp)) * s + 0.5f);
                 if (cov > 0f) {
-                    r += (LINE_R - r) * cov;
-                    g += (LINE_G - g) * cov;
-                    b += (LINE_B - b) * cov;
+                    r += (lineR - r) * cov;
+                    g += (lineG - g) * cov;
+                    b += (lineB - b) * cov;
                 }
                 out[row + x] = 0xFF000000 | (clamp255(r) << 16) | (clamp255(g) << 8) | clamp255(b);
             }
@@ -173,6 +201,13 @@ final class WiiBase {
      * outside the ring. Lit from the upper left with a soft gloss, as both buttons are.
      */
     static int[] button(int size, float s) {
+        return button(size, s, Theme.CLASSIC);
+    }
+
+    static int[] button(int size, float s, Theme theme) {
+        int ringR = theme.untouched() ? 0x4D : (theme.accent >> 16) & 255;
+        int ringG = theme.untouched() ? 0xBD : (theme.accent >> 8) & 255;
+        int ringB = theme.untouched() ? 0xE3 : theme.accent & 255;
         int[] out = new int[size * size];
         float c = size / 2f;
         for (int y = 0; y < size; y++) {
@@ -188,10 +223,16 @@ final class WiiBase {
                         + k[6] * nx * nx * nx + k[7] * ny * ny * ny + k[8] * nx * nx * ny + k[9] * nx * ny * ny
                         + k[10] * r2 * r2 + k[11] * r2 * r2 * r2;
                 float cr = v, cg = v, cb = v;
+                if (!theme.classic) {
+                    int m = Theme.mix(theme.buttonDark, theme.buttonLight, clamp01((v - 175f) / 75f));
+                    cr = (m >> 16) & 255;
+                    cg = (m >> 8) & 255;
+                    cb = m & 255;
+                }
                 float ring = clamp01((BTN_RING_HALF - Math.abs(r - BTN_RING)) * s + 0.5f);
-                cr += (0x4D - cr) * ring;
-                cg += (0xBD - cg) * ring;
-                cb += (0xE3 - cb) * ring;
+                cr += (ringR - cr) * ring;
+                cg += (ringG - cg) * ring;
+                cb += (ringB - cb) * ring;
                 int a = Math.round(outer * 255f);
                 out[y * size + x] = (a << 24) | (clamp255(cr) << 16) | (clamp255(cg) << 8) | clamp255(cb);
             }
@@ -201,6 +242,10 @@ final class WiiBase {
 
     /** The frosted grey an empty channel slot shows: darker at the top, faint horizontal grain. */
     static int[] emptySlot(int tw, int th, float s) {
+        return emptySlot(tw, th, s, Theme.CLASSIC);
+    }
+
+    static int[] emptySlot(int tw, int th, float s, Theme theme) {
         int[] out = new int[tw * th];
         for (int y = 0; y < th; y++) {
             float t = y / (float) Math.max(1, th - 1);
@@ -211,7 +256,8 @@ final class WiiBase {
                 int rx = (int) (x / s);
                 float n = ((hash(rx, ry) & 255) / 255f - 0.5f) * 5f;
                 int v = clamp255(base + streak + n);
-                out[y * tw + x] = 0xFF000000 | (v << 16) | (v << 8) | v;
+                out[y * tw + x] = theme.classic ? 0xFF000000 | (v << 16) | (v << 8) | v
+                        : Theme.argb(Theme.mix(theme.slotDark, theme.slotLight, clamp01((v - 200f) / 40f)));
             }
         }
         return out;

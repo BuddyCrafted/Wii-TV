@@ -18,6 +18,8 @@ final class WiiHand {
     private final Paint stroke = new Paint(Paint.ANTI_ALIAS_FLAG);
     private final Paint text = new Paint(Paint.ANTI_ALIAS_FLAG);
     private float builtFor = -1f;
+    /** The palm's shading and the player number follow the theme's accent; the original pair by default. */
+    private int shade = 0xFFA9D8F6, number = 0xFF1C8CE3;
     private Path hand, lines;
 
     WiiHand(Typeface face) {
@@ -26,6 +28,16 @@ final class WiiHand {
         stroke.setStrokeCap(Paint.Cap.ROUND);
         text.setTypeface(face);
         text.setTextAlign(Paint.Align.CENTER);
+    }
+
+    void setAccent(Theme theme) {
+        if (theme.untouched()) {
+            shade = 0xFFA9D8F6;
+            number = 0xFF1C8CE3;
+        } else {
+            shade = Theme.argb(Theme.mix(0xFFFFFF, theme.accent, 0.42f));
+            number = Theme.argb(Theme.mix(theme.accent, 0x000000, 0.18f));
+        }
     }
 
     private void build(float u) {
@@ -66,7 +78,7 @@ final class WiiHand {
         c.translate(-2.5f * u, -3.5f * u);
         // White hand, turning light blue over the lower palm.
         fill.setColor(0xFFFFFFFF);
-        fill.setShader(new LinearGradient(0f, 30f * u, 0f, 55f * u, 0xFFFFFFFF, 0xFFA9D8F6, Shader.TileMode.CLAMP));
+        fill.setShader(new LinearGradient(0f, 30f * u, 0f, 55f * u, 0xFFFFFFFF, shade, Shader.TileMode.CLAMP));
         c.drawPath(hand, fill);
         fill.setShader(null);
         stroke.setColor(0xFF161616);
@@ -76,7 +88,7 @@ final class WiiHand {
         c.drawPath(lines, stroke);
         // The player number on the palm.
         text.setTextSize(19f * u);
-        text.setColor(0xFF1C8CE3);
+        text.setColor(number);
         c.drawText("1", 9f * u, 50.5f * u, text);
         c.restoreToCount(save);
     }
