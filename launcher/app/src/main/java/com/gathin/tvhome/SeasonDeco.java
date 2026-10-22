@@ -661,13 +661,15 @@ final class SeasonDeco {
     }
 
     // The fight: they square up, drop their sticks, trade punches, then pick the sticks up and play on.
-    private static final float FIGHT_FROM = 14f, STICKS_DOWN = 15.5f, STICKS_UP = 25.5f, FIGHT_TO = 27f;
+    // It starts with Red's slapshot: wind-up, shot, the puck in Blue's net, Red celebrating and Blue fuming.
+    private static final float SHOT_AT = 9.6f, WIND = 0.6f, SHOT_FLIGHT = 0.3f, GOAL_FOR = 2.4f;
+    private static final float FIGHT_FROM = 13.2f, STICKS_DOWN = 14.7f, STICKS_UP = 24.5f, FIGHT_TO = 26f;
 
     /** Two hockey players on the right pond passing the puck back and forth; `fight` is the easter egg. */
     void hockey(Canvas c, float s, float t, boolean fight) {
         float ax = playerX(t, false), ay = playerY(t, false), bx = playerX(t, true), by = playerY(t, true);
-        // The puck sits still while they fight, then play carries on from where it stopped.
-        float pt = !fight || t < FIGHT_FROM ? t : t > FIGHT_TO ? t - (FIGHT_TO - FIGHT_FROM) : FIGHT_FROM;
+        // In a fight round, play stops at the slapshot and carries on from Red's stick after the fight.
+        float pt = !fight || t < SHOT_AT ? t : t > FIGHT_TO ? t - (FIGHT_TO - SHOT_AT) : SHOT_AT;
         float pax = playerX(pt, false), pay = playerY(pt, false), pbx = playerX(pt, true), pby = playerY(pt, true);
         // The puck travels A -> B -> A, slowing as it reaches each stick.
         float ph = (pt % 3.2f) / 1.6f;
@@ -675,6 +677,33 @@ final class SeasonDeco {
         u = u * u * (3f - 2f * u);
         float fromX = pax + 16f, toX = pbx - 16f;
         float px = fromX + (toX - fromX) * u, py = pay + (pby - pay) * u + 2f;
+        float windA = 0f, fumeB = 0f;
+        boolean goal = false;
+        if (fight && t >= SHOT_AT && t <= FIGHT_TO) {
+            float netX = POND_R_X + POND_R_RX - 30f, netY = POND_R_Y + 3f;
+            float shot = t - SHOT_AT;
+            if (shot < WIND) {
+                windA = shot / WIND;                         // stick drawn back, puck on the blade
+                px = ax + 16f;
+                py = ay + 2f;
+            } else if (shot < WIND + SHOT_FLIGHT) {
+                float k = (shot - WIND) / SHOT_FLIGHT;      // the shot, past Blue into the net
+                windA = 1f - k * 1.6f;
+                px = ax + 16f + (netX - ax - 16f) * k;
+                py = ay + 2f + (netY - ay - 2f) * k;
+            } else if (t < STICKS_UP) {
+                px = netX;
+                py = netY;
+                goal = shot < WIND + SHOT_FLIGHT + GOAL_FOR;
+                windA = goal ? -0.6f : 0f;                   // stick up in the air to celebrate
+            } else {
+                // After the fight Blue fishes the puck out and passes it back to Red.
+                float k = (t - STICKS_UP) / (FIGHT_TO - STICKS_UP);
+                px = netX + (ax + 16f - netX) * k;
+                py = netY + (ay + 2f - netY) * k;
+            }
+            fumeB = ramp(shot, WIND + SHOT_FLIGHT, WIND + SHOT_FLIGHT + 0.5f);
+        }
         float f = 0f, punchA = 0f, punchB = 0f;
         boolean sticks = true;
         if (fight && t > FIGHT_FROM && t < FIGHT_TO) {
@@ -698,10 +727,27 @@ final class SeasonDeco {
                 }
             }
         }
-        player(c, s, ax, ay, true, 0xFFE53935, t, sticks, punchA, f);
-        player(c, s, bx, by, false, 0xFF1E88E5, t + 1f, sticks, punchB, f);
+        player(c, s, ax, ay, true, 0xFFE53935, t, sticks, punchA, f, windA);
+        player(c, s, bx, by, false, 0xFF1E88E5, t + 1f, sticks, punchB, Math.max(f, fumeB), 0f);
         p.setColor(0xFF212121);
         c.drawOval((px - 4.5f) * s, (py - 2f) * s, (px + 4.5f) * s, (py + 2f) * s, p);
+        if (goal) {
+            // GOAL! over the net, popping in.
+            float pop = Math.min(1f, (t - SHOT_AT - WIND - SHOT_FLIGHT) / 0.25f);
+            p.setTextAlign(Paint.Align.CENTER);
+            p.setFakeBoldText(true);
+            p.setTextSize(26f * s * (0.6f + 0.4f * pop));
+            float gx = (POND_R_X + POND_R_RX - 40f) * s, gy = (POND_R_Y - 58f) * s;
+            p.setStyle(Paint.Style.STROKE);
+            p.setStrokeWidth(5f * s);
+            p.setColor(0xFFFFFFFF);
+            c.drawText("GOAL!", gx, gy, p);
+            p.setStyle(Paint.Style.FILL);
+            p.setColor(0xFFE53935);
+            c.drawText("GOAL!", gx, gy, p);
+            p.setFakeBoldText(false);
+            p.setTextAlign(Paint.Align.LEFT);
+        }
         // A little burst where a punch lands.
         float hit = Math.max(punchA, punchB);
         if (hit > 0.85f) {
@@ -744,7 +790,7 @@ final class SeasonDeco {
      * flushes the face red.
      */
     private void player(Canvas c, float s, float x, float y, boolean facingRight, int jersey, float t,
-                        boolean stick, float punch, float anger) {
+                        boolean stick, float punch, float anger, float wind) {
         int save = c.save();
         c.translate(x * s, y * s);
         c.scale((facingRight ? s : -s) * BIG, s * BIG);
@@ -760,11 +806,16 @@ final class SeasonDeco {
         c.drawLine(-2f, -16f, -4f, -1f, p);
         c.drawLine(3f, -16f, 7f, -1f, p);
         if (stick) {
-            // Stick from the hands down to the ice in front.
+            // Stick from the hands down to the ice in front; `wind` swings it back for a slapshot (or, below
+            // zero, up in the air).
+            if (wind != 0f) lean = 0f;
+            int sv = c.save();
+            c.rotate(wind * 120f, 4f + lean, -30f);
             p.setStrokeWidth(2.4f);
             p.setColor(0xFF8D6E63);
             c.drawLine(4f + lean, -30f, 16f, -2f, p);
             c.drawLine(16f, -2f, 22f, -2f, p);
+            c.restoreToCount(sv);
         } else {
             lean = 2f * punch;
         }
