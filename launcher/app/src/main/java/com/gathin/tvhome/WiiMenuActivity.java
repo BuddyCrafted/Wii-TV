@@ -304,6 +304,11 @@ public class WiiMenuActivity extends Activity implements WiiMenuView.Listener {
         menu.setChannels(channels);
     }
 
+    /** SmartTube's stable and beta packages (new and old names), shown as a YouTube channel. */
+    private static final Set<String> SMARTTUBE = new HashSet<>(Arrays.asList(
+            "org.smarttube.stable", "org.smarttube.beta",
+            "com.liskovsoft.smarttubetv", "com.liskovsoft.smarttubetv.beta"));
+
     private void addChannels(PackageManager pm, String category, Set<String> hidden) {
         Intent query = new Intent(Intent.ACTION_MAIN).addCategory(category);
         for (ResolveInfo ri : pm.queryIntentActivities(query, 0)) {
@@ -313,6 +318,12 @@ public class WiiMenuActivity extends Activity implements WiiMenuView.Listener {
             Drawable banner = ri.activityInfo.loadBanner(pm);
             if (banner == null) banner = ri.activityInfo.applicationInfo.loadBanner(pm);
             Drawable icon = banner == null ? ri.loadIcon(pm) : null;
+            if (SMARTTUBE.contains(pkg)) {
+                // SmartTube plays YouTube: name its channel that, so it reads like the app it replaces.
+                label = "YouTube";
+                banner = new NameTile("YouTube", 0xFFFF0000);
+                icon = null;
+            }
             Intent launch = new Intent(Intent.ACTION_MAIN)
                     .addCategory(category)
                     .setClassName(pkg, ri.activityInfo.name)
