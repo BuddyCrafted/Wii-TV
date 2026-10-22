@@ -40,12 +40,21 @@ final class WiiSounds {
         ids[BACK] = pool.load(context, R.raw.wii_back, 1);
         ids[MENU] = pool.load(context, R.raw.wii_menu, 1);
         ids[START] = pool.load(context, R.raw.wii_start, 1);
+        jingle = WiiMusic.customFile(context, "menu_start");
         ids[PUNCH] = pool.load(context, R.raw.fx_punch, 1);
         ids[SLAPSHOT] = pool.load(context, R.raw.fx_slapshot, 1);
         ids[GOAL] = pool.load(context, R.raw.fx_goal, 1);
     }
 
+    /** Your own start jingle (menu_start in the music folder), played instead of the built-in start sound. */
+    private final java.io.File jingle;
+    private android.media.MediaPlayer jinglePlayer;
+
     void play(int which) {
+        if (which == START && jingle != null) {
+            if (enabled) playJingle();
+            return;
+        }
         float v = which >= PUNCH ? SCENE_VOLUME : VOLUME;
         if (enabled && ids[which] != 0) pool.play(ids[which], v, v, 1, 0, 1f);
     }
@@ -58,7 +67,32 @@ final class WiiSounds {
         return enabled;
     }
 
+    private void playJingle() {
+        if (jinglePlayer != null) jinglePlayer.release();
+        android.media.MediaPlayer m = new android.media.MediaPlayer();
+        jinglePlayer = m;
+        try {
+            m.setAudioAttributes(new AudioAttributes.Builder()
+                    .setUsage(AudioAttributes.USAGE_GAME)
+                    .setContentType(AudioAttributes.CONTENT_TYPE_SONIFICATION)
+                    .build());
+            m.setDataSource(jingle.getPath());
+            m.setVolume(VOLUME, VOLUME);
+            m.setOnCompletionListener(done -> {
+                done.release();
+                if (jinglePlayer == done) jinglePlayer = null;
+            });
+            m.prepare();
+            m.start();
+        } catch (java.io.IOException | RuntimeException e) {
+            m.release();
+            jinglePlayer = null;
+        }
+    }
+
     void release() {
+        if (jinglePlayer != null) jinglePlayer.release();
+        jinglePlayer = null;
         pool.release();
     }
 }

@@ -213,7 +213,9 @@ WiiOS plays its own original tunes on the menu, in the Shop and in Games. To pla
 MUSIC_DIR=~/wiios-music TV_HOST=192.168.1.50 launcher/build-and-install.sh
 ```
 
-They're copied to `Android/data/com.gathin.tvhome/files/music/` on the device and loop on their screen, at the same low volume as the built-in tunes. Any screen without a file keeps the built-in tune. The files never go into the APK or this repository, so use music you have the right to play.
+They're copied to `Android/data/com.gathin.tvhome/files/music/` on the device and loop on their screen, at the same low volume as the built-in tunes. The end of your file crossfades into its start, so the loop never jumps. A file named **menu_start** plays as the start jingle when you press OK on the welcome screen, instead of the built-in chime.
+
+Like the console, the music fades in when a screen comes up and fades out when you leave it, starts from the top each time you come back, and waits while another app (Spotify, a video) is still playing sound. Any screen without a file keeps the built-in tune. The files never go into the APK or this repository, so use music you have the right to play.
 
 ## Language
 

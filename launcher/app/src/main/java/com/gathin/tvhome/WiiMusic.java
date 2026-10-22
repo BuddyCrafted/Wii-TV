@@ -2,7 +2,12 @@ package com.gathin.tvhome;
 
 import android.media.AudioAttributes;
 import android.media.AudioFormat;
+import android.media.AudioManager;
 import android.media.AudioTrack;
+import android.media.MediaPlayer;
+import android.os.Handler;
+import android.os.Looper;
+import android.os.SystemClock;
 
 /**
  * Plays MenuMusic's loop while the channel menu is in front, on the media stream so the remote's volume
@@ -11,17 +16,38 @@ import android.media.AudioTrack;
  *
  * Your own music file plays instead when there is one in the app's music folder on the device
  * (Android/data/com.gathin.tvhome/files/music/), named for the screen: menu, winter (the Winter theme's menu;
- * menu is used when there's none), shop or games, as .mp3, .ogg,
- * .m4a, .flac or .wav. The installer copies them there with MUSIC_DIR; nothing is bundled in the APK.
+ * menu is used when there's none), shop or games, as .mp3, .ogg, .m4a, .flac or .wav. It loops without a
+ * jump: the end crossfades into the start. The installer copies them there with MUSIC_DIR; nothing is
+ * bundled in the APK.
+ *
+ * Like the console, the music fades in when the screen comes up and fades out when you leave it, starts
+ * from the top each time you come back, and holds off while another app is playing sound.
  */
 final class WiiMusic {
     private static final float VOLUME = 0.28f;
     private static final int CHUNK = 4096;
+    private static final float FADE_IN_S = 1.2f, FADE_OUT_S = 0.35f;
+    /** Your own file's end blends into its start over this long. */
+    private static final long CROSSFADE_MS = 2500;
+    private static final long OTHER_AUDIO_RECHECK_MS = 2000, STEP_MS = 16, LOOP_WATCH_MS = 100;
+
+    /** How many of WiiOS's own players are sounding, so they aren't mistaken for another app's sound. */
+    private static final java.util.concurrent.atomic.AtomicInteger OWN = new java.util.concurrent.atomic.AtomicInteger();
 
     private final Object lock = new Object();
+    private final Handler main = new Handler(Looper.getMainLooper());
+    private final AudioManager audio;
     private boolean enabled;
     private boolean wanted;
     private boolean released;
+    /** The output is running (or fading out); the feeder writes only while this is set. */
+    private boolean playing;
+    /** Start from the top the next time the output starts. */
+    private boolean restartNext;
+    private volatile boolean rewind;
+    /** Master fade, 0..1, and where it is heading. */
+    private float gain, target;
+    private float fadeSeconds = FADE_IN_S;
     private Thread feeder;
     private AudioTrack track;
 
@@ -31,7 +57,11 @@ final class WiiMusic {
 
     /** The user's own file for this screen, or null to play the built-in tune. */
     private final java.io.File custom;
-    private android.media.MediaPlayer player;
+    /** Two players over the same file, so the end can crossfade into the start. */
+    private MediaPlayer a, b;
+    private float xa = 1f, xb = 0f;
+    private boolean crossing;
+    private long crossStart;
 
     WiiMusic(android.content.Context context, boolean enabled) {
         this(context, enabled, MenuMusic.MENU, "menu_music_v1.pcm", "menu");
@@ -43,6 +73,7 @@ final class WiiMusic {
         java.io.File own = customFile(context, slot);
         if (own == null && "winter".equals(slot)) own = customFile(context, "menu");
         this.custom = own;
+        this.audio = (AudioManager) context.getApplicationContext().getSystemService(android.content.Context.AUDIO_SERVICE);
         // The rendered loop is kept on disk: Android often kills the launcher on a 1 GB stick while another app
         // runs, and reading 1.7 MB back is much cheaper than rendering it again on a 1.7 GHz CPU.
         this.cache = new java.io.File(context.getApplicationContext().getFilesDir(), cacheName);
@@ -107,56 +138,204 @@ final class WiiMusic {
     void release() {
         synchronized (lock) {
             released = true;
-            if (player != null) {
-                player.release();
-                player = null;
-            }
+            if (playing) OWN.decrementAndGet();
+            playing = false;
+            main.removeCallbacksAndMessages(null);
+            if (a != null) a.release();
+            if (b != null) b.release();
+            a = b = null;
             // stop() also wakes a write() that is blocked on a paused track.
             if (track != null) track.stop();
             lock.notifyAll();
         }
     }
 
+    private final Runnable recheck = () -> {
+        synchronized (lock) {
+            update();
+        }
+    };
+
+    /** Called with the lock held, on the main thread. */
     private void update() {
         boolean play = enabled && wanted && !released;
-        if (custom != null) {
-            updateCustom(play);
+        main.removeCallbacks(recheck);
+        if (play && !playing && othersPlaying()) {
+            // Someone else is playing (Spotify, a video in the background): wait until they stop.
+            main.postDelayed(recheck, OTHER_AUDIO_RECHECK_MS);
             return;
         }
-        if (play && feeder == null) {
-            feeder = new Thread(this::feed, "wii-music");
-            feeder.setPriority(Thread.NORM_PRIORITY - 1);
-            feeder.start();
+        if (play) {
+            startOutput();
+            fadeTo(1f, FADE_IN_S);
+        } else if (playing) {
+            fadeTo(0f, FADE_OUT_S);
         }
-        if (track != null) {
-            if (play) track.play();
-            else track.pause();
-        }
-        lock.notifyAll();
     }
 
-    private void updateCustom(boolean play) {
-        if (play && player == null) {
-            try {
-                player = new android.media.MediaPlayer();
-                player.setAudioAttributes(new AudioAttributes.Builder()
-                        .setUsage(AudioAttributes.USAGE_MEDIA)
-                        .setContentType(AudioAttributes.CONTENT_TYPE_MUSIC)
-                        .build());
-                player.setDataSource(custom.getPath());
-                player.setLooping(true);
-                player.setVolume(VOLUME, VOLUME);
-                player.prepare();
-            } catch (java.io.IOException | RuntimeException e) {
-                if (player != null) player.release();
-                player = null;
+    private boolean othersPlaying() {
+        try {
+            return audio != null && audio.isMusicActive() && OWN.get() == 0;
+        } catch (RuntimeException e) {
+            return false;
+        }
+    }
+
+    private void startOutput() {
+        if (playing) return;
+        playing = true;
+        OWN.incrementAndGet();
+        if (custom != null) {
+            if (a == null) a = open();
+            if (a == null) {
+                playing = false;
+                OWN.decrementAndGet();
                 return; // unreadable file: stay quiet rather than fall back mid-session
             }
+            if (restartNext) {
+                a.seekTo(0);
+                if (b != null) b.seekTo(0);
+            }
+            xa = 1f;
+            xb = 0f;
+            crossing = false;
+            applyVolume();
+            a.start();
+            main.removeCallbacks(loopWatch);
+            main.postDelayed(loopWatch, LOOP_WATCH_MS);
+        } else {
+            if (feeder == null) {
+                feeder = new Thread(this::feed, "wii-music");
+                feeder.setPriority(Thread.NORM_PRIORITY - 1);
+                feeder.start();
+            }
+            if (track != null) {
+                if (restartNext) {
+                    track.pause();
+                    track.flush();
+                    rewind = true;
+                }
+                applyVolume();
+                track.play();
+            }
+            lock.notifyAll();
         }
-        if (player == null) return;
-        if (play && !player.isPlaying()) player.start();
-        else if (!play && player.isPlaying()) player.pause();
+        restartNext = false;
     }
+
+    private void stopOutput() {
+        if (playing) OWN.decrementAndGet();
+        playing = false;
+        restartNext = true;
+        main.removeCallbacks(loopWatch);
+        crossing = false;
+        if (a != null && a.isPlaying()) a.pause();
+        if (b != null && b.isPlaying()) b.pause();
+        if (track != null) track.pause();
+    }
+
+    private MediaPlayer open() {
+        MediaPlayer m = null;
+        try {
+            m = new MediaPlayer();
+            m.setAudioAttributes(new AudioAttributes.Builder()
+                    .setUsage(AudioAttributes.USAGE_MEDIA)
+                    .setContentType(AudioAttributes.CONTENT_TYPE_MUSIC)
+                    .build());
+            m.setDataSource(custom.getPath());
+            m.prepare();
+            return m;
+        } catch (java.io.IOException | RuntimeException e) {
+            if (m != null) m.release();
+            return null;
+        }
+    }
+
+    // ---- fades -------------------------------------------------------------------------------------
+
+    private long lastStep;
+
+    private void fadeTo(float to, float seconds) {
+        target = to;
+        fadeSeconds = seconds;
+        lastStep = SystemClock.uptimeMillis();
+        main.removeCallbacks(fadeStep);
+        main.post(fadeStep);
+    }
+
+    private final Runnable fadeStep = new Runnable() {
+        @Override
+        public void run() {
+            synchronized (lock) {
+                if (released) return;
+                long now = SystemClock.uptimeMillis();
+                float step = (now - lastStep) / 1000f / fadeSeconds;
+                lastStep = now;
+                gain = gain < target ? Math.min(target, gain + step) : Math.max(target, gain - step);
+                applyVolume();
+                if (gain != target) {
+                    main.postDelayed(this, STEP_MS);
+                } else if (target == 0f) {
+                    stopOutput();
+                }
+            }
+        }
+    };
+
+    private void applyVolume() {
+        // Squared, so the fade sounds even to the ear rather than rushing at the start.
+        float v = VOLUME * gain * gain;
+        if (track != null) track.setVolume(v);
+        if (a != null) a.setVolume(v * xa, v * xa);
+        if (b != null) b.setVolume(v * xb, v * xb);
+    }
+
+    /** Your own file: shortly before its end, start it again underneath and crossfade, so the loop never jumps. */
+    private final Runnable loopWatch = new Runnable() {
+        @Override
+        public void run() {
+            synchronized (lock) {
+                if (!playing || released || a == null) return;
+                long now = SystemClock.uptimeMillis();
+                int duration = a.getDuration();
+                if (!crossing) {
+                    if (duration > 0 && duration < CROSSFADE_MS * 3) {
+                        a.setLooping(true);   // too short to crossfade: a plain loop
+                        return;
+                    }
+                    if (duration > 0 && a.getCurrentPosition() >= duration - CROSSFADE_MS) {
+                        if (b == null) b = open();
+                        if (b != null) {
+                            b.seekTo(0);
+                            xb = 0f;
+                            applyVolume();
+                            b.start();
+                            crossing = true;
+                            crossStart = now;
+                        }
+                    }
+                } else {
+                    float f = Math.min(1f, (now - crossStart) / (float) CROSSFADE_MS);
+                    // Equal power, so the blend doesn't dip in the middle.
+                    xa = (float) Math.cos(f * Math.PI / 2);
+                    xb = (float) Math.sin(f * Math.PI / 2);
+                    applyVolume();
+                    if (f >= 1f) {
+                        a.pause();
+                        a.seekTo(0);
+                        MediaPlayer t = a;
+                        a = b;
+                        b = t;
+                        xa = 1f;
+                        xb = 0f;
+                        crossing = false;
+                        applyVolume();
+                    }
+                }
+                main.postDelayed(this, crossing ? STEP_MS * 2 : LOOP_WATCH_MS);
+            }
+        }
+    };
 
     private short[] loadOrRender() {
         int n = MenuMusic.length(song);
@@ -201,20 +380,31 @@ final class WiiMusic {
                     .setBufferSizeInBytes(Math.max(min, CHUNK * 4))
                     .setTransferMode(AudioTrack.MODE_STREAM)
                     .build();
-            t.setVolume(VOLUME);
         } catch (RuntimeException e) {
             return; // no audio output: the menu simply stays quiet
         }
-        synchronized (lock) {
-            track = t;
-            update();
-        }
+        main.post(() -> {
+            synchronized (lock) {
+                if (released) {
+                    t.release();
+                    return;
+                }
+                track = t;
+                applyVolume();
+                if (playing) t.play();
+                lock.notifyAll();
+            }
+        });
         int pos = 0;
         try {
             while (true) {
                 synchronized (lock) {
-                    while (!released && !(enabled && wanted)) lock.wait();
+                    while (!released && (!playing || track == null)) lock.wait();
                     if (released) break;
+                }
+                if (rewind) {
+                    rewind = false;
+                    pos = 0;
                 }
                 int n = Math.min(CHUNK, pcm.length - pos);
                 int wrote = t.write(pcm, pos, n);
@@ -224,7 +414,8 @@ final class WiiMusic {
         } catch (InterruptedException ignored) {
             // released
         } finally {
-            t.release();
+            if (track != t) t.release();
+            else main.post(t::release);
         }
     }
 }

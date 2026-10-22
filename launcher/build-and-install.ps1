@@ -65,7 +65,7 @@ function Push-Music {
     $dest = '/sdcard/Android/data/com.gathin.tvhome/files/music'
     & $py -I ..\tools\tv.py "mkdir -p $dest" | Out-Null
     $files = Get-ChildItem $MusicDir -File | Where-Object {
-        $_.BaseName -in 'menu', 'winter', 'shop', 'games' -and $_.Extension -in '.mp3', '.ogg', '.m4a', '.flac', '.wav' }
+        $_.BaseName -in 'menu', 'menu_start', 'winter', 'shop', 'games' -and $_.Extension -in '.mp3', '.ogg', '.m4a', '.flac', '.wav' }
     if (-not $files) { Write-Warning "no menu, winter, shop or games music files in $MusicDir"; return }
     foreach ($f in $files) {
         & $py -I ..\tools\tv.py "rm -f $dest/$($f.BaseName).*" | Out-Null
