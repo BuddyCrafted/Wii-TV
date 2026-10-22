@@ -186,6 +186,7 @@ public class WiiMenuView extends View {
     /** Focus glows, ring and highlights: the theme's accent (the original 0xFF3FC0EC in Classic). */
     private int accentArgb = 0xFF3FC0EC;
     private Theme theme = Theme.CLASSIC;
+    private final SeasonDeco season = new SeasonDeco();
     /** Segment bits a-g per digit; the original's 7 keeps the upper-left bar. */
     private static final int[] SEGMENTS = {0x3F, 0x06, 0x5B, 0x4F, 0x66, 0x6D, 0x7D, 0x27, 0x7F, 0x6F};
     /** The previous version's hand was drawn in units of 1/1024 of the width. */
@@ -911,7 +912,7 @@ public class WiiMenuView extends View {
         invalidate();
     }
 
-    /** Baked into the backdrop: Beach's wave above the line, Fall's scattered leaves. */
+    /** Baked into the backdrop: Beach's wave above the line, Winter's pine trees, Fall's leaf piles. */
     private static void drawDecorations(Canvas c, int w, int h, float s, Theme t) {
         Paint p = new Paint(Paint.ANTI_ALIAS_FLAG);
         if (t.deco == Theme.Deco.WAVE) {
@@ -926,42 +927,10 @@ public class WiiMenuView extends View {
                 else wave.lineTo(rx * s, y);
             }
             c.drawPath(wave, p);
+        } else if (t.deco == Theme.Deco.SNOW) {
+            SeasonDeco.bakeWinter(c, s);
         } else if (t.deco == Theme.Deco.LEAVES) {
-            int[] colours = {0xD9C2410C, 0xD9EA580C, 0xD9B45309, 0xD9DC2626, 0xD9CA8A04};
-            java.util.Random rnd = new java.util.Random(23);
-            for (int i = 0; i < 34; i++) {
-                float x = rnd.nextFloat() * 1920f, y = 20f + rnd.nextFloat() * 740f;
-                // Mostly in the margins and gaps, where tiles do not cover them.
-                if (x > 150f && x < 1770f && rnd.nextFloat() < 0.6f) x = rnd.nextBoolean() ? rnd.nextFloat() * 140f : 1780f + rnd.nextFloat() * 140f;
-                float len = 18f + rnd.nextFloat() * 16f;
-                int save = c.save();
-                c.translate(x * s, y * s);
-                c.rotate(rnd.nextFloat() * 360f);
-                p.setStyle(Paint.Style.FILL);
-                p.setColor(colours[i % colours.length]);
-                c.drawOval(-len * s, -len * 0.45f * s, len * s, len * 0.45f * s, p);
-                p.setStyle(Paint.Style.STROKE);
-                p.setStrokeWidth(1.6f * s);
-                p.setColor(0x66000000);
-                c.drawLine(-len * s, 0f, len * s, 0f, p);
-                c.restoreToCount(save);
-            }
-        }
-    }
-
-    /** Winter: flakes drift down and sway, positions computed from the clock (nothing allocated per frame). */
-    private void drawSnow(Canvas c) {
-        float t = SystemClock.uptimeMillis() / 1000f;
-        fill.setShader(null);
-        for (int i = 0; i < 70; i++) {
-            float seedX = ((i * 7919) % 1920) / 1920f, seedY = ((i * 104729) % 1080) / 1080f;
-            float speed = 22f + (i % 7) * 9f, size = 2.5f + (i % 5) * 1.3f;
-            float y = (seedY * 1180f + t * speed) % 1180f - 50f;
-            float x = seedX * 1920f + (float) Math.sin(t * 0.7f + i) * 22f;
-            fill.setColor(0x55A9C9E8);
-            c.drawCircle(x * s, y * s, (size + 1.2f) * s, fill);
-            fill.setColor(0xF0FFFFFF);
-            c.drawCircle(x * s, y * s, size * s, fill);
+            SeasonDeco.bakeFall(c, s);
         }
     }
 
@@ -1114,8 +1083,17 @@ public class WiiMenuView extends View {
 
         if (base != null) c.drawBitmap(base, 0f, 0f, null);
         else c.drawColor(theme.classic ? 0xFFE9E9E9 : Theme.argb(theme.bgTopLight));
-        if (theme.deco == Theme.Deco.SNOW) drawSnow(c);
+        boolean seasonal = theme.deco == Theme.Deco.SNOW || theme.deco == Theme.Deco.LEAVES;
+        float seconds = SystemClock.uptimeMillis() / 1000f;
+        if (theme.deco == Theme.Deco.SNOW) season.snow(c, s, seconds, false);
+        else if (theme.deco == Theme.Deco.LEAVES) season.leaves(c, s, seconds, false);
         drawTiles(c);
+        if (theme.deco == Theme.Deco.SNOW) {
+            season.sledders(c, s, seconds);
+            season.snow(c, s, seconds, true);
+        } else if (theme.deco == Theme.Deco.LEAVES) {
+            season.leaves(c, s, seconds, true);
+        }
         float panel = entering() ? entrance(ENTRANCE_PANEL_DELAY_MS) : 1f;
         if (panel > 0f) {
             // Entrance: the buttons, clock and date rise into place after the channels.
@@ -1137,8 +1115,8 @@ public class WiiMenuView extends View {
         if (animating || introAlpha > 0f || moving || entering()) postInvalidateOnAnimation();
         else {
             lastFrameNanos = 0;
-            // Snow keeps falling at about 15 frames a second: enough to look alive, light on a 1 GB stick.
-            if (theme.deco == Theme.Deco.SNOW && started) postInvalidateDelayed(66);
+            // Snow, sledders and leaves keep moving at 25 frames a second, light enough for a 1 GB stick.
+            if (seasonal && started) postInvalidateDelayed(40);
         }
     }
 
