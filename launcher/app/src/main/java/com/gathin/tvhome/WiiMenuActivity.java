@@ -9,6 +9,8 @@ import android.content.IntentFilter;
 import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
 import android.content.pm.ResolveInfo;
+import android.graphics.Bitmap;
+import android.graphics.Canvas;
 import android.graphics.Typeface;
 import android.graphics.drawable.Drawable;
 import android.media.tv.TvContract;
@@ -21,6 +23,9 @@ import android.provider.Settings;
 import android.view.KeyEvent;
 import android.widget.Toast;
 
+import java.io.File;
+import java.io.FileOutputStream;
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
@@ -137,6 +142,11 @@ public class WiiMenuActivity extends Activity implements WiiMenuView.Listener {
         resumed = true;
         // Back on the menu, so any Settings visit is over: the Amazon home gets covered again.
         FireTvHomeService.coverAmazonHome();
+        if (DeviceProfile.fireTv()) {
+            // Once the menu has drawn, drop the picture the Home redirect put up, then refresh that picture.
+            menu.postDelayed(FireTvHomeService::menuShown, 120);
+            menu.postDelayed(saveCover, 2500);
+        }
         if (appsDirty) reloadApps();
         menu.start();
         music.resume();
@@ -153,10 +163,40 @@ public class WiiMenuActivity extends Activity implements WiiMenuView.Listener {
         }
     }
 
+    /**
+     * Saves a half-size picture of the menu for FireTvHomeService's cover: what you see the moment you press
+     * Home on Fire TV, while Fire OS holds the real menu back for its app-switch delay.
+     */
+    private final Runnable saveCover = () -> {
+        if (!resumed || menu.getWidth() == 0 || menu.getHeight() == 0) return;
+        Bitmap shot;
+        try {
+            shot = Bitmap.createBitmap(menu.getWidth() / 2, menu.getHeight() / 2, Bitmap.Config.RGB_565);
+            Canvas c = new Canvas(shot);
+            c.scale(0.5f, 0.5f);
+            menu.draw(c);
+        } catch (RuntimeException | OutOfMemoryError e) {
+            return;
+        }
+        File dir = getCacheDir();
+        new Thread(() -> {
+            File tmp = new File(dir, FireTvHomeService.COVER_FILE + ".tmp");
+            try (FileOutputStream out = new FileOutputStream(tmp)) {
+                shot.compress(Bitmap.CompressFormat.JPEG, 85, out);
+            } catch (IOException e) {
+                return;
+            } finally {
+                shot.recycle();
+            }
+            tmp.renameTo(new File(dir, FireTvHomeService.COVER_FILE));
+        }, "menu-cover").start();
+    };
+
     @Override
     protected void onPause() {
         super.onPause();
         resumed = false;
+        menu.removeCallbacks(saveCover);
         menu.stop();
         music.pause();
     }
