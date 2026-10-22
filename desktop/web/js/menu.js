@@ -882,8 +882,9 @@ export class WiiMenu {
       c.fillStyle = g;
       c.fillRect(0, 0, tw, th);
       if (ch.icon && ch.icon.complete && ch.icon.naturalWidth > 0) {
-        const size = Math.round(th * 0.46);
-        c.drawImage(ch.icon, (tw - size) / 2, Math.round(th * 0.12), size, size);
+        // A little larger than on the TV version, where icons are only a fallback for missing banners.
+        const size = Math.round(th * 0.56);
+        c.drawImage(ch.icon, (tw - size) / 2, Math.round(th * 0.09), size, size);
       } else if (ch.draw) {
         ch.draw(c, tw, th);
       }

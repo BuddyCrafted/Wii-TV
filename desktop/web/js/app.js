@@ -31,13 +31,28 @@ let info = { build: 0, os: 'web', autostart: false };
 let all = new Map(); // key -> channel, hidden ones included
 let fullscreen = true;
 
-// Web channels every computer gets: they open in the default browser, signed in as usual there.
+// Web channels every computer gets: they open in the default browser, signed in as usual there. Each shows the
+// service's own app icon, loaded from the service's site the way a browser shows a site's icon (nothing is
+// bundled); the first address that answers is used, and offline the tile falls back to the brand colour.
 const WEB = [
-  { key: 'web:youtube', label: 'YouTube', target: 'https://www.youtube.com/', color: '#ff0033' },
-  { key: 'web:netflix', label: 'Netflix', target: 'https://www.netflix.com/', color: '#141414', text: '#e50914' },
-  { key: 'web:spotify', label: 'Spotify', target: 'https://open.spotify.com/', color: '#1db954' },
-  { key: 'web:twitch', label: 'Twitch', target: 'https://www.twitch.tv/', color: '#9146ff' },
+  { key: 'web:youtube', label: 'YouTube', target: 'https://www.youtube.com/', color: '#ff0033',
+    icons: ['https://m.youtube.com/static/apple-touch-icon-180x180-precomposed.png', 'https://www.youtube.com/img/favicon_144.png'] },
+  { key: 'web:netflix', label: 'Netflix', target: 'https://www.netflix.com/', color: '#141414', text: '#e50914',
+    icons: ['https://assets.nflxext.com/en_us/layout/ecweb/netflix-app-icon_152.jpg', 'https://assets.nflxext.com/us/ffe/siteui/common/icons/nficon2016.png'] },
+  { key: 'web:spotify', label: 'Spotify', target: 'https://open.spotify.com/', color: '#1db954',
+    icons: ['https://www.scdn.co/i/_global/favicon.png', 'https://www.scdn.co/i/_global/touch-icon-114.png'] },
+  { key: 'web:twitch', label: 'Twitch', target: 'https://www.twitch.tv/', color: '#9146ff',
+    icons: ['https://www.twitch.tv/apple-touch-icon.png'] },
 ];
+
+/** Loads the first of `urls` that answers with a picture, then calls done(img). */
+function loadIcon(urls, done) {
+  if (!urls.length) return;
+  const img = new Image();
+  img.onload = () => (img.naturalWidth >= 48 ? done(img) : loadIcon(urls.slice(1), done));
+  img.onerror = () => loadIcon(urls.slice(1), done);
+  img.src = urls[0];
+}
 
 function brandPaint(color, text = '#ffffff', label) {
   return (c, tw, th) => {
@@ -102,6 +117,13 @@ function toChannel(c) {
     ch.image.src = c.image;
   }
   if (c.color) ch.paint = brandPaint(c.color, c.text, c.label);
+  if (c.icons) {
+    loadIcon(c.icons, (img) => {
+      ch.icon = img;
+      ch.paint = null;
+      menu.artChanged(ch);
+    });
+  }
   return ch;
 }
 
