@@ -100,6 +100,8 @@
   </section>
   <section class="tab" id="sounds">
     <p class="hint">Your own music and sound effects, saved into WiiOS on the TV (no flash drive). Pick a file for any slot; the rest keep WiiOS's own sounds.</p>
+    <div class="slot" id="allRow"><span>Whole sound pack (.zip)<small>Its music and sounds folders, all at once</small></span>
+      <label>Choose file<input type="file" id="allFile" accept=".zip,application/zip"></label></div>
     <h2>Music</h2><div id="musicList"></div>
     <h2>Sound effects</h2><div id="soundList"></div>
     <h2>Mii Channel</h2>
@@ -221,6 +223,15 @@
       });
     }).catch(function () {});
   }
+  $('allFile').addEventListener('change', function () {
+    var f = $('allFile').files[0]; if (!f) return;
+    if (!/\.zip$/i.test(f.name)) { toast('Choose the sound pack .zip file'); return; }
+    toast('Uploading the sound pack\u2026');
+    fetch('/api/upload?kind=soundpack&name=soundpack&ext=.zip', { method: 'POST', headers: { 'X-Pin': pin }, body: f })
+      .then(function (r) { return r.json(); })
+      .then(function (r) { toast(r.ok ? r.saved + ' sounds and songs saved on the TV' : (r.why === 'soundpack' ? 'No music or sounds folder with slot names in that zip' : 'Couldn\u2019t save the pack')); loadSounds(); })
+      .catch(function () { toast('Upload failed. Is the phone on the same Wi\u2011Fi?'); });
+  });
   $('packFile').addEventListener('change', function () {
     var f = $('packFile').files[0]; if (!f) return;
     if (!/\.zip$/i.test(f.name)) { toast('Choose the miipack.zip file'); return; }

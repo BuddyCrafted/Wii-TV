@@ -397,9 +397,12 @@ final class RemoteServer {
     /** The Mii Channel's pack (tools/miipack), saved where MiiPack looks for it. */
     static final String PACK = "pack";
     private static final long MAX_PACK = 200L << 20;
+    /** A whole sound pack in one zip: its music/ and sounds/ folders, files named after the slots. */
+    static final String SOUND_PACK = "soundpack";
 
     private static boolean known(String kind, String name) {
         if (PACK.equals(kind)) return "miipack".equals(name);
+        if (SOUND_PACK.equals(kind)) return SOUND_PACK.equals(name);
         String[] names = SoundPack.MUSIC.equals(kind) ? MUSIC_NAMES : SoundPack.SOUNDS.equals(kind) ? SOUND_NAMES : null;
         if (names == null) return false;
         for (String n : names) if (n.equals(name)) return true;
@@ -425,12 +428,12 @@ final class RemoteServer {
     /** Saves the body as <kind>/<name><ext> in WiiOS's folder on the TV, replacing any older file of that name. */
     private static String upload(String path, InputStream in, long length) throws IOException {
         String kind = query(path, "kind"), name = query(path, "name"), ext = query(path, "ext");
-        boolean pack = PACK.equals(kind);
-        boolean extOk = pack && ".zip".equals(ext);
-        if (!pack) for (String e : SoundPack.EXTENSIONS) if (e.equals(ext)) extOk = true;
+        boolean pack = PACK.equals(kind), all = SOUND_PACK.equals(kind);
+        boolean extOk = (pack || all) && ".zip".equals(ext);
+        if (!pack && !all) for (String e : SoundPack.EXTENSIONS) if (e.equals(ext)) extOk = true;
         if (kind == null || name == null || !known(kind, name) || !extOk) return "{\"ok\":false,\"why\":\"name\"}";
-        if (length <= 0 || length > (pack ? MAX_PACK : MAX_UPLOAD)) return "{\"ok\":false,\"why\":\"size\"}";
-        java.io.File dir = app.getExternalFilesDir(pack ? null : kind);
+        if (length <= 0 || length > (pack || all ? MAX_PACK : MAX_UPLOAD)) return "{\"ok\":false,\"why\":\"size\"}";
+        java.io.File dir = app.getExternalFilesDir(pack || all ? null : kind);
         if (dir == null) return "{\"ok\":false,\"why\":\"storage\"}";
         java.io.File tmp = new java.io.File(dir, name + ext + ".part");
         long left = length;
@@ -446,6 +449,14 @@ final class RemoteServer {
         if (left > 0) {
             tmp.delete();
             return "{\"ok\":false,\"why\":\"cut\"}";
+        }
+        if (all) {
+            int saved = unpackSounds(tmp);
+            tmp.delete();
+            if (saved == 0) return "{\"ok\":false,\"why\":\"soundpack\"}";
+            Activity a = resumed.get();
+            if (a instanceof WiiMenuActivity) a.runOnUiThread(a::recreate);
+            return "{\"ok\":true,\"saved\":" + saved + "}";
         }
         if (pack) {
             // Only a real Mii pack: a zip with its pack.json.
@@ -471,6 +482,53 @@ final class RemoteServer {
         Activity a = resumed.get();
         if (a instanceof WiiMenuActivity) a.runOnUiThread(a::recreate);
         return "{\"ok\":true}";
+    }
+
+    /**
+     * Copies a sound pack's files into WiiOS's folders: only entries directly inside a music/ or sounds/
+     * folder (at any depth) and named after a slot, like sounds/select.wav; everything else in the zip is
+     * left alone. Returns how many were saved.
+     */
+    private static int unpackSounds(java.io.File zip) {
+        int saved = 0;
+        try (java.util.zip.ZipFile z = new java.util.zip.ZipFile(zip)) {
+            java.util.Enumeration<? extends java.util.zip.ZipEntry> en = z.entries();
+            while (en.hasMoreElements()) {
+                java.util.zip.ZipEntry e = en.nextElement();
+                if (e.isDirectory()) continue;
+                String[] parts = e.getName().replace('\\', '/').split("/");
+                if (parts.length < 2) continue;
+                String kind = parts[parts.length - 2], file = parts[parts.length - 1];
+                int dot = file.lastIndexOf('.');
+                if (dot <= 0) continue;
+                String name = file.substring(0, dot), ext = file.substring(dot).toLowerCase(java.util.Locale.ROOT);
+                boolean extOk = false;
+                for (String x : SoundPack.EXTENSIONS) if (x.equals(ext)) extOk = true;
+                if (!extOk || !known(kind, name) || e.getSize() > MAX_UPLOAD) continue;
+                java.io.File dir = app.getExternalFilesDir(kind);
+                if (dir == null) continue;
+                java.io.File tmp = new java.io.File(dir, name + ext + ".part");
+                long left = MAX_UPLOAD;
+                try (InputStream in = z.getInputStream(e); java.io.FileOutputStream f = new java.io.FileOutputStream(tmp)) {
+                    byte[] buf = new byte[1 << 16];
+                    int n;
+                    while ((n = in.read(buf)) > 0 && left > 0) {
+                        f.write(buf, 0, n);
+                        left -= n;
+                    }
+                }
+                if (left <= 0 || tmp.length() == 0) {
+                    tmp.delete();
+                    continue;
+                }
+                for (String x : SoundPack.EXTENSIONS) new java.io.File(dir, name + x).delete();
+                if (tmp.renameTo(new java.io.File(dir, name + ext))) saved++;
+                else tmp.delete();
+            }
+        } catch (IOException e) {
+            // not a zip, or cut short: whatever was saved stays
+        }
+        return saved;
     }
 
     /** Which of the names have a file of yours in WiiOS's folder on the TV. */
