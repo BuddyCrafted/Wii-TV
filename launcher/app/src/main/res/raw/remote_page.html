@@ -102,6 +102,9 @@
     <p class="hint">Your own music and sound effects, saved into WiiOS on the TV (no flash drive). Pick a file for any slot; the rest keep WiiOS's own sounds.</p>
     <h2>Music</h2><div id="musicList"></div>
     <h2>Sound effects</h2><div id="soundList"></div>
+    <h2>Mii Channel</h2>
+    <div class="slot" id="packRow"><span>Mii pack (miipack.zip)<small>The original Mii look and sounds</small></span>
+      <label>Choose file<input type="file" id="packFile" accept=".zip,application/zip"></label></div>
   </section>
   <section class="tab" id="type">
     <textarea id="text" rows="3" placeholder="Type here, then send it to the box on the TV"></textarea>
@@ -217,6 +220,15 @@
       });
     }).catch(function () {});
   }
+  $('packFile').addEventListener('change', function () {
+    var f = $('packFile').files[0]; if (!f) return;
+    if (!/\.zip$/i.test(f.name)) { toast('Choose the miipack.zip file'); return; }
+    toast('Uploading the Mii pack…');
+    fetch('/api/upload?kind=pack&name=miipack&ext=.zip', { method: 'POST', headers: { 'X-Pin': pin }, body: f })
+      .then(function (r) { return r.json(); })
+      .then(function (r) { toast(r.ok ? 'Mii pack saved on the TV' : (r.why === 'pack' ? 'That zip isn\u2019t a Mii pack' : 'Couldn\u2019t save the pack')); })
+      .catch(function () { toast('Upload failed. Is the phone on the same Wi\u2011Fi?'); });
+  });
   $('send').addEventListener('click', function () {
     var v = $('text').value;
     api('/api/text', v).then(function (r) {

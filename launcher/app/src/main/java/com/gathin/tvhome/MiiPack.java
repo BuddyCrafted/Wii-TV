@@ -87,6 +87,12 @@ final class MiiPack {
         return instance;
     }
 
+    /** A new pack was saved: the next get() loads it. */
+    static synchronized void reset() {
+        tried = false;
+        instance = null;
+    }
+
     /** The pack if something already loaded it. */
     static synchronized MiiPack peek() {
         return instance;

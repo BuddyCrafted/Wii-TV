@@ -393,7 +393,12 @@ final class RemoteServer {
             "mii", "mii_start", "forecast"};
     static final String[] SOUND_NAMES = {"move", "select", "page", "back", "menu", "start", "open", "sd", "board"};
 
+    /** The Mii Channel's pack (tools/miipack), saved where MiiPack looks for it. */
+    static final String PACK = "pack";
+    private static final long MAX_PACK = 200L << 20;
+
     private static boolean known(String kind, String name) {
+        if (PACK.equals(kind)) return "miipack".equals(name);
         String[] names = SoundPack.MUSIC.equals(kind) ? MUSIC_NAMES : SoundPack.SOUNDS.equals(kind) ? SOUND_NAMES : null;
         if (names == null) return false;
         for (String n : names) if (n.equals(name)) return true;
@@ -419,11 +424,12 @@ final class RemoteServer {
     /** Saves the body as <kind>/<name><ext> in WiiOS's folder on the TV, replacing any older file of that name. */
     private static String upload(String path, InputStream in, long length) throws IOException {
         String kind = query(path, "kind"), name = query(path, "name"), ext = query(path, "ext");
-        boolean extOk = false;
-        for (String e : SoundPack.EXTENSIONS) if (e.equals(ext)) extOk = true;
+        boolean pack = PACK.equals(kind);
+        boolean extOk = pack && ".zip".equals(ext);
+        if (!pack) for (String e : SoundPack.EXTENSIONS) if (e.equals(ext)) extOk = true;
         if (kind == null || name == null || !known(kind, name) || !extOk) return "{\"ok\":false,\"why\":\"name\"}";
-        if (length <= 0 || length > MAX_UPLOAD) return "{\"ok\":false,\"why\":\"size\"}";
-        java.io.File dir = app.getExternalFilesDir(kind);
+        if (length <= 0 || length > (pack ? MAX_PACK : MAX_UPLOAD)) return "{\"ok\":false,\"why\":\"size\"}";
+        java.io.File dir = app.getExternalFilesDir(pack ? null : kind);
         if (dir == null) return "{\"ok\":false,\"why\":\"storage\"}";
         java.io.File tmp = new java.io.File(dir, name + ext + ".part");
         long left = length;
@@ -440,12 +446,27 @@ final class RemoteServer {
             tmp.delete();
             return "{\"ok\":false,\"why\":\"cut\"}";
         }
-        for (String e : SoundPack.EXTENSIONS) new java.io.File(dir, name + e).delete();
-        if (!tmp.renameTo(new java.io.File(dir, name + ext))) {
+        if (pack) {
+            // Only a real Mii pack: a zip with its pack.json.
+            boolean ok;
+            try (java.util.zip.ZipFile z = new java.util.zip.ZipFile(tmp)) {
+                ok = z.getEntry("pack.json") != null;
+            } catch (IOException e) {
+                ok = false;
+            }
+            if (!ok) {
+                tmp.delete();
+                return "{\"ok\":false,\"why\":\"pack\"}";
+            }
+        }
+        if (!pack) for (String e : SoundPack.EXTENSIONS) new java.io.File(dir, name + e).delete();
+        else new java.io.File(dir, MiiPack.FILE).delete();
+        if (!tmp.renameTo(new java.io.File(dir, pack ? MiiPack.FILE : name + ext))) {
             tmp.delete();
             return "{\"ok\":false,\"why\":\"storage\"}";
         }
-        // The menu loads its sounds when it starts: start it again if it's on screen, so it's heard at once.
+        if (pack) MiiPack.reset();
+        // The menu loads its sounds (and the Mii tile) when it starts: start it again if it's on screen.
         Activity a = resumed.get();
         if (a instanceof WiiMenuActivity) a.runOnUiThread(a::recreate);
         return "{\"ok\":true}";
