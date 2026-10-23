@@ -141,7 +141,7 @@ The round buttons and the SD card:
   - **Accessibility**, **Apps**, **Storage**
   - **Menu Music** and **Menu Sounds** (on/off), **Hidden Channels** (choose one to bring it back), **Reset channel order**, **All Device Settings**, **About This Device**
   - **Profile**: everyone in the house can have their own profile (up to six), each with **their Mii** from the Mii Channel and a name. In the profile editor, ◀ ▶ flips through your Miis, and **Make a new Mii** opens the Mii editor and comes back with the new one attached; the name follows the Mii unless you type your own. Each profile keeps its own **theme**, **channel order**, **hidden channels** and **Message Board**. **Switch profile**, **Change my Mii and name**, **Add a profile**, and **Ask who's watching when the TV turns on**: with more than one profile, "Who's watching?" comes up after the welcome screen.
-  - **Phone remote**: **Connect a phone** shows a QR code; scan it with the phone's camera (same Wi-Fi) and a remote opens in the phone's browser, already paired. Nothing to install. It has arrows and OK (hold an arrow to keep moving), Back, Home, Menu and play/pause, a **Channels** list (tap one to open it on the TV), and **Type**, for typing into WiiOS's text boxes (city search, profile names) from the phone's keyboard. Inside WiiOS everything works; in other apps Home and Back always work, and the arrows, OK and play/pause too on Android 13 and later (most Google TV devices), but not on Fire TV, whose system doesn't allow it. A six-digit code, carried by the QR code, keeps others on the Wi-Fi out; **New code** disconnects every phone, and the remote can be switched off.
+  - **Phone remote**: off until you switch it on here (so nothing listens on your home network unless you want it). Then **Connect a phone** shows a QR code; scan it with the phone's camera (same Wi-Fi) and a remote opens in the phone's browser, already paired. Nothing to install. It has arrows and OK (hold an arrow to keep moving), Back, Home, Menu and play/pause, a **Channels** list (tap one to open it on the TV), and **Type**, for typing into WiiOS's text boxes (city search, profile names) from the phone's keyboard. Inside WiiOS everything works; in other apps Home and Back always work, and the arrows, OK and play/pause too on Android 13 and later (most Google TV devices), but not on Fire TV, whose system doesn't allow it. A six-digit code, carried by the QR code, keeps others on the Wi-Fi out; **New code** disconnects every phone, and the remote can be switched off.
   - **Theme** includes **Automatic**, which changes with the seasons: Winter from December to February, Island village in spring, Beach in summer, Fall in September and November, and Halloween all October.
 - **SD**: opens your media or file app. That's the first one installed of Kodi, VLC, X-plore, Files, Photos or Plex (list: `sd_apps` in `launcher/app/src/main/res/values/config.xml`).
 - **Envelope** (bottom right): the **Message Board**, with the channels you opened most recently, newest first. On a TV with HDMI ports, the inputs come first.
@@ -153,6 +153,14 @@ The first time WiiOS starts, it asks **How should your TV look?** with **WiiOS**
 The choice stays until you change it: **WiiOS Settings → Change interface**, or the **Choose an interface** tile in the TV's app row (which works from inside Google TV or Fire TV too). **Ask at every power-on** brings the picker up each time the TV is switched on; it counts down and starts the current system unless you press a button. Opening WiiOS from its tile always shows WiiOS.
 
 WiiOS stays the TV's home underneath, so if the chosen interface is ever uninstalled, Home simply lands on WiiOS again.
+
+## Keeping it safe
+
+- **Turn debugging off after setup.** USB/network debugging lets an approved computer control the TV. Once WiiOS is installed: **Settings → System → Developer options**, turn **USB debugging** off and choose **Revoke USB debugging authorisations**. Updates come through WiiOS itself, so debugging isn't needed again.
+- **Protect the GitHub account the updates come from** with two-factor authentication: whoever controls it controls what updates are offered.
+- WiiOS never sees your accounts or passwords (sign-in is always the TV's or Google's own page), sends no analytics, and only goes online for updates (GitHub), the weather (Open-Meteo), the Shop catalog and, if you switch it on, the phone remote on your own network.
+- Android only installs a WiiOS update signed with the same key as the one installed, so a fake update can't replace it.
+- Uninstalling WiiOS (Settings → Apps) removes it and every permission it was given; the TV goes back to its own home.
 
 ## Mii Channel
 

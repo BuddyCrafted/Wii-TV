@@ -45,7 +45,8 @@ import java.util.concurrent.Executors;
  * added those actions. Channels can be opened straight from the phone.
  *
  * Every request except the page itself needs the pairing PIN, which the QR code on the TV carries, so
- * nobody else on the network can drive the TV. Settings > Phone remote can switch it off or make a new PIN.
+ * nobody else on the network can drive the TV. It's off until switched on in Settings > Phone remote, which
+ * can also make a new PIN.
  */
 final class RemoteServer {
     private RemoteServer() {}
@@ -71,7 +72,8 @@ final class RemoteServer {
     }
 
     static boolean enabled(Context c) {
-        return Profiles.main(c).getBoolean(KEY_ON, true);
+        // Off until switched on in Settings: nothing listens on the home network unless it's wanted.
+        return Profiles.main(c).getBoolean(KEY_ON, false);
     }
 
     static String pin(Context c) {
