@@ -242,6 +242,19 @@ The third channel is **Games**. It works like the Shop, with its own tune, and l
 
 The sign-in form itself is always Google's (or Amazon's). That's on purpose: a home screen must never see your password, and Android only lets Google's own screens add a Google account. Once you're signed in, Play, YouTube and the rest use that account.
 
+## Your own music and sounds (flash drive)
+
+Put a **WiiOS** folder at the top of a flash drive (formatted as *removable storage*, not device storage) and plug it in; the first time, the TV asks to let WiiOS read it: choose **Allow**. Any file WiiOS finds by name replaces its built-in sound; the rest stay as they are. Nothing is bundled in WiiOS or this repository, so use files you have the right to play.
+
+| Folder | Names | What they are |
+| --- | --- | --- |
+| `WiiOS/music/` | `menu`, `winter`, `shop`, `games`, `mii`, `forecast` | Looping music for the menu, the Winter theme's menu, the Shop, Games, the Mii Channel and the Forecast. The end crossfades into the start, so the loop never jumps. |
+| | `shop_start`, `games_start`, `mii_start` | Plays once before that channel's loop (a title or intro). |
+| | `menu_start` | The start jingle when you press OK on the welcome screen. |
+| `WiiOS/sounds/` | `move`, `select`, `page`, `back`, `menu`, `start`, `open` | Cursor moving, choosing, page arrows, going back, a menu opening, leaving the welcome screen, opening a channel. |
+
+Each file can be `.mp3`, `.ogg`, `.m4a`, `.flac` or `.wav`. WiiOS also looks in its own folder on the drive or the TV (`Android/data/com.gathin.tvhome/files/music/` and `.../sounds/`), which needs no permission; that's where `MUSIC_DIR` below copies to.
+
 ## Your own music
 
 WiiOS plays its own original tunes on the menu, in the Shop and in Games. To play your own music instead, put files named **menu**, **winter** (the Winter theme's menu), **shop** and/or **games** (`.mp3`, `.ogg`, `.m4a`, `.flac` or `.wav`) in a folder and install with `MUSIC_DIR` (or `-MusicDir` on Windows):

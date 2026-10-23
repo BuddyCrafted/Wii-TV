@@ -26,3 +26,5 @@ desktop/node_modules/
 desktop/web/gen/
 desktop/src-tauri/target/
 desktop/src-tauri/gen/
+# Your own music and sounds (a WiiOS folder for the flash drive) never go in the repository.
+/WiiOS/

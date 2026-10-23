@@ -19,11 +19,15 @@ final class WiiSounds {
     static final int PUNCH = 6;
     static final int SLAPSHOT = 7;
     static final int GOAL = 8;
+    /** Opening a channel: only with your own sound (sounds/open). */
+    static final int OPEN = 9;
+    /** Your own sounds' names (SoundPack sounds/<name>), by id; null = built-in only. */
+    private static final String[] NAMES = {"move", "select", "page", "back", "menu", "start", null, null, null, "open"};
 
     private static final float VOLUME = 0.6f, SCENE_VOLUME = 0.3f;
 
     private final SoundPool pool;
-    private final int[] ids = new int[9];
+    private final int[] ids = new int[10];
     private boolean enabled;
 
     WiiSounds(Context context, boolean enabled) {
@@ -44,6 +48,12 @@ final class WiiSounds {
         ids[PUNCH] = pool.load(context, R.raw.fx_punch, 1);
         ids[SLAPSHOT] = pool.load(context, R.raw.fx_slapshot, 1);
         ids[GOAL] = pool.load(context, R.raw.fx_goal, 1);
+        // Your own sounds replace the built-in ones, name by name.
+        for (int i = 0; i < NAMES.length; i++) {
+            if (NAMES[i] == null) continue;
+            java.io.File own = SoundPack.find(context, SoundPack.SOUNDS, NAMES[i]);
+            if (own != null) ids[i] = pool.load(own.getPath(), 1);
+        }
     }
 
     /** Your own start jingle (menu_start in the music folder), played instead of the built-in start sound. */
@@ -55,7 +65,7 @@ final class WiiSounds {
             if (enabled) playJingle();
             return;
         }
-        float v = which >= PUNCH ? SCENE_VOLUME : VOLUME;
+        float v = which >= PUNCH && which <= GOAL ? SCENE_VOLUME : VOLUME;
         if (enabled && ids[which] != 0) pool.play(ids[which], v, v, 1, 0, 1f);
     }
 

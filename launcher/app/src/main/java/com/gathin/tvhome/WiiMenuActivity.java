@@ -199,6 +199,7 @@ public class WiiMenuActivity extends Activity implements WiiMenuView.Listener {
         }
         if (Profiles.current(this) != profileId) switchProfile();
         if (appsDirty || miiStore.version() != miiVersion) reloadApps();
+        askForDrive();
         // Automatic theme: a new month may bring a new look.
         if (!Theme.load(my).id.equals(musicTheme.id)) applyTheme();
         menu.start();
@@ -397,6 +398,28 @@ public class WiiMenuActivity extends Activity implements WiiMenuView.Listener {
         }
     }
 
+    private static final int REQ_DRIVE = 21;
+
+    /**
+     * A flash drive is in: ask once to read it, for the music and sounds in its WiiOS folder (SoundPack). The
+     * drive's own WiiOS app folder works without asking.
+     */
+    private void askForDrive() {
+        if (prefs.getBoolean("drive_asked", false) || !SoundPack.drivePresent(this)) return;
+        String perm = Build.VERSION.SDK_INT >= 33 ? "android.permission.READ_MEDIA_AUDIO"
+                : android.Manifest.permission.READ_EXTERNAL_STORAGE;
+        if (checkSelfPermission(perm) == PackageManager.PERMISSION_GRANTED) return;
+        prefs.edit().putBoolean("drive_asked", true).apply();
+        requestPermissions(new String[] {perm}, REQ_DRIVE);
+    }
+
+    @Override
+    public void onRequestPermissionsResult(int request, String[] permissions, int[] results) {
+        super.onRequestPermissionsResult(request, permissions, results);
+        // The drive's sounds and music load when the menu starts: start it again to pick them up.
+        if (request == REQ_DRIVE && results.length > 0 && results[0] == PackageManager.PERMISSION_GRANTED) recreate();
+    }
+
     /** Settings > Profile. */
     private List<WiiMenuView.MenuItem> profileSettings() {
         List<WiiMenuView.MenuItem> items = new ArrayList<>();
@@ -554,6 +577,7 @@ public class WiiMenuActivity extends Activity implements WiiMenuView.Listener {
         List<String> recent = ChannelOrder.touchRecent(ChannelOrder.split(my.getString(KEY_RECENT, "")), channel.key);
         my.edit().putString(KEY_RECENT, ChannelOrder.join(recent)).apply();
         GoogleTvHomeService.openedFromWiiOS();
+        sounds.play(WiiSounds.OPEN);
         open(channel.intent);
     }
 

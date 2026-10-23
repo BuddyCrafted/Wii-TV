@@ -10,6 +10,9 @@
     <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
     <!-- Forecast Channel (Open-Meteo) and the over-the-air updater (GitHub releases). -->
     <uses-permission android:name="android.permission.INTERNET" />
+    <!-- Your own music and sounds in a WiiOS folder on a flash drive (SoundPack); asked for once, on the TV. -->
+    <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" android:maxSdkVersion="32" />
+    <uses-permission android:name="android.permission.READ_MEDIA_AUDIO" />
     <!-- The updater installs new builds of itself; build-and-install.sh allows it over ADB. -->
     <uses-permission android:name="android.permission.REQUEST_INSTALL_PACKAGES" />
     <uses-permission android:name="android.permission.ACCESS_WIFI_STATE" />

@@ -11,6 +11,8 @@ public class MiiChannelActivity extends Activity {
     static final String EXTRA_MAKE = "make_mii", EXTRA_MII_ID = "mii_id";
 
     private MiiChannelView view;
+    /** Your own Mii Channel music (music/mii, with music/mii_start before it), or null for the built-in tune. */
+    private WiiMusic music;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -21,6 +23,11 @@ public class MiiChannelActivity extends Activity {
         });
         setContentView(view);
         view.requestFocus();
+        if (WiiMusic.customFile(this, "mii") != null) {
+            boolean on = Profiles.main(this).getBoolean("music", getResources().getBoolean(R.bool.wii_music));
+            music = new WiiMusic(this, on, null, "mii_unused.pcm", "mii");
+            view.ownMusic(true);
+        }
         if (getIntent().getBooleanExtra(EXTRA_MAKE, false)) {
             // A profile is asking for its Mii: straight to making one, and back with it once saved.
             view.post(() -> view.makeOne(m -> {
@@ -35,18 +42,21 @@ public class MiiChannelActivity extends Activity {
     protected void onResume() {
         super.onResume();
         view.resume();
+        if (music != null) music.resume();
     }
 
     @Override
     protected void onPause() {
         super.onPause();
         view.pause();
+        if (music != null) music.pause();
     }
 
     @Override
     protected void onDestroy() {
         super.onDestroy();
         view.release();
+        if (music != null) music.release();
     }
 
     @Override

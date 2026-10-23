@@ -269,6 +269,11 @@ final class MiiChannelView extends View {
                 }));
     }
 
+    /** Your own Mii Channel music is playing instead (MiiChannelActivity): the built-in tune stays quiet. */
+    void ownMusic(boolean on) {
+        audio.setMusic(!on);
+    }
+
     void editorQuit() {
         if (editor == null) return;
         if (!editor.isNew && original != null && same(original, editor.mii)) {

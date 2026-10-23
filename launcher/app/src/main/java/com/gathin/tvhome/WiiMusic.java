@@ -42,8 +42,8 @@ final class WiiMusic {
     private boolean released;
     /** The output is running (or fading out); the feeder writes only while this is set. */
     private boolean playing;
-    /** Start from the top the next time the output starts. */
-    private boolean restartNext;
+    /** Start from the top (with the intro, if there is one) the next time the output starts. */
+    private boolean restartNext = true;
     private volatile boolean rewind;
     /** Master fade, 0..1, and where it is heading. */
     private float gain, target;
@@ -59,6 +59,9 @@ final class WiiMusic {
     private final java.io.File custom;
     /** Two players over the same file, so the end can crossfade into the start. */
     private MediaPlayer a, b;
+    /** <slot>_start: played once before the loop, each time the screen comes up (the Shop's title music). */
+    private final java.io.File intro;
+    private MediaPlayer ip;
     private float xa = 1f, xb = 0f;
     private boolean crossing;
     private long crossStart;
@@ -73,6 +76,8 @@ final class WiiMusic {
         java.io.File own = customFile(context, slot);
         if (own == null && "winter".equals(slot)) own = customFile(context, "menu");
         this.custom = own;
+        // menu_start is the welcome screen's jingle (WiiSounds), not an intro to the menu's loop.
+        this.intro = own == null || "menu".equals(slot) || "winter".equals(slot) ? null : customFile(context, slot + "_start");
         this.audio = (AudioManager) context.getApplicationContext().getSystemService(android.content.Context.AUDIO_SERVICE);
         // The rendered loop is kept on disk: Android often kills the launcher on a 1 GB stick while another app
         // runs, and reading 1.7 MB back is much cheaper than rendering it again on a 1.7 GHz CPU.
@@ -81,14 +86,9 @@ final class WiiMusic {
 
     static final String[] EXTENSIONS = {".mp3", ".ogg", ".m4a", ".flac", ".wav"};
 
+    /** Your own file for this screen (SoundPack: a WiiOS folder on a flash drive, or WiiOS's own folder). */
     static java.io.File customFile(android.content.Context context, String slot) {
-        java.io.File dir = context.getExternalFilesDir("music");
-        if (dir == null) return null;
-        for (String ext : EXTENSIONS) {
-            java.io.File f = new java.io.File(dir, slot + ext);
-            if (f.isFile() && f.length() > 0) return f;
-        }
-        return null;
+        return SoundPack.find(context, SoundPack.MUSIC, slot);
     }
 
     /** The menu's music for a theme: Winter plays your own winter file when you've added one. */
@@ -143,7 +143,8 @@ final class WiiMusic {
             main.removeCallbacksAndMessages(null);
             if (a != null) a.release();
             if (b != null) b.release();
-            a = b = null;
+            if (ip != null) ip.release();
+            a = b = ip = null;
             // stop() also wakes a write() that is blocked on a paused track.
             if (track != null) track.stop();
             lock.notifyAll();
@@ -183,6 +184,7 @@ final class WiiMusic {
 
     private void startOutput() {
         if (playing) return;
+        if (custom == null && song == null) return;   // a screen with no built-in tune and no file of yours
         playing = true;
         OWN.incrementAndGet();
         if (custom != null) {
@@ -199,6 +201,10 @@ final class WiiMusic {
             xa = 1f;
             xb = 0f;
             crossing = false;
+            if (restartNext && intro != null && startIntro()) {
+                restartNext = false;
+                return;   // the loop starts when the intro ends
+            }
             applyVolume();
             a.start();
             main.removeCallbacks(loopWatch);
@@ -223,18 +229,49 @@ final class WiiMusic {
         restartNext = false;
     }
 
+    /** Plays the intro once; when it ends, the loop takes over. */
+    private boolean startIntro() {
+        MediaPlayer m = openFile(intro);
+        if (m == null) return false;
+        ip = m;
+        m.setOnCompletionListener(done -> {
+            synchronized (lock) {
+                if (ip == done) {
+                    ip.release();
+                    ip = null;
+                }
+                if (!playing || released || a == null) return;
+                applyVolume();
+                a.start();
+                main.removeCallbacks(loopWatch);
+                main.postDelayed(loopWatch, LOOP_WATCH_MS);
+            }
+        });
+        applyVolume();
+        m.start();
+        return true;
+    }
+
     private void stopOutput() {
         if (playing) OWN.decrementAndGet();
         playing = false;
         restartNext = true;
         main.removeCallbacks(loopWatch);
         crossing = false;
+        if (ip != null) {
+            ip.release();
+            ip = null;
+        }
         if (a != null && a.isPlaying()) a.pause();
         if (b != null && b.isPlaying()) b.pause();
         if (track != null) track.pause();
     }
 
     private MediaPlayer open() {
+        return openFile(custom);
+    }
+
+    private MediaPlayer openFile(java.io.File file) {
         MediaPlayer m = null;
         try {
             m = new MediaPlayer();
@@ -242,7 +279,7 @@ final class WiiMusic {
                     .setUsage(AudioAttributes.USAGE_MEDIA)
                     .setContentType(AudioAttributes.CONTENT_TYPE_MUSIC)
                     .build());
-            m.setDataSource(custom.getPath());
+            m.setDataSource(file.getPath());
             m.prepare();
             return m;
         } catch (java.io.IOException | RuntimeException e) {
@@ -288,6 +325,7 @@ final class WiiMusic {
         if (track != null) track.setVolume(v);
         if (a != null) a.setVolume(v * xa, v * xa);
         if (b != null) b.setVolume(v * xb, v * xb);
+        if (ip != null) ip.setVolume(v, v);
     }
 
     /** Your own file: shortly before its end, start it again underneath and crossfade, so the loop never jumps. */
