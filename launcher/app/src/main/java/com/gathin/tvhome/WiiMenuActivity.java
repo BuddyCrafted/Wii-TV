@@ -148,7 +148,7 @@ public class WiiMenuActivity extends Activity implements WiiMenuView.Listener {
         menu.setTheme(Theme.load(my));
         setContentView(menu);
         menu.requestFocus();
-        introPending = firstStartThisBoot();
+        introPending = firstStartThisBoot() | fromTile(getIntent());
         if (getIntent().getBooleanExtra(EXTRA_OPEN_SETTINGS, false)) {
             introPending = false;
             menu.post(this::onSettingsButton);
@@ -297,6 +297,8 @@ public class WiiMenuActivity extends Activity implements WiiMenuView.Listener {
         super.onNewIntent(intent);
         setIntent(intent);
         cameAsHome = intent.hasCategory(Intent.CATEGORY_HOME);
+        // Opened from its tile (WiiOS used as an app): the welcome screen each time, like turning on the console.
+        if (fromTile(intent)) introPending = true;
         menu.closeMenu();
         handleGet(intent);
         if (intent.getBooleanExtra(EXTRA_REF_POSE, false)) {
@@ -443,6 +445,12 @@ public class WiiMenuActivity extends Activity implements WiiMenuView.Listener {
     public void onBackPressed() {
         // Home has nowhere to go back to; Back only closes what is open.
         menu.back();
+    }
+
+    /** Opened from WiiOS's tile in the TV's app row, rather than by Home or coming back from an app. */
+    private static boolean fromTile(Intent i) {
+        return i != null && Intent.ACTION_MAIN.equals(i.getAction())
+                && (i.hasCategory(Intent.CATEGORY_LEANBACK_LAUNCHER) || i.hasCategory(Intent.CATEGORY_LAUNCHER));
     }
 
     /**
