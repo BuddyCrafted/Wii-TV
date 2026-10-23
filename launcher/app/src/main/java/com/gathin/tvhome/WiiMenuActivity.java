@@ -298,7 +298,13 @@ public class WiiMenuActivity extends Activity implements WiiMenuView.Listener {
         setIntent(intent);
         cameAsHome = intent.hasCategory(Intent.CATEGORY_HOME);
         // Opened from its tile (WiiOS used as an app): the welcome screen each time, like turning on the console.
-        if (fromTile(intent)) introPending = true;
+        if (fromTile(intent)) {
+            if (resumed) {
+                menu.playIntro();   // already in front: no onResume follows
+            } else {
+                introPending = true;
+            }
+        }
         menu.closeMenu();
         handleGet(intent);
         if (intent.getBooleanExtra(EXTRA_REF_POSE, false)) {
