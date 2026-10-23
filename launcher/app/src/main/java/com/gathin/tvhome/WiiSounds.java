@@ -25,14 +25,16 @@ final class WiiSounds {
     static final int SD = 10, BOARD = 11;
     /** WiiOS Settings closing (the Home Button menu's exit), a finished install, and something that failed. */
     static final int MENU_CLOSE = 12, DONE = 13, ERROR = 14;
+    /** Turning back a page (left); page is turning forward. Falls back to page. */
+    static final int PAGE_BACK = 15;
     /** Your own sounds' names (SoundPack sounds/<name>), by id; null = built-in only. */
     private static final String[] NAMES = {"move", "select", "page", "back", "menu", "start", null, null, null, "open",
-            "sd", "board", "menu_close", "done", "error"};
+            "sd", "board", "menu_close", "done", "error", "page_back"};
 
     private static final float VOLUME = 0.6f, SCENE_VOLUME = 0.3f;
 
     private final SoundPool pool;
-    private final int[] ids = new int[15];
+    private final int[] ids = new int[16];
     private boolean enabled;
 
     WiiSounds(Context context, boolean enabled) {
@@ -70,6 +72,7 @@ final class WiiSounds {
         if (which == SD && ids[SD] == 0) which = SELECT;
         if (which == BOARD && ids[BOARD] == 0) which = MENU;
         if (which == MENU_CLOSE && ids[MENU_CLOSE] == 0) which = BACK;
+        if (which == PAGE_BACK && ids[PAGE_BACK] == 0) which = PAGE;
         // done and error have no built-in sound: quiet unless you've added one.
         if (which == START && jingle != null) {
             if (enabled) playJingle();

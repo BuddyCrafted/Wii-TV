@@ -392,7 +392,7 @@ final class RemoteServer {
     static final String[] MUSIC_NAMES = {"menu", "menu_start", "winter", "shop", "shop_start", "games", "games_start",
             "mii", "mii_start", "forecast"};
     static final String[] SOUND_NAMES = {"move", "select", "page", "back", "menu", "menu_close", "start", "open", "sd",
-            "board", "done", "error"};
+            "board", "done", "error", "page_back"};
 
     /** The Mii Channel's pack (tools/miipack), saved where MiiPack looks for it. */
     static final String PACK = "pack";

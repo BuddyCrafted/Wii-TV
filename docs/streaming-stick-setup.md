@@ -253,7 +253,7 @@ The sign-in form itself is always Google's (or Amazon's). That's on purpose: a h
 | `WiiOS/music/` | `menu`, `winter`, `shop`, `games`, `mii`, `forecast` | Looping music for the menu, the Winter theme's menu, the Shop, Games, the Mii Channel and the Forecast. The end crossfades into the start, so the loop never jumps. |
 | | `shop_start`, `games_start`, `mii_start` | Plays once before that channel's loop (a title or intro). |
 | | `menu_start` | The start jingle when you press OK on the welcome screen. |
-| `WiiOS/sounds/` | `move`, `select`, `page`, `back`, `menu`, `menu_close`, `start`, `open`, `sd`, `board`, `done`, `error` | Cursor moving, choosing, page arrows, going back, WiiOS Settings opening and closing, leaving the welcome screen, opening a channel, the SD Card button, the Message Board button, an install finishing in the Shop, something that failed. |
+| `WiiOS/sounds/` | `move`, `select`, `page`, `page_back`, `back`, `menu`, `menu_close`, `start`, `open`, `sd`, `board`, `done`, `error` | Cursor moving, choosing, next page, previous page, going back, WiiOS Settings opening and closing, leaving the welcome screen, opening a channel, the SD Card button, the Message Board button, an install finishing in the Shop, something that failed. |
 
 Each file can be `.mp3`, `.ogg`, `.m4a`, `.flac` or `.wav`. WiiOS also looks in its own folder on the drive or the TV (`Android/data/com.gathin.tvhome/files/music/` and `.../sounds/`), which needs no permission; that's where `MUSIC_DIR` below copies to.
 

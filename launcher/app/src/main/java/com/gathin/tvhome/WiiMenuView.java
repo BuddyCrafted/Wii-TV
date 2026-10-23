@@ -740,7 +740,7 @@ public class WiiMenuView extends View {
             else if (focus == BTN_SD) focus = BTN_INPUTS;
         }
         if (focus != before) {
-            sound(page != pageBefore ? WiiSounds.PAGE : WiiSounds.MOVE);
+            sound(page == pageBefore ? WiiSounds.MOVE : page < pageBefore ? WiiSounds.PAGE_BACK : WiiSounds.PAGE);
             invalidate();
         }
     }
@@ -751,7 +751,7 @@ public class WiiMenuView extends View {
         int i = focus >= 0 ? focus % SLOTS_PER_PAGE : 0;
         page = np;
         focus = page * SLOTS_PER_PAGE + i;
-        sound(WiiSounds.PAGE);
+        sound(delta < 0 ? WiiSounds.PAGE_BACK : WiiSounds.PAGE);
         invalidate();
     }
 
