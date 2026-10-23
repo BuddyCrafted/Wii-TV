@@ -263,6 +263,8 @@ public class FireTvHomeService extends AccessibilityService {
     }
 
     private void openMenu() {
+        // The Fire TV home itself is the chosen system: leave it be.
+        if (!Systems.wiiosActive(this)) return;
         long now = SystemClock.uptimeMillis();
         if (now - lastLaunch < DEBOUNCE_MS) return;
         // Already covering this Home press: its start is queued, and more Amazon events must not add starts.

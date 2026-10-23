@@ -146,6 +146,14 @@ The round buttons and the SD card:
 - **SD**: opens your media or file app. That's the first one installed of Kodi, VLC, X-plore, Files, Photos or Plex (list: `sd_apps` in `launcher/app/src/main/res/values/config.xml`).
 - **Envelope** (bottom right): the **Message Board**, with the channels you opened most recently, newest first. On a TV with HDMI ports, the inputs come first.
 
+## Choosing a system
+
+The first time WiiOS starts, it asks **How should your TV look?** with **WiiOS**, the TV's own home (**Google TV**, **Android TV** or **Fire TV**) and any other home-screen app you've installed. Pick one with ◀ ▶ and OK. Your accounts, apps, settings and HDMI inputs are the TV's and stay exactly as they are: only the home screen changes, so anyone who prefers the normal TV can have it.
+
+The choice stays until you change it: **WiiOS Settings → Change system**, or the **Choose a system** tile in the TV's app row (which works from inside Google TV or Fire TV too). **Ask at every power-on** brings the picker up each time the TV is switched on; it counts down and starts the current system unless you press a button. Opening WiiOS from its tile always shows WiiOS.
+
+WiiOS stays the TV's home underneath, so if the chosen system is ever uninstalled, Home simply lands on WiiOS again.
+
 ## Mii Channel
 
 The first channel is the **Mii Channel**: make Miis in the editor and watch them walk around the plaza. Its buttons (left and right sides) edit a Mii, make a new one, delete, help, parade, remote and mail, and the whistle (bottom right) lines everyone up by name, favourite, colour or gender. Miis are saved on the TV.

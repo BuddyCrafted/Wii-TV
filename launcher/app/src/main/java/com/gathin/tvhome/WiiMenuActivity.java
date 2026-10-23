@@ -74,6 +74,10 @@ public class WiiMenuActivity extends Activity implements WiiMenuView.Listener {
     private final Map<String, WiiMenuView.Channel> allChannels = new LinkedHashMap<>();
     /** The welcome screen plays once per boot and whenever the screen comes back on, as at power-on. */
     private boolean introPending;
+    /** The menu was opened as the TV's home (Home pressed, power-on), not from its tile in the app row. */
+    private boolean cameAsHome = true;
+    /** The welcome screen waits for the system picker shown at power-on. */
+    private boolean introAfterPicker;
     private boolean appsDirty = true;
     private boolean resumed;
     private String liveTvPkg;
@@ -153,6 +157,7 @@ public class WiiMenuActivity extends Activity implements WiiMenuView.Listener {
         }
         liveTvPkg = getString(R.string.live_tv_package);
         miiStore = new MiiStore(this);
+        cameAsHome = getIntent() == null || getIntent().hasCategory(Intent.CATEGORY_HOME);
         // First start after an update: say so.
         int lastBuild = prefs.getInt("last_build", BuildConfig.WIIOS_BUILD);
         if (lastBuild < BuildConfig.WIIOS_BUILD) {
@@ -181,6 +186,8 @@ public class WiiMenuActivity extends Activity implements WiiMenuView.Listener {
     protected void onResume() {
         super.onResume();
         resumed = true;
+        // Another system is in use: Home goes straight on to it (opening WiiOS from its tile still shows WiiOS).
+        if (cameAsHome && !introPending && Systems.forward(this)) return;
         // Back on the menu, so any Settings visit is over: the Amazon home gets covered again.
         FireTvHomeService.coverAmazonHome();
         if (DeviceProfile.fireTv()) {
@@ -203,6 +210,20 @@ public class WiiMenuActivity extends Activity implements WiiMenuView.Listener {
         maybeCheckForUpdate();
         if (introPending) {
             introPending = false;
+            if (Systems.firstChoice(this)) {
+                // The first time: how should the TV look? A one-time choice, changed later in Settings.
+                introAfterPicker = true;
+                startActivity(new Intent(this, SystemPickerActivity.class).putExtra(SystemPickerActivity.EXTRA_FIRST, true));
+            } else if (cameAsHome && Systems.offerAtStart(this)) {
+                introAfterPicker = true;
+                startActivity(new Intent(this, SystemPickerActivity.class).putExtra(SystemPickerActivity.EXTRA_COUNTDOWN, true));
+            } else if (cameAsHome && Systems.forward(this)) {
+                introAfterPicker = true;
+            } else {
+                menu.playIntro();
+            }
+        } else if (introAfterPicker && Systems.wiiosActive(this)) {
+            introAfterPicker = false;
             menu.playIntro();
         }
     }
@@ -270,6 +291,8 @@ public class WiiMenuActivity extends Activity implements WiiMenuView.Listener {
     @Override
     protected void onNewIntent(Intent intent) {
         super.onNewIntent(intent);
+        setIntent(intent);
+        cameAsHome = intent.hasCategory(Intent.CATEGORY_HOME);
         menu.closeMenu();
         handleGet(intent);
         if (intent.getBooleanExtra(EXTRA_REF_POSE, false)) {
@@ -333,6 +356,19 @@ public class WiiMenuActivity extends Activity implements WiiMenuView.Listener {
                 Toast.makeText(this, R.string.set_remote_new_code_done, Toast.LENGTH_SHORT).show();
             }));
         }
+        return items;
+    }
+
+    /** Settings > Change system: the picker, and whether it comes up at every power-on. */
+    private List<WiiMenuView.MenuItem> systemSettings() {
+        List<WiiMenuView.MenuItem> items = new ArrayList<>();
+        items.add(new WiiMenuView.MenuItem(getString(R.string.set_system_choose), Systems.activeLabel(this), () ->
+                startActivity(new Intent(this, SystemPickerActivity.class))));
+        boolean ask = Systems.pickerEveryStart(this);
+        items.add(new WiiMenuView.MenuItem(getString(R.string.set_system_ask), onOff(ask), () -> {
+            prefs.edit().putBoolean(Systems.KEY_PICKER, !ask).apply();
+            menu.refreshSettings();
+        }));
         return items;
     }
 
@@ -512,6 +548,8 @@ public class WiiMenuActivity extends Activity implements WiiMenuView.Listener {
      */
     private List<WiiMenuView.MenuItem> mainSettings() {
         List<WiiMenuView.MenuItem> items = new ArrayList<>();
+        items.add(new WiiMenuView.MenuItem(getString(R.string.set_system), Systems.activeLabel(this), () ->
+                menu.pushSettings(getString(R.string.set_system), this::systemSettings)));
         items.add(new WiiMenuView.MenuItem(getString(R.string.set_profile), Profiles.name(this, profileId), () ->
                 menu.pushSettings(getString(R.string.set_profile), this::profileSettings)));
         items.add(new WiiMenuView.MenuItem(getString(R.string.set_phone_remote), onOff(RemoteServer.enabled(this)), () ->

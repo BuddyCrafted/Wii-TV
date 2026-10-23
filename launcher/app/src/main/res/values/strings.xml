@@ -161,6 +161,16 @@
     <string name="set_app_updates">Turn off app auto-updates</string>
     <string name="set_app_updates_last">Choose Automatic Updates and set it to Off, then press Home.</string>
     <string name="set_app_updates_steps">Choose Appstore, then Automatic Updates, and set it to Off. Press Home to come back.</string>
+    <string name="sys_tile">Choose a system</string>
+    <string name="sys_title">Choose a system</string>
+    <string name="sys_hint">◀ ▶ choose · OK start · your accounts, apps and inputs stay as they are</string>
+    <string name="sys_first_title">How should your TV look?</string>
+    <string name="sys_first_hint">Change it any time in WiiOS Settings → Change system, or with the Choose a system tile</string>
+    <string name="sys_current">In use</string>
+    <string name="sys_starting">Starting %1$s in %2$d… press any button to choose</string>
+    <string name="set_system">Change system</string>
+    <string name="set_system_choose">Choose a system</string>
+    <string name="set_system_ask">Ask at every power-on</string>
     <string name="theme_auto">Automatic (changes with the seasons)</string>
     <string name="theme_auto_now">Automatic: %1$s</string>
     <string name="accent_theme">Theme\'s own</string>

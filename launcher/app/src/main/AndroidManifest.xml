@@ -29,6 +29,11 @@
     <!-- Android 11+ package visibility: lets the launcher list the TV apps it shows as tiles, and the
          apps that declare a module card (docs/specs/card.md). -->
     <queries>
+        <!-- Other home screens, for Choose a system. -->
+        <intent>
+            <action android:name="android.intent.action.MAIN" />
+            <category android:name="android.intent.category.HOME" />
+        </intent>
         <intent>
             <action android:name="android.intent.action.MAIN" />
             <category android:name="android.intent.category.LAUNCHER" />
@@ -211,6 +216,22 @@
             android:excludeFromRecents="true"
             android:configChanges="orientation|screenSize|keyboard|keyboardHidden|uiMode"
             android:screenOrientation="landscape" />
+
+        <!-- Choose a system: WiiOS, the TV's own home or another home screen. Its own tile in the TV's app
+             row, so the way back works from any of them. -->
+        <activity
+            android:name=".SystemPickerActivity"
+            android:exported="true"
+            android:label="@string/sys_tile"
+            android:banner="@drawable/banner"
+            android:excludeFromRecents="true"
+            android:screenOrientation="landscape"
+            android:theme="@android:style/Theme.Black.NoTitleBar.Fullscreen">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LEANBACK_LAUNCHER" />
+            </intent-filter>
+        </activity>
 
         <!-- Who's watching? and the profile look editor. -->
         <activity
