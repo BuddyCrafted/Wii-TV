@@ -62,6 +62,9 @@ final class WiiMusic {
     /** <slot>_start: played once before the loop, each time the screen comes up (the Shop's title music). */
     private final java.io.File intro;
     private MediaPlayer ip;
+    /** Your file is being opened off the main thread (a long song can take many seconds), or couldn't be. */
+    private boolean opening, unreadable, waitLogged;
+    private static final String TAG = "WiiMusic";
     private float xa = 1f, xb = 0f;
     private boolean crossing;
     private long crossStart;
@@ -163,6 +166,8 @@ final class WiiMusic {
         main.removeCallbacks(recheck);
         if (play && !playing && othersPlaying()) {
             // Someone else is playing (Spotify, a video in the background): wait until they stop.
+            if (!waitLogged) android.util.Log.i(TAG, "waiting: other audio is playing");
+            waitLogged = true;
             main.postDelayed(recheck, OTHER_AUDIO_RECHECK_MS);
             return;
         }
@@ -185,15 +190,13 @@ final class WiiMusic {
     private void startOutput() {
         if (playing) return;
         if (custom == null && song == null) return;   // a screen with no built-in tune and no file of yours
+        if (custom != null && a == null) {
+            loadCustom();   // starts by itself once it's ready, if still wanted
+            return;
+        }
         playing = true;
         OWN.incrementAndGet();
         if (custom != null) {
-            if (a == null) a = open();
-            if (a == null) {
-                playing = false;
-                OWN.decrementAndGet();
-                return; // unreadable file: stay quiet rather than fall back mid-session
-            }
             if (restartNext) {
                 a.seekTo(0);
                 if (b != null) b.seekTo(0);
@@ -267,8 +270,51 @@ final class WiiMusic {
         if (track != null) track.pause();
     }
 
-    private MediaPlayer open() {
-        return openFile(custom);
+    /**
+     * Opens your file on a worker thread, then the second player for the crossfade. Never the main thread:
+     * preparing a 30 MB song held the menu's first frame for half a minute on a TV. An unreadable file stays
+     * quiet rather than falling back to the built-in tune.
+     */
+    private void loadCustom() {
+        if (opening || unreadable || released) return;
+        opening = true;
+        android.util.Log.i(TAG, "opening " + custom + " (" + custom.length() + " bytes)");
+        long t0 = SystemClock.uptimeMillis();
+        Thread t = new Thread(() -> {
+            MediaPlayer first = openFile(custom);
+            android.util.Log.i(TAG, (first == null ? "can't play " : "ready in " + (SystemClock.uptimeMillis() - t0) + " ms: ") + custom);
+            synchronized (lock) {
+                if (released) {
+                    if (first != null) first.release();
+                    opening = false;
+                    return;
+                }
+                if (first == null) {
+                    unreadable = true;
+                    opening = false;
+                    return;
+                }
+                a = first;
+                main.post(() -> {
+                    synchronized (lock) {
+                        gain = 0f;   // fade in from silence now that there's something to hear
+                        update();
+                    }
+                });
+            }
+            MediaPlayer second = openFile(custom);
+            synchronized (lock) {
+                opening = false;
+                if (released || b != null) {
+                    if (second != null) second.release();
+                } else {
+                    b = second;
+                    applyVolume();
+                }
+            }
+        }, "wii-music-open");
+        t.setPriority(Thread.NORM_PRIORITY - 1);
+        t.start();
     }
 
     private MediaPlayer openFile(java.io.File file) {
@@ -283,6 +329,7 @@ final class WiiMusic {
             m.prepare();
             return m;
         } catch (java.io.IOException | RuntimeException e) {
+            android.util.Log.w(TAG, "can't open " + file + ": " + e);
             if (m != null) m.release();
             return null;
         }
@@ -342,8 +389,10 @@ final class WiiMusic {
                         return;
                     }
                     if (duration > 0 && a.getCurrentPosition() >= duration - CROSSFADE_MS) {
-                        if (b == null) b = open();
-                        if (b != null) {
+                        // b is opened in the background with a; if it isn't ready, a plain restart this time.
+                        if (b == null) a.setLooping(true);
+                        else {
+                            a.setLooping(false);
                             b.seekTo(0);
                             xb = 0f;
                             applyVolume();
