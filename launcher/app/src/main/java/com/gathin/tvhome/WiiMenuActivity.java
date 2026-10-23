@@ -545,6 +545,15 @@ public class WiiMenuActivity extends Activity implements WiiMenuView.Listener {
             "org.smarttube.stable", "org.smarttube.beta",
             "com.liskovsoft.smarttubetv", "com.liskovsoft.smarttubetv.beta"));
 
+    /** The stock YouTube for TV app's banner, or null where it isn't installed (Fire TV). */
+    private static Drawable youTubeBanner(PackageManager pm) {
+        try {
+            return pm.getApplicationBanner("com.google.android.youtube.tv");
+        } catch (PackageManager.NameNotFoundException | RuntimeException e) {
+            return null;
+        }
+    }
+
     private void addChannels(PackageManager pm, String category, Set<String> hidden) {
         Intent query = new Intent(Intent.ACTION_MAIN).addCategory(category);
         for (ResolveInfo ri : pm.queryIntentActivities(query, 0)) {
@@ -555,9 +564,11 @@ public class WiiMenuActivity extends Activity implements WiiMenuView.Listener {
             if (banner == null) banner = ri.activityInfo.applicationInfo.loadBanner(pm);
             Drawable icon = banner == null ? ri.loadIcon(pm) : null;
             if (SMARTTUBE.contains(pkg)) {
-                // SmartTube plays YouTube: name its channel that, so it reads like the app it replaces.
+                // SmartTube plays YouTube: name its channel that, so it reads like the app it replaces, with the
+                // TV's own YouTube app's banner when that's installed (borrowed from it on the TV, not shipped).
                 label = "YouTube";
-                banner = new NameTile("YouTube", 0xFFFF0000);
+                banner = youTubeBanner(pm);
+                if (banner == null) banner = new NameTile("YouTube", 0xFFFF0000);
                 icon = null;
             }
             Intent launch = new Intent(Intent.ACTION_MAIN)
