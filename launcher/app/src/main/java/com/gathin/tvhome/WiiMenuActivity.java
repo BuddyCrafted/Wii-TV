@@ -364,6 +364,18 @@ public class WiiMenuActivity extends Activity implements WiiMenuView.Listener {
         List<WiiMenuView.MenuItem> items = new ArrayList<>();
         items.add(new WiiMenuView.MenuItem(getString(R.string.set_system_choose), Systems.activeLabel(this), () ->
                 startActivity(new Intent(this, SystemPickerActivity.class))));
+        if (!DeviceProfile.fireTv()) {
+            // TVs whose own launcher keeps Home: WiiOS can bring itself up instead, nothing disabled.
+            boolean on = GoogleTvHomeService.enabled(this);
+            items.add(new WiiMenuView.MenuItem(getString(R.string.set_home_button), onOff(on), () -> {
+                if (GoogleTvHomeService.setEnabled(this, !on)) {
+                    menu.refreshSettings();
+                } else {
+                    Toast.makeText(this, R.string.set_home_button_manual, Toast.LENGTH_LONG).show();
+                    openSetting(Settings.ACTION_ACCESSIBILITY_SETTINGS);
+                }
+            }));
+        }
         boolean ask = Systems.pickerEveryStart(this);
         items.add(new WiiMenuView.MenuItem(getString(R.string.set_system_ask), onOff(ask), () -> {
             prefs.edit().putBoolean(Systems.KEY_PICKER, !ask).apply();

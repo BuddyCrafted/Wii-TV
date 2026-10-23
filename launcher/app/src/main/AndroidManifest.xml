@@ -192,6 +192,21 @@
                 android:resource="@xml/fire_tv_home_service" />
         </service>
 
+        <!-- Google TV / Android TV, optional: brings WiiOS up when the TV's own home appears, for TVs whose system
+             launcher keeps Home. Switched on by the user in the TV's Settings > Accessibility; nothing is disabled. -->
+        <service
+            android:name=".GoogleTvHomeService"
+            android:label="@string/gtv_home_name"
+            android:exported="true"
+            android:permission="android.permission.BIND_ACCESSIBILITY_SERVICE">
+            <intent-filter>
+                <action android:name="android.accessibilityservice.AccessibilityService" />
+            </intent-filter>
+            <meta-data
+                android:name="android.accessibilityservice"
+                android:resource="@xml/google_tv_home_service" />
+        </service>
+
         <!-- System Update, full screen while it downloads and installs. -->
         <activity
             android:name=".UpdateActivity"

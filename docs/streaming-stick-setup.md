@@ -154,6 +154,8 @@ The choice stays until you change it: **WiiOS Settings → Change interface**, o
 
 WiiOS stays the TV's home underneath, so if the chosen interface is ever uninstalled, Home simply lands on WiiOS again.
 
+**TVs whose own home keeps the Home button** (some TCL Google TVs keep Google TV as home even after WiiOS is set as the home app, and nothing on them is disabled): WiiOS works as an all-in-one app from the app row, and **WiiOS Settings → Change interface → Home button opens WiiOS** makes Home bring WiiOS up instead. It's an optional accessibility helper, *WiiOS Home button*, that only notices the TV's own home screen appearing; it reads nothing on screen. It only acts while WiiOS is the chosen interface, so with Google TV chosen the TV is completely untouched. Without the installer's permission grant the switch opens **Settings → Accessibility**, where you turn **WiiOS Home button** on or off yourself. You may see the TV's home for a moment before WiiOS comes up.
+
 ## Keeping it safe
 
 - **Turn debugging off after setup.** USB/network debugging lets an approved computer control the TV. Once WiiOS is installed: **Settings → System → Developer options**, turn **USB debugging** off and choose **Revoke USB debugging authorisations**. Updates come through WiiOS itself, so debugging isn't needed again.
