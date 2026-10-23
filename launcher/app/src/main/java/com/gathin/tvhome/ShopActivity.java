@@ -28,10 +28,17 @@ public class ShopActivity extends Activity implements ShopView.Listener {
     private WiiSounds sounds;
     private WiiMusic music;
     private boolean busy;
+    /** The app being downloaded and installed, for the finished sound when it arrives. */
+    private String installing;
 
     private final BroadcastReceiver packages = new BroadcastReceiver() {
         @Override
         public void onReceive(Context context, Intent intent) {
+            String pkg = intent.getData() == null ? null : intent.getData().getSchemeSpecificPart();
+            if (installing != null && installing.equals(pkg) && Intent.ACTION_PACKAGE_ADDED.equals(intent.getAction())) {
+                installing = null;
+                sounds.play(WiiSounds.DONE);
+            }
             view.refreshInstalled();
         }
     };
@@ -158,6 +165,7 @@ public class ShopActivity extends Activity implements ShopView.Listener {
     private void download(ShopCatalog.App app) {
         if (busy) return;
         busy = true;
+        installing = app.pkg;
         view.showDownload(app, 0f, null);
         Context ctx = getApplicationContext();
         new Thread(() -> {
@@ -174,7 +182,11 @@ public class ShopActivity extends Activity implements ShopView.Listener {
             final String fe = error;
             runOnUiThread(() -> {
                 busy = false;
-                if (fe != null) view.showDownload(app, -1f, fe);
+                if (fe != null) {
+                    installing = null;
+                    sounds.play(WiiSounds.ERROR);
+                    view.showDownload(app, -1f, fe);
+                }
             });
         }, "wii-shop-download").start();
     }

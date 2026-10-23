@@ -568,6 +568,7 @@ public class WiiMenuActivity extends Activity implements WiiMenuView.Listener {
             startActivity(intent);
             overridePendingTransition(R.anim.app_open_enter, R.anim.app_open_exit);
         } catch (ActivityNotFoundException | SecurityException e) {
+            sounds.play(WiiSounds.ERROR);
             Toast.makeText(this, R.string.not_available, Toast.LENGTH_SHORT).show();
         }
     }

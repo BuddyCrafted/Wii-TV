@@ -461,6 +461,11 @@ public class WiiMenuView extends View {
         invalidate();
     }
 
+    /** Back out of Settings: the last page closing sounds like the Home Button menu's exit. */
+    private int backSound() {
+        return settings.size() == 1 ? WiiSounds.MENU_CLOSE : WiiSounds.BACK;
+    }
+
     void closeSettings() {
         settings.clear();
         invalidate();
@@ -504,7 +509,7 @@ public class WiiMenuView extends View {
             default:
                 if (isOk(keyCode)) {
                     if (p.focus == SETTINGS_BACK) {
-                        sound(WiiSounds.BACK);
+                        sound(backSound());
                         popSettings();
                     } else if (p.focus >= 0 && p.focus < p.items.size()) {
                         sound(WiiSounds.SELECT);
@@ -513,7 +518,7 @@ public class WiiMenuView extends View {
                     return true;
                 }
                 if (keyCode == KeyEvent.KEYCODE_BUTTON_B) {
-                    sound(WiiSounds.BACK);
+                    sound(backSound());
                     popSettings();
                     return true;
                 }
@@ -550,7 +555,7 @@ public class WiiMenuView extends View {
     /** Back: closes the menu or the welcome screen. False when there was nothing to close. */
     boolean back() {
         if (!settings.isEmpty() && !menuOpen) {
-            sound(WiiSounds.BACK);
+            sound(backSound());
             popSettings();
             return true;
         }
