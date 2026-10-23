@@ -29,6 +29,10 @@ import java.net.URL;
  * Android 12+ installs it with no prompt once this app is the installer of record (after the first update);
  * older systems, Fire OS included, show one Install confirmation. Installing needs "install unknown apps",
  * which build-and-install.sh grants over ADB.
+ *
+ * A private repository needs a key: a read-only GitHub token for this repository alone, typed in once in
+ * Settings > System Update > Family update key. It's only ever sent to api.github.com for this repository,
+ * never to the download servers GitHub redirects to, the Shop's other apps or anything else.
  */
 final class Updater {
     private Updater() {}
@@ -36,6 +40,26 @@ final class Updater {
     static final String KEY_AUTO = "auto_update";
     static final String KEY_LAST_CHECK = "update_last_check";
     static final long CHECK_EVERY_MS = 24L * 60 * 60 * 1000;
+    static final String KEY_TOKEN = "update_key";
+
+    /** The family update key and the address it may go to; set by useKey before checking or downloading. */
+    private static volatile String token, tokenFor;
+
+    static void useKey(Context c) {
+        String t = Profiles.main(c).getString(KEY_TOKEN, "").trim();
+        token = t.isEmpty() ? null : t;
+        tokenFor = "https://api.github.com/repos/" + c.getString(R.string.update_repo) + "/";
+    }
+
+    static boolean hasKey(Context c) {
+        return !Profiles.main(c).getString(KEY_TOKEN, "").trim().isEmpty();
+    }
+
+    /** True if this address gets the key. */
+    static boolean keyed(String url) {
+        String t = token, f = tokenFor;
+        return t != null && f != null && url.startsWith(f);
+    }
 
     static final class Release {
         final int build;
@@ -63,11 +87,12 @@ final class Updater {
     /** The latest release, or null with an error message. Runs off the UI thread; answers on it. */
     static void latest(Context context, Result<Release> result) {
         String repo = context.getString(R.string.update_repo);
+        useKey(context);
         new Thread(() -> {
             Release r = null;
             String error = null;
             try {
-                r = parse(get("https://api.github.com/repos/" + repo + "/releases/latest"));
+                r = parse(get("https://api.github.com/repos/" + repo + "/releases/latest"), token != null);
                 if (r == null) error = "no APK in the latest release";
             } catch (IOException | RuntimeException | org.json.JSONException e) {
                 error = e.getMessage() == null ? e.toString() : e.getMessage();
@@ -80,6 +105,11 @@ final class Updater {
 
     /** A release JSON from the GitHub API to a Release: tag build-<N> and an .apk asset. */
     static Release parse(String json) throws org.json.JSONException {
+        return parse(json, false);
+    }
+
+    /** With a key, the APK comes from the API's own address for it (a private release has no public link). */
+    static Release parse(String json, boolean api) throws org.json.JSONException {
         JSONObject o = new JSONObject(json);
         int build = buildOf(o.optString("tag_name", ""));
         if (build < 0) return null;
@@ -89,7 +119,7 @@ final class Updater {
             JSONObject a = assets.getJSONObject(i);
             if (a.optString("name", "").endsWith(".apk")) {
                 return new Release(build, o.optString("name", "build " + build), o.optString("body", ""),
-                        a.getString("browser_download_url"));
+                        api && a.has("url") ? a.getString("url") : a.getString("browser_download_url"));
             }
         }
         return null;
@@ -112,6 +142,7 @@ final class Updater {
     /** Downloads the release's APK and starts installing it; errors come back on the UI thread. */
     static void install(Context context, Release r, Result<Void> result) {
         Context app = context.getApplicationContext();
+        useKey(app);
         new Thread(() -> {
             String error = null;
             try {
@@ -151,13 +182,35 @@ final class Updater {
     }
 
     private static HttpURLConnection open(String url) throws IOException {
-        HttpURLConnection c = (HttpURLConnection) new URL(url).openConnection();
-        c.setConnectTimeout(15_000);
-        c.setReadTimeout(30_000);
-        c.setRequestProperty("Accept", "application/vnd.github+json");
-        c.setRequestProperty("User-Agent", "WiiOS-updater");
-        c.setInstanceFollowRedirects(true);
-        return c;
+        return open(url, "application/vnd.github+json");
+    }
+
+    /**
+     * Opens the address, following redirects by hand when the key goes along so it stays with
+     * api.github.com: the download server GitHub sends a private APK to gets a signed link, not the key.
+     */
+    private static HttpURLConnection open(String url, String accept) throws IOException {
+        for (int hop = 0; ; hop++) {
+            HttpURLConnection c = (HttpURLConnection) new URL(url).openConnection();
+            c.setConnectTimeout(15_000);
+            c.setReadTimeout(30_000);
+            c.setRequestProperty("Accept", accept);
+            c.setRequestProperty("User-Agent", "WiiOS-updater");
+            boolean keyed = keyed(url);
+            if (!keyed) {
+                c.setInstanceFollowRedirects(true);
+                return c;
+            }
+            c.setInstanceFollowRedirects(false);
+            c.setRequestProperty("Authorization", "Bearer " + token);
+            int code = c.getResponseCode();
+            String to = c.getHeaderField("Location");
+            if (code / 100 != 3 || to == null) return c;
+            c.disconnect();
+            if (hop >= 5) throw new IOException("too many redirects");
+            url = new URL(new URL(url), to).toString();
+            if (!url.startsWith("https://")) throw new IOException("insecure redirect");
+        }
     }
 
     static String get(String url) throws IOException {
@@ -182,8 +235,7 @@ final class Updater {
     }
 
     static void download(String url, File to, Progress progress) throws IOException {
-        HttpURLConnection c = open(url);
-        c.setRequestProperty("Accept", "application/octet-stream");
+        HttpURLConnection c = open(url, "application/octet-stream");
         try {
             if (c.getResponseCode() != 200) throw new IOException("HTTP " + c.getResponseCode());
             long total = c.getContentLengthLong(), done = 0;

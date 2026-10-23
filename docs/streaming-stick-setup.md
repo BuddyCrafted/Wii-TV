@@ -192,6 +192,15 @@ You only need the computer for the first install. After that, WiiOS updates itse
 
 Every build is signed with the same key (`launcher/keys/`), so updates always install over the previous version. That key is public in the repo on purpose, and the updater only downloads from this repository's own releases. If you'd rather use a private key, see the comment in `launcher/app/build.gradle`. Devices installed with the old key then need one uninstall.
 
+### Keeping the repository private (family only)
+
+Releases of a private repository can't be downloaded without logging in, so each TV needs a **family update key** once:
+
+1. On GitHub: **Settings → Developer settings → Personal access tokens → Fine-grained tokens → Generate new token**. Pick **Only select repositories → Wii-TV**, then under **Repository permissions** set **Contents: Read-only** and leave everything else alone. Set an expiry date you're happy with (it needs renewing then).
+2. On each TV: **WiiOS Settings → System Update → Family update key**, then paste the key. The phone remote's **Type** tab saves typing it with the remote.
+
+From then on that TV updates itself like before, with no computer. The key can only read this one repository; it can't change anything, and WiiOS sends it to `api.github.com` for this repository only. To lock someone out, delete the key on GitHub and make a new one for everyone else.
+
 > A local build from your computer is "build 0", so any published release counts as newer and gets offered. To reinstall a local build over a newer release, uninstall WiiOS first, or build with `-PwiiosBuild=<higher number>`.
 
 ## Forecast Channel

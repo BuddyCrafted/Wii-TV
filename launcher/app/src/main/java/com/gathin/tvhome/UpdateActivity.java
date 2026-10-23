@@ -46,6 +46,7 @@ public class UpdateActivity extends Activity {
         new Thread(() -> {
             try {
                 File apk = new File(app.getCacheDir(), "update.apk");
+                Updater.useKey(this);
                 Updater.download(url, apk, f -> runOnUiThread(() -> show(R.string.upd_downloading, f < 0 ? 0.5f : f, footer)));
                 runOnUiThread(() -> {
                     installing = true;

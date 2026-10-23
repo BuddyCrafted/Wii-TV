@@ -324,6 +324,11 @@
     <string name="set_upd_version">This version</string>
     <string name="set_upd_check">Check for updates</string>
     <string name="set_upd_auto">Automatic updates</string>
+    <string name="set_upd_key">Family update key</string>
+    <string name="set_upd_key_set">Saved</string>
+    <string name="set_upd_key_none">None</string>
+    <string name="set_upd_key_hint">github_pat_…</string>
+    <string name="set_upd_key_about">Only needed while WiiOS\'s repository is private. Paste a read-only key for that repository (the phone remote\'s Type tab helps). Leave it empty to remove it.</string>
     <string name="upd_title">WiiOS System Update</string>
     <string name="upd_now">Update now (build %1$d)</string>
     <string name="upd_later">Later</string>

@@ -804,7 +804,29 @@ public class WiiMenuActivity extends Activity implements WiiMenuView.Listener {
             prefs.edit().putBoolean(Updater.KEY_AUTO, !prefs.getBoolean(Updater.KEY_AUTO, true)).apply();
             menu.refreshSettings();
         }));
+        items.add(new WiiMenuView.MenuItem(getString(R.string.set_upd_key),
+                getString(Updater.hasKey(this) ? R.string.set_upd_key_set : R.string.set_upd_key_none), this::askUpdateKey));
         return items;
+    }
+
+    /** The read-only GitHub key a private repository needs for updates; typed with the phone remote or keyboard. */
+    private void askUpdateKey() {
+        android.widget.EditText field = new android.widget.EditText(this);
+        field.setSingleLine(true);
+        field.setInputType(android.text.InputType.TYPE_CLASS_TEXT | android.text.InputType.TYPE_TEXT_VARIATION_PASSWORD);
+        field.setHint(R.string.set_upd_key_hint);
+        RemoteServer.offerText(field);
+        new android.app.AlertDialog.Builder(this, android.R.style.Theme_DeviceDefault_Dialog_Alert)
+                .setTitle(R.string.set_upd_key)
+                .setMessage(R.string.set_upd_key_about)
+                .setView(field)
+                .setPositiveButton(android.R.string.ok, (d, which) -> {
+                    Profiles.main(this).edit().putString(Updater.KEY_TOKEN, field.getText().toString().trim()).apply();
+                    menu.refreshSettings();
+                })
+                .setNegativeButton(android.R.string.cancel, null)
+                .show();
+        field.requestFocus();
     }
 
     /** Once a day while automatic updates are on: look for a newer release and offer it. */
