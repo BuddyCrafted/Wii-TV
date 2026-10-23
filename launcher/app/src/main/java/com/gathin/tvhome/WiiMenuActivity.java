@@ -142,6 +142,7 @@ public class WiiMenuActivity extends Activity implements WiiMenuView.Listener {
             if (Profiles.ask(this) && resumed) startActivity(new Intent(this, ProfilesActivity.class));
         });
         SystemSettings.applyDefaultSleep(this, prefs);
+        GoogleTvHomeService.enableOnce(this);
         RemoteServer.start(this);
         menu.setTheme(Theme.load(my));
         setContentView(menu);
@@ -369,8 +370,8 @@ public class WiiMenuActivity extends Activity implements WiiMenuView.Listener {
             // TVs whose own launcher keeps Home: WiiOS can bring itself up instead, nothing disabled.
             // Both need the WiiOS Home button helper; it's on while either is.
             boolean running = GoogleTvHomeService.enabled(this);
-            boolean opens = running && prefs.getBoolean(GoogleTvHomeService.KEY_HOME_OPENS, true);
-            boolean back = running && prefs.getBoolean(GoogleTvHomeService.KEY_RETURN, false);
+            boolean opens = running && prefs.getBoolean(GoogleTvHomeService.KEY_HOME_OPENS, false);
+            boolean back = running && prefs.getBoolean(GoogleTvHomeService.KEY_RETURN, true);
             items.add(new WiiMenuView.MenuItem(getString(R.string.set_home_button), onOff(opens), () ->
                     setHomeHelper(!opens, back)));
             items.add(new WiiMenuView.MenuItem(getString(R.string.set_apps_return), onOff(back), () ->

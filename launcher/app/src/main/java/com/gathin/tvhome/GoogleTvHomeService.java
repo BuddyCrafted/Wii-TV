@@ -11,7 +11,8 @@ import android.view.accessibility.AccessibilityEvent;
  * app, as some TCL builds do. Nothing on the TV is disabled: switch this on or off in the TV's own Settings >
  * Accessibility (WiiOS Home button), with no computer needed.
  *
- * Two jobs, each its own switch in WiiOS Settings > Change interface:
+ * Two jobs, each its own switch in WiiOS Settings > Change interface (returning on, Home off by default; the
+ * menu switches the helper on once by itself where the installer granted WRITE_SECURE_SETTINGS):
  *  - Home button opens WiiOS: the TV's home appearing always brings WiiOS up.
  *  - Apps return to WiiOS: an app opened from WiiOS that closes itself with its own Exit (YouTube's, say)
  *    lands back on WiiOS instead of the TV's home, while the remote's Home still goes to the TV's home. The
@@ -65,8 +66,8 @@ public class GoogleTvHomeService extends AccessibilityService {
         long now = SystemClock.uptimeMillis();
         android.content.SharedPreferences prefs = Profiles.main(this);
         boolean homeKey = now - homeKeyAt < HOME_KEY_MS;
-        boolean bring = prefs.getBoolean(KEY_HOME_OPENS, true)
-                || (prefs.getBoolean(KEY_RETURN, false) && fromWiiOS && !homeKey);
+        boolean bring = prefs.getBoolean(KEY_HOME_OPENS, false)
+                || (prefs.getBoolean(KEY_RETURN, true) && fromWiiOS && !homeKey);
         if (!bring) return;
         if (now - lastLaunch < DEBOUNCE_MS) return;
         lastLaunch = now;
@@ -81,6 +82,19 @@ public class GoogleTvHomeService extends AccessibilityService {
 
     private static String id(android.content.Context c) {
         return c.getPackageName() + "/" + GoogleTvHomeService.class.getName();
+    }
+
+    private static final String KEY_AUTO = "gtv_helper_auto";
+
+    /**
+     * Once per TV: switches the helper on, so apps opened from WiiOS return to it out of the box. Only where
+     * the installer's grant allows it; otherwise it stays a choice in Settings. Not on Fire TV, which has its
+     * own redirect.
+     */
+    static void enableOnce(android.content.Context c) {
+        android.content.SharedPreferences prefs = Profiles.main(c);
+        if (DeviceProfile.fireTv() || prefs.getBoolean(KEY_AUTO, false)) return;
+        if (enabled(c) || setEnabled(c, true)) prefs.edit().putBoolean(KEY_AUTO, true).apply();
     }
 
     /** Whether it's switched on in the TV's accessibility list. */
