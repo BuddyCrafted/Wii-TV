@@ -129,6 +129,7 @@ public class WiiMenuActivity extends Activity implements WiiMenuView.Listener {
         prefs = getSharedPreferences(PREFS, MODE_PRIVATE);
         profileId = Profiles.current(this);
         my = Profiles.prefs(this, profileId);
+        SoundPack.unbundle(this);
         sounds = new WiiSounds(this, prefs.getBoolean(KEY_SOUNDS, getResources().getBoolean(R.bool.wii_sounds)));
         themeFromIntent(getIntent());
         musicTheme = Theme.load(my);

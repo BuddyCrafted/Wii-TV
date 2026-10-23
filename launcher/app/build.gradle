@@ -50,6 +50,12 @@ android {
         }
     }
 
+    // A personal build only: -PpersonalPack=<folder holding a WiiOS/music and WiiOS/sounds folder> puts your own
+    // files inside that one APK (SoundPack.unbundle copies them into WiiOS's folders). Never set in CI, so
+    // nobody else's files are ever in a release.
+    def personalPack = providers.gradleProperty('personalPack').getOrNull()
+    if (personalPack) sourceSets.main.assets.srcDirs += [personalPack]
+
     packagingOptions {
         resources {
             // Kotlin metadata pulled in by AndroidX's dependencies. This launcher is plain Java and never reads it;

@@ -2,7 +2,15 @@ package com.gathin.tvhome;
 
 import android.content.Context;
 
+import android.content.SharedPreferences;
+import android.content.pm.PackageInfo;
+import android.content.pm.PackageManager;
+import android.content.res.AssetManager;
+
 import java.io.File;
+import java.io.FileOutputStream;
+import java.io.IOException;
+import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -61,6 +69,53 @@ final class SoundPack {
         File primary = c.getExternalFilesDir(null);
         File pr = primary == null ? null : volumeRoot(primary);
         return pr != null && pr.equals(root);
+    }
+
+    /**
+     * A personal build (gradle -PpersonalPack) carries your files as assets/WiiOS/music and assets/WiiOS/sounds:
+     * copied into WiiOS's folders once per install of that build, so they stay after a later update too. Public
+     * builds carry none and this does nothing.
+     */
+    static void unbundle(Context c) {
+        AssetManager am = c.getAssets();
+        long stamp;
+        try {
+            PackageInfo pi = c.getPackageManager().getPackageInfo(c.getPackageName(), 0);
+            stamp = pi.lastUpdateTime;
+        } catch (PackageManager.NameNotFoundException e) {
+            return;
+        }
+        SharedPreferences prefs = Profiles.main(c);
+        if (prefs.getLong("bundled_pack", 0) == stamp) return;
+        for (String kind : new String[]{MUSIC, SOUNDS}) {
+            String[] files;
+            try {
+                files = am.list("WiiOS/" + kind);
+            } catch (IOException e) {
+                continue;
+            }
+            File dir = c.getExternalFilesDir(kind);
+            if (files == null || dir == null) continue;
+            for (String file : files) {
+                int dot = file.lastIndexOf('.');
+                if (dot <= 0) continue;
+                String name = file.substring(0, dot), ext = file.substring(dot).toLowerCase(java.util.Locale.ROOT);
+                boolean extOk = false;
+                for (String x : EXTENSIONS) if (x.equals(ext)) extOk = true;
+                if (!extOk) continue;
+                File tmp = new File(dir, name + ext + ".part");
+                try (InputStream in = am.open("WiiOS/" + kind + "/" + file); FileOutputStream out = new FileOutputStream(tmp)) {
+                    byte[] buf = new byte[1 << 16];
+                    for (int n; (n = in.read(buf)) > 0; ) out.write(buf, 0, n);
+                } catch (IOException e) {
+                    tmp.delete();
+                    continue;
+                }
+                for (String x : EXTENSIONS) new File(dir, name + x).delete();
+                if (!tmp.renameTo(new File(dir, name + ext))) tmp.delete();
+            }
+        }
+        prefs.edit().putLong("bundled_pack", stamp).apply();
     }
 
     /** A flash drive is plugged in (so the storage permission is worth asking for). */

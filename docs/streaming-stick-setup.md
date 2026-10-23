@@ -246,6 +246,8 @@ The sign-in form itself is always Google's (or Amazon's). That's on purpose: a h
 
 **Without a flash drive:** switch the phone remote on (WiiOS Settings → Phone remote), open it on your phone or computer, and use its **Sounds** tab: pick a file for any slot below and it's saved into WiiOS on the TV straight away (menu sounds change at once; music on the next visit to that screen). **Whole sound pack** at the top takes one zip with `music/` and `sounds/` folders inside, files named after the slots (like `sounds/select.wav`), and saves them all at once; anything else in the zip is ignored.
 
+**A personal build with your files inside:** put your `WiiOS/music` and `WiiOS/sounds` folders in a folder of your own and build with `./gradlew assembleRelease -PpersonalPack=<that folder>`. WiiOS copies them into its folders the first time it starts, and they stay through later updates from the public releases. Keep that APK to yourself: the files are yours, not the repository's.
+
 **With a flash drive:** put a **WiiOS** folder at the top of a flash drive (formatted as *removable storage*, not device storage) and plug it in; the first time, the TV asks to let WiiOS read it: choose **Allow**. Any file WiiOS finds by name replaces its built-in sound; the rest stay as they are. Nothing is bundled in WiiOS or this repository, so use files you have the right to play.
 
 | Folder | Names | What they are |
