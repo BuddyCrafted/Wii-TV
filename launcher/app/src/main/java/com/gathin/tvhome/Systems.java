@@ -103,6 +103,15 @@ final class Systems {
         return WIIOS.equals(active(c));
     }
 
+    /**
+     * True while WiiOS is the interface in use, which is also the case when the chosen one has gone. WiiOS's
+     * remote-button helpers only act then: with the TV's own interface (or another) chosen, every button
+     * behaves exactly as that interface expects.
+     */
+    static boolean usingWiiOS(Context c) {
+        return wiiosActive(c) || launch(c, active(c)) == null;
+    }
+
     /** At power-on, when asked to: the picker is only worth showing with something besides WiiOS to pick. */
     static boolean offerAtStart(Context c) {
         return pickerEveryStart(c) && list(c).size() > 1;

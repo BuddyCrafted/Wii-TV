@@ -198,6 +198,8 @@ public class FireTvHomeService extends AccessibilityService {
 
     @Override
     protected boolean onKeyEvent(KeyEvent event) {
+        // The Fire TV home (or another) is the interface in use: Home and its hold are Amazon's again.
+        if (!Systems.usingWiiOS(this)) return false;
         // While the picture is up the Amazon home sits underneath it: keys pressed blind would drive it.
         if (cover != null && event.getKeyCode() != KeyEvent.KEYCODE_HOME) return true;
         if (event.getKeyCode() != KeyEvent.KEYCODE_HOME) return false;
@@ -264,7 +266,7 @@ public class FireTvHomeService extends AccessibilityService {
 
     private void openMenu() {
         // The Fire TV home itself is the chosen system: leave it be.
-        if (!Systems.wiiosActive(this)) return;
+        if (!Systems.usingWiiOS(this)) return;
         long now = SystemClock.uptimeMillis();
         if (now - lastLaunch < DEBOUNCE_MS) return;
         // Already covering this Home press: its start is queued, and more Amazon events must not add starts.

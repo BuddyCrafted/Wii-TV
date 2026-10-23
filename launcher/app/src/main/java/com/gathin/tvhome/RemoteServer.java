@@ -294,6 +294,16 @@ final class RemoteServer {
 
     private static String key(String name) {
         if (name.equals("home")) {
+            // Home goes to the interface in use, as the remote's own Home does.
+            Intent other = Systems.usingWiiOS(app) ? null : Systems.launch(app, Systems.active(app));
+            if (other != null) {
+                try {
+                    app.startActivity(other);
+                    return "{\"ok\":true}";
+                } catch (RuntimeException ignored) {
+                    // fall back to WiiOS
+                }
+            }
             Intent home = new Intent(app, WiiMenuActivity.class)
                     .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TOP | Intent.FLAG_ACTIVITY_SINGLE_TOP);
             try {

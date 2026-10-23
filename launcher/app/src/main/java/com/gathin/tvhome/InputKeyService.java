@@ -60,6 +60,8 @@ public class InputKeyService extends AccessibilityService {
 
     @Override
     protected boolean onKeyEvent(KeyEvent event) {
+        // Another interface is in use: the remote's buttons are its own.
+        if (!Systems.usingWiiOS(this)) return false;
         String app = appKeys.get(event.getKeyCode());
         if (app == null && !isInputKey(event.getKeyCode())) return false;
         if (event.getAction() == KeyEvent.ACTION_UP && !event.isCanceled()) {
