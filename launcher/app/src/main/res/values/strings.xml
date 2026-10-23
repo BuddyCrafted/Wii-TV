@@ -129,7 +129,7 @@
     <string name="theme_beach">Beach</string>
     <string name="theme_island">Island village</string>
     <string name="prof_who">Who\'s watching?</string>
-    <string name="prof_pick_hint">Choose with ◀ ▶ and press OK</string>
+    <string name="prof_pick_hint">Choose with ◀ ▶ and press OK · Hold OK to edit or delete</string>
     <string name="prof_add">Add</string>
     <string name="prof_default_name">Player %1$d</string>
     <string name="prof_hi">Hi, %1$s!</string>

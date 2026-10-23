@@ -153,13 +153,64 @@ public class ProfilesActivity extends Activity {
     public boolean onKeyDown(int keyCode, KeyEvent event) {
         boolean ok = keyCode == KeyEvent.KEYCODE_DPAD_CENTER || keyCode == KeyEvent.KEYCODE_ENTER
                 || keyCode == KeyEvent.KEYCODE_NUMPAD_ENTER || keyCode == KeyEvent.KEYCODE_BUTTON_A;
+        if (heldOk && isOk(keyCode)) return true;   // the rest of a held OK that opened the editor
         if (keyCode == KeyEvent.KEYCODE_BACK || keyCode == KeyEvent.KEYCODE_BUTTON_B) {
             sounds.play(WiiSounds.BACK);
             if (editing && !onlyEdit) showPicker();
             else finish();
             return true;
         }
+        if (!editing && ok) {
+            // OK acts when it's let go, so holding it can open the editor instead.
+            if (event.getRepeatCount() == 0) {
+                event.startTracking();
+                heldOk = false;
+            }
+            return true;
+        }
+        if (!editing && keyCode == KeyEvent.KEYCODE_MENU) {
+            editFocused();
+            return true;
+        }
         return editing ? editKey(keyCode, ok) : pickKey(keyCode, ok);
+    }
+
+    private boolean heldOk;
+
+    private static boolean isOk(int keyCode) {
+        return keyCode == KeyEvent.KEYCODE_DPAD_CENTER || keyCode == KeyEvent.KEYCODE_ENTER
+                || keyCode == KeyEvent.KEYCODE_NUMPAD_ENTER || keyCode == KeyEvent.KEYCODE_BUTTON_A;
+    }
+
+    @Override
+    public boolean onKeyLongPress(int keyCode, KeyEvent event) {
+        if (!editing && isOk(keyCode)) {
+            heldOk = true;
+            editFocused();
+            return true;
+        }
+        return super.onKeyLongPress(keyCode, event);
+    }
+
+    @Override
+    public boolean onKeyUp(int keyCode, KeyEvent event) {
+        if (heldOk && isOk(keyCode)) {
+            heldOk = false;
+            return true;
+        }
+        if (!editing && isOk(keyCode)) {
+            if (!heldOk && event.isTracking() && !event.isCanceled()) pickKey(keyCode, true);
+            heldOk = false;
+            return true;
+        }
+        return super.onKeyUp(keyCode, event);
+    }
+
+    /** Hold OK (or Menu) on a profile in Who's watching: its editor, where it can be changed or deleted. */
+    private void editFocused() {
+        if (focus >= ids.size()) return;   // the Add card
+        sounds.play(WiiSounds.SELECT);
+        startEdit(ids.get(focus));
     }
 
     private boolean pickKey(int keyCode, boolean ok) {
@@ -230,7 +281,8 @@ public class ProfilesActivity extends Activity {
             } else {
                 Profiles.save(this, realId(), name, miiId);
             }
-            finish();
+            if (!onlyEdit && !isNew()) showPicker();   // edited from Who's watching: still choosing
+            else finish();
         } else if (row == ROW_DELETE) {
             if (!confirmDelete) {
                 confirmDelete = true;
@@ -238,8 +290,12 @@ public class ProfilesActivity extends Activity {
             } else {
                 sounds.play(WiiSounds.BACK);
                 Profiles.remove(this, realId());
-                if (onlyEdit) finish();
-                else showPicker();
+                if (onlyEdit || Profiles.ids(this).size() < 2) {
+                    finish();   // nobody left to choose between: straight to the menu
+                } else {
+                    focus = 0;
+                    showPicker();
+                }
             }
         }
         return true;
