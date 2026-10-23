@@ -53,6 +53,15 @@
     pointer-events: none; max-width: 90vw; text-align: center; }
   #toast.show { opacity: 1; }
   #pair { display: none; }
+  .slot { display: flex; align-items: center; gap: 10px; background: #fff; border: 3px solid var(--line); border-radius: 16px;
+    padding: 10px 14px; margin-bottom: 8px; }
+  .slot span { flex: 1; font-weight: 600; font-size: 15px; }
+  .slot small { display: block; color: var(--soft); font-weight: 500; font-size: 12px; }
+  .slot label { border: 2px solid var(--accent); border-radius: 18px; padding: 6px 12px; font-size: 14px; font-weight: 700;
+    color: var(--ink); white-space: nowrap; }
+  .slot.has { border-color: #8bc34a; }
+  .slot input { display: none; }
+  h2 { font-size: 16px; color: var(--soft); margin: 16px 4px 8px; }
 </style>
 </head>
 <body>
@@ -66,6 +75,7 @@
   <button data-tab="remote" class="sel">Remote</button>
   <button data-tab="channels">Channels</button>
   <button data-tab="type">Type</button>
+  <button data-tab="sounds">Sounds</button>
 </nav>
 <main id="main">
   <section class="tab sel" id="remote">
@@ -87,6 +97,11 @@
   <section class="tab" id="channels">
     <div class="grid" id="chanGrid"></div>
     <p class="hint" id="chanHint">Tap a channel to open it on the TV.</p>
+  </section>
+  <section class="tab" id="sounds">
+    <p class="hint">Your own music and sound effects, saved into WiiOS on the TV (no flash drive). Pick a file for any slot; the rest keep WiiOS's own sounds.</p>
+    <h2>Music</h2><div id="musicList"></div>
+    <h2>Sound effects</h2><div id="soundList"></div>
   </section>
   <section class="tab" id="type">
     <textarea id="text" rows="3" placeholder="Type here, then send it to the box on the TV"></textarea>
@@ -150,6 +165,7 @@
       document.querySelectorAll('main .tab').forEach(function (x) { x.classList.remove('sel'); });
       b.classList.add('sel'); $(b.getAttribute('data-tab')).classList.add('sel');
       if (b.getAttribute('data-tab') === 'channels') loadChannels();
+      if (b.getAttribute('data-tab') === 'sounds') loadSounds();
     });
   });
   function loadChannels() {
@@ -164,6 +180,41 @@
         g.appendChild(b);
       });
       $('chanHint').textContent = list.length ? 'Tap a channel to open it on the TV.' : 'Open the WiiOS menu on the TV once, then try again.';
+    }).catch(function () {});
+  }
+  var SLOTS = {
+    music: [['menu','Wii Menu music'],['menu_start','Start jingle (after the welcome screen)'],['shop','Shop Channel'],
+      ['shop_start','Shop title (before the Shop music)'],['games','Games channel'],['games_start','Games title'],
+      ['mii','Mii Channel (Mii Plaza)'],['mii_start','Mii Channel intro'],['winter','Winter theme menu'],['forecast','Forecast Channel']],
+    sounds: [['move','Cursor moving over channels'],['select','Choosing (A)'],['back','Going back (B)'],['page','Page arrows'],
+      ['menu','A menu opening'],['start','Leaving the welcome screen'],['open','Opening a channel'],['sd','SD Card button'],
+      ['board','Message Board button']]
+  };
+  var EXTS = ['.mp3','.ogg','.m4a','.flac','.wav'];
+  function loadSounds() {
+    api('/api/sounds').then(function (have) {
+      [['music','musicList'],['sounds','soundList']].forEach(function (k) {
+        var box = $(k[1]); box.innerHTML = '';
+        SLOTS[k[0]].forEach(function (slot) {
+          var row = document.createElement('div'); row.className = 'slot' + (have[k[0]].indexOf(slot[0]) >= 0 ? ' has' : '');
+          var t = document.createElement('span'); t.textContent = slot[1];
+          var sm = document.createElement('small'); sm.textContent = have[k[0]].indexOf(slot[0]) >= 0 ? 'Yours' : 'WiiOS built-in'; t.appendChild(sm);
+          var lab = document.createElement('label'); lab.textContent = 'Choose file';
+          var inp = document.createElement('input'); inp.type = 'file'; inp.accept = 'audio/*,.mp3,.ogg,.m4a,.flac,.wav';
+          inp.addEventListener('change', function () {
+            var f = inp.files[0]; if (!f) return;
+            var dot = f.name.lastIndexOf('.'), ext = dot >= 0 ? f.name.slice(dot).toLowerCase() : '';
+            if (EXTS.indexOf(ext) < 0) { toast('Use an .mp3, .ogg, .m4a, .flac or .wav file'); return; }
+            sm.textContent = 'Uploading…';
+            fetch('/api/upload?kind=' + k[0] + '&name=' + slot[0] + '&ext=' + encodeURIComponent(ext),
+                { method: 'POST', headers: { 'X-Pin': pin }, body: f })
+              .then(function (r) { return r.json(); })
+              .then(function (r) { toast(r.ok ? 'Saved on the TV' : 'Couldn\u2019t save that file'); loadSounds(); })
+              .catch(function () { toast('Upload failed. Is the phone on the same Wi\u2011Fi?'); loadSounds(); });
+          });
+          lab.appendChild(inp); row.appendChild(t); row.appendChild(lab); box.appendChild(row);
+        });
+      });
     }).catch(function () {});
   }
   $('send').addEventListener('click', function () {

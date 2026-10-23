@@ -21,13 +21,16 @@ final class WiiSounds {
     static final int GOAL = 8;
     /** Opening a channel: only with your own sound (sounds/open). */
     static final int OPEN = 9;
+    /** The SD Card and Message Board buttons: your own sounds (sounds/sd, sounds/board), else select and menu. */
+    static final int SD = 10, BOARD = 11;
     /** Your own sounds' names (SoundPack sounds/<name>), by id; null = built-in only. */
-    private static final String[] NAMES = {"move", "select", "page", "back", "menu", "start", null, null, null, "open"};
+    private static final String[] NAMES = {"move", "select", "page", "back", "menu", "start", null, null, null, "open",
+            "sd", "board"};
 
     private static final float VOLUME = 0.6f, SCENE_VOLUME = 0.3f;
 
     private final SoundPool pool;
-    private final int[] ids = new int[10];
+    private final int[] ids = new int[12];
     private boolean enabled;
 
     WiiSounds(Context context, boolean enabled) {
@@ -61,6 +64,9 @@ final class WiiSounds {
     private android.media.MediaPlayer jinglePlayer;
 
     void play(int which) {
+        // The corner buttons fall back to the usual sounds when there's no file of their own.
+        if (which == SD && ids[SD] == 0) which = SELECT;
+        if (which == BOARD && ids[BOARD] == 0) which = MENU;
         if (which == START && jingle != null) {
             if (enabled) playJingle();
             return;

@@ -192,16 +192,18 @@ final class RemoteServer {
             String[] parts = request.split(" ");
             if (parts.length < 2) return;
             String method = parts[0], path = parts[1];
-            int length = 0;
+            long length = 0;
             String pinHeader = null;
             for (String h; (h = line(in)) != null && !h.isEmpty(); ) {
                 int colon = h.indexOf(':');
                 if (colon < 0) continue;
                 String name = h.substring(0, colon).trim().toLowerCase(Locale.ROOT), value = h.substring(colon + 1).trim();
-                if (name.equals("content-length")) length = Math.min(4096, Integer.parseInt(value));
+                if (name.equals("content-length")) length = Long.parseLong(value);
                 if (name.equals("x-pin")) pinHeader = value;
             }
-            byte[] body = new byte[Math.max(0, length)];
+            boolean upload = path.startsWith("/api/upload?");
+            // Uploads stream straight to a file after the PIN check; everything else is a small body.
+            byte[] body = new byte[upload ? 0 : (int) Math.max(0, Math.min(4096, length))];
             int got = 0;
             while (got < body.length) {
                 int n = in.read(body, got, body.length - got);
@@ -224,6 +226,10 @@ final class RemoteServer {
                 return;
             }
             wrong = 0;
+            if (upload) {
+                respond(out, 200, "application/json", upload(path, in, length));
+                return;
+            }
             String result;
             switch (path) {
                 case "/api/hello": result = "{\"ok\":true}"; break;
@@ -231,6 +237,7 @@ final class RemoteServer {
                 case "/api/text": result = type(text); break;
                 case "/api/channels": result = channelsJson(); break;
                 case "/api/open": result = open(text.trim()); break;
+                case "/api/sounds": result = soundsJson(); break;
                 default:
                     respond(out, 404, "text/plain", "not found");
                     return;
@@ -377,6 +384,94 @@ final class RemoteServer {
         } catch (RuntimeException e) {
             return "{\"ok\":false}";
         }
+    }
+
+    // ---- your own music and sounds, uploaded from the phone into WiiOS's folder on the TV --------------
+
+    private static final long MAX_UPLOAD = 40L << 20;
+    static final String[] MUSIC_NAMES = {"menu", "menu_start", "winter", "shop", "shop_start", "games", "games_start",
+            "mii", "mii_start", "forecast"};
+    static final String[] SOUND_NAMES = {"move", "select", "page", "back", "menu", "start", "open", "sd", "board"};
+
+    private static boolean known(String kind, String name) {
+        String[] names = SoundPack.MUSIC.equals(kind) ? MUSIC_NAMES : SoundPack.SOUNDS.equals(kind) ? SOUND_NAMES : null;
+        if (names == null) return false;
+        for (String n : names) if (n.equals(name)) return true;
+        return false;
+    }
+
+    private static String query(String path, String key) {
+        int q = path.indexOf('?');
+        if (q < 0) return null;
+        for (String kv : path.substring(q + 1).split("&")) {
+            int e = kv.indexOf('=');
+            if (e > 0 && kv.substring(0, e).equals(key)) {
+                try {
+                    return java.net.URLDecoder.decode(kv.substring(e + 1), "UTF-8");
+                } catch (java.io.UnsupportedEncodingException ex) {
+                    return null;
+                }
+            }
+        }
+        return null;
+    }
+
+    /** Saves the body as <kind>/<name><ext> in WiiOS's folder on the TV, replacing any older file of that name. */
+    private static String upload(String path, InputStream in, long length) throws IOException {
+        String kind = query(path, "kind"), name = query(path, "name"), ext = query(path, "ext");
+        boolean extOk = false;
+        for (String e : SoundPack.EXTENSIONS) if (e.equals(ext)) extOk = true;
+        if (kind == null || name == null || !known(kind, name) || !extOk) return "{\"ok\":false,\"why\":\"name\"}";
+        if (length <= 0 || length > MAX_UPLOAD) return "{\"ok\":false,\"why\":\"size\"}";
+        java.io.File dir = app.getExternalFilesDir(kind);
+        if (dir == null) return "{\"ok\":false,\"why\":\"storage\"}";
+        java.io.File tmp = new java.io.File(dir, name + ext + ".part");
+        long left = length;
+        try (java.io.FileOutputStream f = new java.io.FileOutputStream(tmp)) {
+            byte[] buf = new byte[1 << 16];
+            while (left > 0) {
+                int n = in.read(buf, 0, (int) Math.min(buf.length, left));
+                if (n < 0) break;
+                f.write(buf, 0, n);
+                left -= n;
+            }
+        }
+        if (left > 0) {
+            tmp.delete();
+            return "{\"ok\":false,\"why\":\"cut\"}";
+        }
+        for (String e : SoundPack.EXTENSIONS) new java.io.File(dir, name + e).delete();
+        if (!tmp.renameTo(new java.io.File(dir, name + ext))) {
+            tmp.delete();
+            return "{\"ok\":false,\"why\":\"storage\"}";
+        }
+        // The menu loads its sounds when it starts: start it again if it's on screen, so it's heard at once.
+        Activity a = resumed.get();
+        if (a instanceof WiiMenuActivity) a.runOnUiThread(a::recreate);
+        return "{\"ok\":true}";
+    }
+
+    /** Which of the names have a file of yours in WiiOS's folder on the TV. */
+    private static String soundsJson() {
+        StringBuilder b = new StringBuilder("{");
+        String[][] all = {MUSIC_NAMES, SOUND_NAMES};
+        String[] kinds = {SoundPack.MUSIC, SoundPack.SOUNDS};
+        for (int k = 0; k < 2; k++) {
+            if (k > 0) b.append(',');
+            b.append(json(kinds[k])).append(":[");
+            java.io.File dir = app.getExternalFilesDir(kinds[k]);
+            boolean first = true;
+            for (String n : all[k]) {
+                boolean has = false;
+                for (String e : SoundPack.EXTENSIONS) if (dir != null && new java.io.File(dir, n + e).isFile()) has = true;
+                if (!has) continue;
+                if (!first) b.append(',');
+                b.append(json(n));
+                first = false;
+            }
+            b.append(']');
+        }
+        return b.append('}').toString();
     }
 
     private static String channelsJson() {

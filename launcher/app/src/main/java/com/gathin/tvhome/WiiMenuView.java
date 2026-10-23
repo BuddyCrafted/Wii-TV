@@ -780,7 +780,7 @@ public class WiiMenuView extends View {
     }
 
     private void activate() {
-        sound(focus == BTN_INPUTS ? WiiSounds.MENU : WiiSounds.SELECT);
+        sound(focus == BTN_INPUTS ? WiiSounds.BOARD : focus == BTN_SD ? WiiSounds.SD : WiiSounds.SELECT);
         if (focus == BTN_SETTINGS) listener.onSettingsButton();
         else if (focus == BTN_SD) listener.onSdButton();
         else if (focus == BTN_INPUTS) listener.onInputsButton();
