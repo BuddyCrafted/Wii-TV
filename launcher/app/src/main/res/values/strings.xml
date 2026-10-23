@@ -172,8 +172,9 @@
     <string name="set_system_choose">Choose an interface</string>
     <string name="set_system_ask">Ask at every power-on</string>
     <string name="gtv_home_name">WiiOS Home button</string>
-    <string name="gtv_home_description">Brings WiiOS up when you press Home, while WiiOS is the interface chosen in Choose an interface. It only notices when the TV\'s own home screen appears; it doesn\'t read anything on screen or what you type. Turn it off to have Home go to the TV\'s own home again.</string>
+    <string name="gtv_home_description">Brings WiiOS up when you press Home, or when an app you opened from WiiOS closes, as you set in WiiOS Settings → Change interface. It only notices when the TV\'s own home screen appears and when the Home button is pressed; it doesn\'t read anything on screen or what you type. Turn it off to have Home go to the TV\'s own home again.</string>
     <string name="set_home_button">Home button opens WiiOS</string>
+    <string name="set_apps_return">Apps opened from WiiOS return to WiiOS</string>
     <string name="set_home_button_manual">Choose WiiOS Home button and turn it on (or off), then press Back.</string>
     <string name="theme_auto">Automatic (changes with the seasons)</string>
     <string name="theme_auto_now">Automatic: %1$s</string>

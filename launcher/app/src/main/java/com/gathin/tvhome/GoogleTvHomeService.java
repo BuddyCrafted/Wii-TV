@@ -11,14 +11,41 @@ import android.view.accessibility.AccessibilityEvent;
  * app, as some TCL builds do. Nothing on the TV is disabled: switch this on or off in the TV's own Settings >
  * Accessibility (WiiOS Home button), with no computer needed.
  *
+ * Two jobs, each its own switch in WiiOS Settings > Change interface:
+ *  - Home button opens WiiOS: the TV's home appearing always brings WiiOS up.
+ *  - Apps return to WiiOS: an app opened from WiiOS that closes itself with its own Exit (YouTube's, say)
+ *    lands back on WiiOS instead of the TV's home, while the remote's Home still goes to the TV's home. The
+ *    remote's Home key is noticed (never held back) to tell the two apart.
+ *
  * It only acts while WiiOS is the interface in use: with the TV's own interface chosen in Choose an
  * interface, it stands aside completely and the TV's home is untouched. It hears window changes from the
- * stock launchers only (res/xml/google_tv_home_service.xml), and nothing else.
+ * stock launchers only (res/xml/google_tv_home_service.xml) and the Home key, and nothing else.
  */
 public class GoogleTvHomeService extends AccessibilityService {
     /** One start per Home press or home window flicker. */
     private static final long DEBOUNCE_MS = 700;
+    /** A home window this soon after the remote's Home key came from that key, not an app's exit. */
+    private static final long HOME_KEY_MS = 2500;
+    static final String KEY_HOME_OPENS = "gtv_home_opens_wiios", KEY_RETURN = "gtv_return_to_wiios";
     private long lastLaunch;
+    private long homeKeyAt;
+    /** Set when WiiOS opens an app (WiiMenuActivity); the next home window decides where its exit lands. */
+    private static volatile boolean appFromWiiOS;
+
+    static void openedFromWiiOS() {
+        appFromWiiOS = true;
+    }
+
+    /** Back in WiiOS (Back out of the app, say): no app of its is open any more. */
+    static void backInWiiOS() {
+        appFromWiiOS = false;
+    }
+
+    @Override
+    protected boolean onKeyEvent(android.view.KeyEvent event) {
+        if (event.getKeyCode() == android.view.KeyEvent.KEYCODE_HOME) homeKeyAt = SystemClock.uptimeMillis();
+        return false;   // only noticed, never held back
+    }
 
     @Override
     protected void onServiceConnected() {
@@ -32,8 +59,15 @@ public class GoogleTvHomeService extends AccessibilityService {
         CharSequence cls = event.getClassName();
         // The launcher's home itself, not a dialog or panel it shows.
         if (cls == null || !(cls.toString().endsWith("HomeActivity") || cls.toString().endsWith("MainActivity"))) return;
+        boolean fromWiiOS = appFromWiiOS;
+        appFromWiiOS = false;
         if (!Systems.usingWiiOS(this)) return;
         long now = SystemClock.uptimeMillis();
+        android.content.SharedPreferences prefs = Profiles.main(this);
+        boolean homeKey = now - homeKeyAt < HOME_KEY_MS;
+        boolean bring = prefs.getBoolean(KEY_HOME_OPENS, true)
+                || (prefs.getBoolean(KEY_RETURN, false) && fromWiiOS && !homeKey);
+        if (!bring) return;
         if (now - lastLaunch < DEBOUNCE_MS) return;
         lastLaunch = now;
         try {

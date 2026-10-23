@@ -186,6 +186,7 @@ public class WiiMenuActivity extends Activity implements WiiMenuView.Listener {
     protected void onResume() {
         super.onResume();
         resumed = true;
+        GoogleTvHomeService.backInWiiOS();
         // Another system is in use: Home goes straight on to it (opening WiiOS from its tile still shows WiiOS).
         if (cameAsHome && !introPending && Systems.forward(this)) return;
         // Back on the menu, so any Settings visit is over: the Amazon home gets covered again.
@@ -366,15 +367,14 @@ public class WiiMenuActivity extends Activity implements WiiMenuView.Listener {
                 startActivity(new Intent(this, SystemPickerActivity.class))));
         if (!DeviceProfile.fireTv()) {
             // TVs whose own launcher keeps Home: WiiOS can bring itself up instead, nothing disabled.
-            boolean on = GoogleTvHomeService.enabled(this);
-            items.add(new WiiMenuView.MenuItem(getString(R.string.set_home_button), onOff(on), () -> {
-                if (GoogleTvHomeService.setEnabled(this, !on)) {
-                    menu.refreshSettings();
-                } else {
-                    Toast.makeText(this, R.string.set_home_button_manual, Toast.LENGTH_LONG).show();
-                    openSetting(Settings.ACTION_ACCESSIBILITY_SETTINGS);
-                }
-            }));
+            // Both need the WiiOS Home button helper; it's on while either is.
+            boolean running = GoogleTvHomeService.enabled(this);
+            boolean opens = running && prefs.getBoolean(GoogleTvHomeService.KEY_HOME_OPENS, true);
+            boolean back = running && prefs.getBoolean(GoogleTvHomeService.KEY_RETURN, false);
+            items.add(new WiiMenuView.MenuItem(getString(R.string.set_home_button), onOff(opens), () ->
+                    setHomeHelper(!opens, back)));
+            items.add(new WiiMenuView.MenuItem(getString(R.string.set_apps_return), onOff(back), () ->
+                    setHomeHelper(opens, !back)));
         }
         boolean ask = Systems.pickerEveryStart(this);
         items.add(new WiiMenuView.MenuItem(getString(R.string.set_system_ask), onOff(ask), () -> {
@@ -382,6 +382,18 @@ public class WiiMenuActivity extends Activity implements WiiMenuView.Listener {
             menu.refreshSettings();
         }));
         return items;
+    }
+
+    /** Sets the two Home-helper switches, starting or stopping the helper to match. */
+    private void setHomeHelper(boolean opens, boolean back) {
+        prefs.edit().putBoolean(GoogleTvHomeService.KEY_HOME_OPENS, opens).putBoolean(GoogleTvHomeService.KEY_RETURN, back).apply();
+        boolean want = opens || back;
+        if (GoogleTvHomeService.enabled(this) == want || GoogleTvHomeService.setEnabled(this, want)) {
+            menu.refreshSettings();
+        } else {
+            Toast.makeText(this, R.string.set_home_button_manual, Toast.LENGTH_LONG).show();
+            openSetting(Settings.ACTION_ACCESSIBILITY_SETTINGS);
+        }
     }
 
     /** Settings > Profile. */
@@ -540,6 +552,7 @@ public class WiiMenuActivity extends Activity implements WiiMenuView.Listener {
     public void onChannel(WiiMenuView.Channel channel) {
         List<String> recent = ChannelOrder.touchRecent(ChannelOrder.split(my.getString(KEY_RECENT, "")), channel.key);
         my.edit().putString(KEY_RECENT, ChannelOrder.join(recent)).apply();
+        GoogleTvHomeService.openedFromWiiOS();
         open(channel.intent);
     }
 
