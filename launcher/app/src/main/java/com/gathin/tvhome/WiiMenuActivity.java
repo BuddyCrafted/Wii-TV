@@ -546,9 +546,12 @@ public class WiiMenuActivity extends Activity implements WiiMenuView.Listener {
                 new Intent(this, MiiChannelActivity.class));
     }
 
-    /** SmartTube's stable and beta packages (new and old names), shown as a YouTube channel. */
+    /** SmartTube WiiOS, from BuddyCrafted/SmartTube: shown instead of the official one when both are installed. */
+    private static final String SMARTTUBE_WIIOS = "com.buddycrafted.smarttube";
+
+    /** SmartTube's packages (WiiOS edition, stable and beta, new and old names), shown as a YouTube channel. */
     private static final Set<String> SMARTTUBE = new HashSet<>(Arrays.asList(
-            "org.smarttube.stable", "org.smarttube.beta",
+            SMARTTUBE_WIIOS, "org.smarttube.stable", "org.smarttube.beta",
             "com.liskovsoft.smarttubetv", "com.liskovsoft.smarttubetv.beta"));
 
     /** The stock YouTube for TV app's banner, or null where it isn't installed (Fire TV). */
@@ -562,9 +565,11 @@ public class WiiMenuActivity extends Activity implements WiiMenuView.Listener {
 
     private void addChannels(PackageManager pm, String category, Set<String> hidden) {
         Intent query = new Intent(Intent.ACTION_MAIN).addCategory(category);
+        boolean ownTube = ShopCatalog.installed(this, SMARTTUBE_WIIOS) != null;
         for (ResolveInfo ri : pm.queryIntentActivities(query, 0)) {
             String pkg = ri.activityInfo.packageName;
             if (pkg.equals(getPackageName()) || hidden.contains(pkg) || allChannels.containsKey(pkg)) continue;
+            if (ownTube && SMARTTUBE.contains(pkg) && !pkg.equals(SMARTTUBE_WIIOS)) continue;   // one YouTube channel
             CharSequence label = ri.loadLabel(pm);
             Drawable banner = ri.activityInfo.loadBanner(pm);
             if (banner == null) banner = ri.activityInfo.applicationInfo.loadBanner(pm);

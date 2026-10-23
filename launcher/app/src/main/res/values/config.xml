@@ -100,7 +100,7 @@
     <string-array name="app_keys" translatable="false">
         <!-- Google TV remotes (onn. 4K / 4K Pro, Chromecast): the YouTube button, which only the stock home answered.
              SmartTube when it is installed (the YouTube channel then opens it too), else Google's YouTube app. -->
-        <item>190:org.smarttube.stable|com.liskovsoft.smarttubetv|com.google.android.youtube.tv</item>
+        <item>190:com.buddycrafted.smarttube|org.smarttube.stable|com.liskovsoft.smarttubetv|com.google.android.youtube.tv</item>
     </string-array>
 
     <!-- Show the Solar Hijri (Shamsi) date used in Iran and Afghanistan, e.g. "27 Mehr 1405", above the

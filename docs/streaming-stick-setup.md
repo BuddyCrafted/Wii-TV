@@ -109,7 +109,7 @@ What you'll see:
 - **Fire TV:** `Fire TV detected: installing with the Home button redirect…`, then `FireTvHomeService enabled` and `Installed.`
 - **onn. / Google TV:** `Stock launcher: com.google.android.apps.tv.launcherx`, then `Home now resolves to com.gathin.tvhome/.WiiMenuActivity` and `Installed.` If something goes wrong, the script turns the stock launcher back on before it stops.
 
-- **SmartTube:** at the end the script asks WiiOS to download [SmartTube](https://github.com/yuliskov/SmartTube) (YouTube for TVs without ads, open source) from its GitHub page. Choose **Install** when the TV asks. Its channel is named **YouTube**, and on Google TV remotes the YouTube button opens it. To leave it out, add `SMARTTUBE=0` (Windows: `-NoSmartTube`). It's also in the Shop under Popular Titles.
+- **SmartTube:** at the end the script asks WiiOS to download SmartTube WiiOS, this project's edition of [SmartTube](https://github.com/yuliskov/SmartTube) (YouTube for TVs without ads, open source) from [BuddyCrafted/SmartTube](https://github.com/BuddyCrafted/SmartTube). Its player is laid out like YouTube's own, with every other SmartTube feature under the gear. To bring settings over from the official SmartTube: there, Settings → Backup & restore → Google Drive → Backup; then in SmartTube WiiOS, the same page → Restore, and pick the official app's backup. Choose **Install** when the TV asks. Its channel is named **YouTube**, and on Google TV remotes the YouTube button opens it. To leave it out, add `SMARTTUBE=0` (Windows: `-NoSmartTube`). It's also in the Shop under Popular Titles.
 
 Press **Home** on the remote. You're on the channel menu. Turn the TV off and on: the white notice screen appears, and OK takes you to the menu.
 

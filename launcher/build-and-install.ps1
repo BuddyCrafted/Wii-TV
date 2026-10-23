@@ -54,9 +54,9 @@ if (-not (Test-Path $apk)) { throw "APK not found: $apk" }
 # SmartTube: the launcher downloads it from its GitHub page on the TV, and Android asks to confirm there.
 function Get-SmartTube {
     if ($NoSmartTube) { return }
-    $have = "$(& $py -I ..\tools\tv.py 'pm path org.smarttube.stable; pm path com.liskovsoft.smarttubetv' 2>$null)"
+    $have = "$(& $py -I ..\tools\tv.py 'pm path com.buddycrafted.smarttube; pm path org.smarttube.stable; pm path com.liskovsoft.smarttubetv' 2>$null)"
     if ($have -match 'package:') { Write-Host 'SmartTube is already installed.'; return }
-    & $py -I ..\tools\tv.py 'am start -n com.gathin.tvhome/.WiiMenuActivity --es get org.smarttube.stable' | Out-Null
+    & $py -I ..\tools\tv.py 'am start -n com.gathin.tvhome/.WiiMenuActivity --es get com.buddycrafted.smarttube' | Out-Null
     Write-Host 'SmartTube is downloading on the TV: when it asks, choose Install (it shows up as your YouTube channel).'
 }
 

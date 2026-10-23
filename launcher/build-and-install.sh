@@ -31,11 +31,11 @@ APK="${APK_FILE:-app/build/outputs/apk/release/app-release.apk}"
 # install there. Skipped when it is already installed. SMARTTUBE=0 leaves it out.
 get_smarttube() {
   [ "${SMARTTUBE:-1}" = 1 ] || return 0
-  if "$PY" -I ../tools/tv.py 'pm path org.smarttube.stable; pm path com.liskovsoft.smarttubetv' 2>/dev/null | grep -q package:; then
+  if "$PY" -I ../tools/tv.py 'pm path com.buddycrafted.smarttube; pm path org.smarttube.stable; pm path com.liskovsoft.smarttubetv' 2>/dev/null | grep -q package:; then
     echo "SmartTube is already installed."
     return 0
   fi
-  "$PY" -I ../tools/tv.py 'am start -n com.gathin.tvhome/.WiiMenuActivity --es get org.smarttube.stable' >/dev/null || return 0
+  "$PY" -I ../tools/tv.py 'am start -n com.gathin.tvhome/.WiiMenuActivity --es get com.buddycrafted.smarttube' >/dev/null || return 0
   echo "SmartTube is downloading on the TV: when it asks, choose Install (it shows up as your YouTube channel)."
 }
 

@@ -9,7 +9,7 @@
     {"id": "tools", "name": "Tools & App Stores"}
   ],
   "apps": [
-    {"pkg": "org.smarttube.stable", "name": "SmartTube", "publisher": "Yuriy Liskov", "color": "#E62117", "source": "github", "repo": "yuliskov/SmartTube", "categories": ["popular", "streaming"], "about": "YouTube for TVs without ads, with SponsorBlock and 4K. Shows on the menu as your YouTube channel, and the remote's YouTube button opens it. Open source, from its GitHub page."},
+    {"pkg": "com.buddycrafted.smarttube", "name": "SmartTube", "publisher": "Yuriy Liskov \u00b7 WiiOS edition", "color": "#E62117", "source": "github", "repo": "BuddyCrafted/SmartTube", "categories": ["popular", "streaming"], "about": "YouTube for TVs without ads, with SponsorBlock and 4K, in WiiOS's own edition with a player laid out like YouTube's (everything else under the gear). Shows on the menu as your YouTube channel, and the remote's YouTube button opens it. Open source, from BuddyCrafted/SmartTube on GitHub."},
     {"pkg": "com.google.android.youtube.tv", "name": "YouTube", "publisher": "Google", "color": "#E62117", "source": "play", "categories": ["popular", "streaming"], "about": "Videos, shows and music from YouTube."},
     {"pkg": "com.netflix.ninja", "name": "Netflix", "publisher": "Netflix, Inc.", "color": "#141414", "source": "play", "categories": ["popular", "streaming"], "about": "Movies, TV shows and games. Needs a Netflix plan."},
     {"pkg": "com.disney.disneyplus", "name": "Disney+", "publisher": "Disney", "color": "#0E2A6B", "source": "play", "categories": ["popular", "streaming"], "about": "Disney, Pixar, Marvel, Star Wars and National Geographic."},
