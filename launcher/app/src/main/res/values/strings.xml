@@ -158,6 +158,9 @@
     <string name="set_remote_on">Phone remote on</string>
     <string name="set_remote_new_code">New code (disconnects phones)</string>
     <string name="set_remote_new_code_done">New code made: phones need to scan again</string>
+    <string name="set_app_updates">Turn off app auto-updates</string>
+    <string name="set_app_updates_last">Choose Automatic Updates and set it to Off, then press Home.</string>
+    <string name="set_app_updates_steps">Choose Appstore, then Automatic Updates, and set it to Off. Press Home to come back.</string>
     <string name="theme_auto">Automatic (changes with the seasons)</string>
     <string name="theme_auto_now">Automatic: %1$s</string>
     <string name="accent_theme">Theme\'s own</string>

@@ -136,6 +136,7 @@ The round buttons and the SD card:
 
 - **WiiOS** (bottom left): **WiiOS Settings**, a full-screen settings screen styled like the Wii's. It has four big buttons per page; press left/right to change pages and use **Back** at the bottom to go back. Every device setting opens the stick's own page, so nothing has to be rebuilt:
   - **Display & Picture**, **Sound & Speakers** (soundbar, surround, volume), **Network & Wi-Fi**, **Remotes, Controllers & Bluetooth**
+  - **Turn off app auto-updates** (Fire TV): opens the Amazon Appstore's settings so you can switch **Automatic Updates** off (Fire OS system updates can't be switched off). If your Fire OS doesn't open that page directly, it opens **Applications** and shows the last steps on screen.
   - **Captions & Subtitles**, **Screensaver & Sleep**, **Language**, **Inputs (HDMI)** (only on TVs that have them), **Date & Time**
   - **Accessibility**, **Apps**, **Storage**
   - **Menu Music** and **Menu Sounds** (on/off), **Hidden Channels** (choose one to bring it back), **Reset channel order**, **All Device Settings**, **About This Device**

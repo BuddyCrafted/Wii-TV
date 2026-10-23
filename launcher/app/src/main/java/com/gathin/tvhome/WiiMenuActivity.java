@@ -526,6 +526,7 @@ public class WiiMenuActivity extends Activity implements WiiMenuView.Listener {
         items.add(item(R.string.set_sound, () -> openSetting(Settings.ACTION_SOUND_SETTINGS)));
         items.add(item(R.string.wii_network, () -> openSetting(Settings.ACTION_WIFI_SETTINGS)));
         items.add(item(R.string.set_controllers, this::openBluetooth));
+        if (DeviceProfile.fireTv()) items.add(item(R.string.set_app_updates, this::openAppUpdates));
         items.add(item(R.string.set_accounts, () -> menu.pushSettings(getString(R.string.set_accounts), this::accountSettings)));
 
         items.add(new WiiMenuView.MenuItem(getString(R.string.set_remote), onOff(RemoteButtons.enabled(this)), () ->
@@ -1012,6 +1013,48 @@ public class WiiMenuActivity extends Activity implements WiiMenuView.Listener {
             }
         }
         openSetting(Settings.ACTION_BLUETOOTH_SETTINGS);
+    }
+
+    /**
+     * Fire TV: where the Appstore's Automatic Updates switch lives, nearest first. Amazon moves these
+     * between Fire OS versions, so each is tried only if this stick has it.
+     */
+    private static final String[] FIRE_TV_APPSTORE_SETTINGS = {
+            "com.amazon.venezia/com.amazon.venezia.settings.AppstoreSettingsActivity",
+            "com.amazon.venezia/com.amazon.venezia.settings.SettingsActivity",
+    };
+    private static final String[] FIRE_TV_APPLICATIONS = {
+            "com.amazon.tv.settings.v2/com.amazon.tv.settings.v2.tv.applications.ApplicationsActivity",
+            "com.amazon.tv.settings/com.amazon.tv.settings.tv.applications.ApplicationsActivity",
+    };
+
+    /** Settings > Turn off app auto-updates: straight to the Appstore's switch, or as close as this stick allows. */
+    private void openAppUpdates() {
+        if (openFirst(FIRE_TV_APPSTORE_SETTINGS)) {
+            Toast.makeText(this, R.string.set_app_updates_last, Toast.LENGTH_LONG).show();
+        } else if (openFirst(FIRE_TV_APPLICATIONS)) {
+            Toast.makeText(this, R.string.set_app_updates_steps, Toast.LENGTH_LONG).show();
+        } else {
+            openSetting(Settings.ACTION_APPLICATION_SETTINGS);
+            Toast.makeText(this, R.string.set_app_updates_steps, Toast.LENGTH_LONG).show();
+        }
+    }
+
+    /** Opens the first of these Fire TV pages this stick has; false if none would open. */
+    private boolean openFirst(String[] components) {
+        for (String comp : components) {
+            Intent i = new Intent(Intent.ACTION_MAIN).setComponent(android.content.ComponentName.unflattenFromString(comp))
+                    .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+            if (i.resolveActivity(getPackageManager()) == null) continue;
+            try {
+                FireTvHomeService.allowAmazonUntilHome();
+                startActivity(i);
+                return true;
+            } catch (ActivityNotFoundException | SecurityException ignored) {
+                // not open to other apps on this Fire OS: try the next
+            }
+        }
+        return false;
     }
 
     private void openSetting(String action) {
