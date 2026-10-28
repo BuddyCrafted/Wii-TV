@@ -43,6 +43,8 @@ const SELF = 'com.buddycrafted.wiios';
 const LG_APPS = [
   { id: 'netflix', label: 'Netflix', color: '#141414', text: '#e50914' },
   { id: 'youtube.leanback.v4', label: 'YouTube', color: '#ff0033' },
+  // YouTubeHD: webosbrew's ad-free YouTube with SponsorBlock, built under its own id (webos/youtubehd.sh).
+  { id: 'com.buddycrafted.youtubehd', label: 'YouTubeHD', color: '#cc0000' },
   { id: 'amazon', label: 'Prime Video', color: '#00a8e1' },
   { id: 'com.disney.disneyplus-prod', label: 'Disney+', color: '#0b1d4b' },
   { id: 'hulu', label: 'Hulu', color: '#1ce783', text: '#0b0c0f' },
@@ -141,8 +143,9 @@ async function renewDevMode() {
 
 // ---- finding the TV's apps without listLaunchPoints --------------------------------------------------
 
-/** Where webOS keeps apps: the ones installed from LG's store, then the TV's own. */
+/** Where webOS keeps apps: the ones installed from LG's store, in Developer Mode (YouTubeHD), then the TV's own. */
 const STORE_APPS = '/media/cryptofs/apps/usr/palm/applications/';
+const DEV_APPS = '/media/developer/apps/usr/palm/applications/';
 const BUILT_IN_APPS = '/usr/palm/applications/';
 
 /** Folder names in a directory, from the page Chromium shows for a file:// folder. */
@@ -190,10 +193,12 @@ async function installed(id) {
 async function findApps() {
   const found = new Map();
   const add = (ch) => ch && !found.has(ch.target) && found.set(ch.target, ch);
-  try {
-    for (const id of await listDir(STORE_APPS)) add(await readApp(STORE_APPS, id));
-  } catch {
-    // the folder can't be read from an app on this TV
+  for (const dir of [STORE_APPS, DEV_APPS]) {
+    try {
+      for (const id of await listDir(dir)) add(await readApp(dir, id));
+    } catch {
+      // the folder can't be read from an app on this TV
+    }
   }
   for (const a of LG_APPS) {
     if (found.has(a.id)) continue;

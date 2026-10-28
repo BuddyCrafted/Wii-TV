@@ -139,10 +139,14 @@ jobs:
           node webos/build.mjs ${{ github.run_number }}
           npx --yes -p @webos-tools/cli@3.2.6 ares-package webos/dist -o webos/out
           cp webos/out/*.ipk WiiOS-webos.ipk
+          # YouTubeHD: webosbrew's ad-free YouTube (GPL-3.0) under its own id, next to LG's YouTube.
+          sh webos/youtubehd.sh YouTubeHD-webos.ipk
       - uses: actions/upload-artifact@v4
         with:
           name: WiiOS-webos
-          path: WiiOS-webos.ipk
+          path: |
+            WiiOS-webos.ipk
+            YouTubeHD-webos.ipk
 
   publish:
     name: Publish release
@@ -166,5 +170,5 @@ jobs:
           cp artifacts/WiiOS-apk/app-release.apk WiiOS.apk
           gh release create "build-$n" "WiiOS-build-$n.apk" WiiOS.apk \
             artifacts/WiiOS-windows/WiiOS-windows-x64.exe artifacts/WiiOS-linux/WiiOS-linux-x86_64.AppImage \
-            artifacts/WiiOS-webos/WiiOS-webos.ipk \
+            artifacts/WiiOS-webos/WiiOS-webos.ipk artifacts/WiiOS-webos/YouTubeHD-webos.ipk \
             --target "${{ github.sha }}" --title "WiiOS $(cat VERSION) (build $n)" --notes "$(git log -1 --pretty=%B)"

@@ -54,6 +54,14 @@ itself each time it's opened (at most twice a day), the way that button does, so
 If the TV won't let WiiOS do that, press **Extend** now and then (webOS Dev Manager can too). If the time runs out, the
 TV removes apps installed this way; switching Developer Mode on again and reinstalling brings WiiOS back.
 
+## YouTubeHD
+
+Each release also has `YouTubeHD-webos.ipk`: [youtube-webos](https://github.com/webosbrew/youtube-webos) by webosbrew
+(GPL-3.0), YouTube's own TV app without ads and with SponsorBlock, built by `webos/youtubehd.sh` from a pinned commit
+with only its id and name changed, so it installs next to LG's YouTube instead of replacing it. Install it the same
+way as WiiOS (use its file name in place of `WiiOS-webos.ipk`); WiiOS shows it as the **YouTubeHD** channel, and
+keeping Developer Mode alive keeps it too.
+
 ## What works
 
 - The TV's apps as channels, moved and hidden like on the other versions. When the TV won't list its apps, WiiOS shows
