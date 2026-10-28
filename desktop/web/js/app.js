@@ -3,7 +3,7 @@
 // Settings pages, the Message Board, and updates from the same GitHub releases as the TV version.
 import { WiiMenu, FONT } from './menu.js';
 import { Audio } from './audio.js';
-import { invoke, appWindow, native } from './platform.js';
+import { invoke, appWindow, native, kind } from './platform.js';
 
 const canvas = document.getElementById('menu');
 const audio = new Audio();
@@ -133,9 +133,10 @@ async function reloadChannels() {
   try {
     found = await invoke('channels');
   } catch (e) {
-    menu.showNotice(`Couldn't list your games: ${e}`);
+    menu.showNotice(`Couldn't list your ${kind === 'webos' ? 'apps' : 'games'}: ${e}`);
   }
-  const list = [...WEB, ...found.sort((a, b) => a.label.localeCompare(b.label))].map(toChannel);
+  // On an LG TV the TV's own apps are the channels (its YouTube, Netflix...), so no web ones.
+  const list = [...(kind === 'webos' ? [] : WEB), ...found.sort((a, b) => a.label.localeCompare(b.label))].map(toChannel);
   all = new Map(list.map((c) => [c.key, c]));
   const hidden = new Set(prefs.get('hidden', []));
   const order = prefs.get('order', []);
@@ -155,6 +156,7 @@ function openSettings() {
 }
 
 function mainSettings() {
+  if (kind === 'webos') return tvSettings();
   const items = [
     { label: 'Display', action: () => osSettings('display') },
     { label: 'Sound', action: () => osSettings('sound') },
@@ -201,6 +203,38 @@ function mainSettings() {
   } });
   items.push({ label: 'System Update', value: versionText(), action: () => menu.pushSettings('System Update', updateSettings) });
   items.push({ label: 'Power', action: () => menu.pushSettings('Power', powerSettings) });
+  return items;
+}
+
+/** WiiOS Settings on an LG TV: the TV's own settings, and WiiOS's. */
+function tvSettings() {
+  const items = [
+    { label: 'TV Settings', action: () => osSettings('') },
+    { label: 'Menu music', value: onOff(audio.musicOn), action: () => {
+      audio.setMusic(!audio.musicOn);
+      prefs.set('music', audio.musicOn);
+      menu.refreshSettings();
+    } },
+    { label: 'Sounds', value: onOff(audio.soundsOn), action: () => {
+      audio.soundsOn = !audio.soundsOn;
+      prefs.set('sounds', audio.soundsOn);
+      menu.refreshSettings();
+    } },
+  ];
+  const hidden = prefs.get('hidden', []).filter((k) => all.has(k));
+  if (hidden.length) items.push({ label: 'Hidden channels', value: String(hidden.length), action: showHidden });
+  if (prefs.get('order', []).length) {
+    items.push({ label: 'Reset channel order', action: () => {
+      prefs.set('order', []);
+      reloadChannels();
+      menu.refreshSettings();
+      menu.showNotice('Channels are back in their first order.');
+    } });
+  }
+  items.push({ label: 'This version', value: versionText(), action: () => {
+    menu.showNotice('New versions are installed from a computer with webOS Dev Manager.', 6000);
+  } });
+  items.push({ label: 'Close WiiOS', action: () => invoke('power', { action: 'quit' }) });
   return items;
 }
 
@@ -273,6 +307,7 @@ if (!native) {
 // ---- Updates: the same GitHub releases as the TV version ---------------------------------------
 
 async function checkForUpdate(manual) {
+  if (kind === 'webos') return;   // installed from a computer; see tvSettings
   if (!native) {
     if (manual) menu.showNotice('Updates work in the installed app.');
     return;
@@ -334,7 +369,7 @@ function okRelease() {
 
 const KEYS = {
   ArrowUp: 'up', ArrowDown: 'down', ArrowLeft: 'left', ArrowRight: 'right',
-  Escape: 'back', Backspace: 'back', BrowserBack: 'back',
+  Escape: 'back', Backspace: 'back', BrowserBack: 'back', GoBack: 'back',
   ContextMenu: 'options', PageUp: 'pageUp', PageDown: 'pageDown', Home: 'menu',
 };
 
@@ -350,7 +385,8 @@ window.addEventListener('keydown', (e) => {
     if (!e.repeat) okPress();
     return;
   }
-  const k = KEYS[e.key];
+  // LG remotes: Back is key code 461 (webos/appinfo.json keeps webOS from treating it as page history).
+  const k = KEYS[e.key] || (e.keyCode === 461 ? 'back' : null);
   if (k) {
     e.preventDefault();
     menu.key(k);

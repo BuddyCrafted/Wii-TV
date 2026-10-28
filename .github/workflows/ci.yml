@@ -125,9 +125,28 @@ jobs:
   # Over-the-air updates: every build of main (or a manual run with "publish") becomes release build-<N> with
   # every version attached. Each one's updater picks its own file: the TV the .apk, Windows the .exe, Linux the
   # AppImage.
+  # WiiOS for LG TVs (webos/): the desktop menu packaged as a webOS app, installed in LG's Developer Mode.
+  webos:
+    name: LG webOS app
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - name: Build and package
+        run: |
+          node webos/build.mjs ${{ github.run_number }}
+          npx --yes -p @webos-tools/cli@3.2.6 ares-package webos/dist -o webos/out
+          cp webos/out/*.ipk WiiOS-webos.ipk
+      - uses: actions/upload-artifact@v4
+        with:
+          name: WiiOS-webos
+          path: WiiOS-webos.ipk
+
   publish:
     name: Publish release
-    needs: [lists-and-tools, launcher, desktop-windows, desktop-linux]
+    needs: [lists-and-tools, launcher, desktop-windows, desktop-linux, webos]
     if: github.ref == 'refs/heads/main' && github.event_name == 'push' || inputs.publish
     runs-on: ubuntu-latest
     permissions:
@@ -147,4 +166,5 @@ jobs:
           cp artifacts/WiiOS-apk/app-release.apk WiiOS.apk
           gh release create "build-$n" "WiiOS-build-$n.apk" WiiOS.apk \
             artifacts/WiiOS-windows/WiiOS-windows-x64.exe artifacts/WiiOS-linux/WiiOS-linux-x86_64.AppImage \
+            artifacts/WiiOS-webos/WiiOS-webos.ipk \
             --target "${{ github.sha }}" --title "WiiOS $(cat VERSION) (build $n)" --notes "$(git log -1 --pretty=%B)"
