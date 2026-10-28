@@ -30,13 +30,18 @@ either:
   npx -p @webos-tools/cli ares-install --device lgtv WiiOS-webos.ipk
   ```
 
+- **An Android phone instead of a computer**: install **Termux** (from F-Droid), then in it run `pkg install nodejs`,
+  `curl -LO https://github.com/BuddyCrafted/Wii-TV/releases/latest/download/WiiOS-webos.ipk`, and the three commands
+  above. (An iPhone can't run LG's tools.)
+
 WiiOS then shows up in the TV's app row. A newer version is installed the same way, over the old one.
 
 ## Keeping it installed
 
-Developer Mode runs for a limited time, shown in the Developer Mode app with an **Extend** button: press it now and
-then, or webOS Dev Manager can extend it while it's open. If the time runs out, the TV removes apps installed this way;
-switching Developer Mode on again and reinstalling brings WiiOS back.
+Developer Mode runs for a limited time, shown in the Developer Mode app with an **Extend** button. WiiOS extends it by
+itself each time it's opened (at most twice a day), the way that button does, so using WiiOS now and then keeps it on.
+If the TV won't let WiiOS do that, press **Extend** now and then (webOS Dev Manager can too). If the time runs out, the
+TV removes apps installed this way; switching Developer Mode on again and reinstalling brings WiiOS back.
 
 ## What works
 

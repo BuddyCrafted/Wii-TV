@@ -112,7 +112,27 @@ async function webos(cmd, args) {
       return { os: 'webOS', autostart: false, ...(window.WIIOS_INFO || { build: 0, version: '' }) };
     case 'check_update':
       return null;
+    case 'renew_devmode':
+      return renewDevMode();
     default:
       throw new Error('That isn\u2019t available on this TV.');
   }
+}
+
+/**
+ * Keeps LG's Developer Mode from running out (which would remove WiiOS): the TV keeps its session token in a
+ * file, and LG resets the session's clock when that token is sent to its developer site, as the Developer
+ * Mode app's Extend button does. Returns true if it was sent; false where the TV won't let WiiOS read it.
+ */
+async function renewDevMode() {
+  let token = '';
+  try {
+    token = (await (await fetch('file:///var/luna/preferences/devmode_enabled')).text()).trim();
+  } catch {
+    return false;
+  }
+  if (!/^[0-9A-Za-z]{16,}$/.test(token)) return false;
+  await fetch(`https://developer.lge.com/secure/ResetDevModeSession.dev?sessionToken=${encodeURIComponent(token)}`,
+    { mode: 'no-cors', cache: 'no-store' });
+  return true;
 }

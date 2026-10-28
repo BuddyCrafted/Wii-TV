@@ -483,6 +483,10 @@ window.addEventListener('resize', layout);
     'Press OK to continue.');
   layout();
   await reloadChannels();
+  // LG: Developer Mode's clock starts again each time WiiOS opens (at most twice a day), so it doesn't run out.
+  if (kind === 'webos' && Date.now() - prefs.get('devRenew', 0) > 12 * 3600 * 1000) {
+    invoke('renew_devmode').then((sent) => { if (sent) prefs.set('devRenew', Date.now()); }).catch(() => {});
+  }
   const today = new Date().toDateString();
   if (prefs.get('introDay', '') !== today) {
     prefs.set('introDay', today);
