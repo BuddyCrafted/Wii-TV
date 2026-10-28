@@ -41,16 +41,17 @@ const SELF = 'com.buddycrafted.wiios';
  * services, opening them is). A missing one just says so when chosen, and can be hidden like any channel.
  */
 const LG_APPS = [
-  { id: 'netflix', label: 'Netflix', color: '#141414', text: '#e50914' },
-  { id: 'youtube.leanback.v4', label: 'YouTube', color: '#ff0033' },
+  { id: 'netflix', label: 'Netflix', color: '#141414', text: '#e50914', site: 'netflix.com',
+    icon: 'https://assets.nflxext.com/en_us/layout/ecweb/netflix-app-icon_152.jpg' },
+  { id: 'youtube.leanback.v4', label: 'YouTube', color: '#ff0033', site: 'youtube.com' },
   // YouTubeHD: webosbrew's ad-free YouTube with SponsorBlock, built under its own id (webos/youtubehd.sh).
-  { id: 'com.buddycrafted.youtubehd', label: 'YouTubeHD', color: '#cc0000' },
-  { id: 'amazon', label: 'Prime Video', color: '#00a8e1' },
-  { id: 'com.disney.disneyplus-prod', label: 'Disney+', color: '#0b1d4b' },
-  { id: 'hulu', label: 'Hulu', color: '#1ce783', text: '#0b0c0f' },
-  { id: 'com.apple.appletv', label: 'Apple TV', color: '#1c1c1e' },
-  { id: 'spotify-beehive', label: 'Spotify', color: '#1db954' },
-  { id: 'cdp-30', label: 'Plex', color: '#282a2d', text: '#e5a00d' },
+  { id: 'com.buddycrafted.youtubehd', label: 'YouTubeHD', color: '#cc0000', site: 'youtube.com' },
+  { id: 'amazon', label: 'Prime Video', color: '#00a8e1', site: 'primevideo.com' },
+  { id: 'com.disney.disneyplus-prod', label: 'Disney+', color: '#0b1d4b', site: 'disneyplus.com' },
+  { id: 'hulu', label: 'Hulu', color: '#1ce783', text: '#0b0c0f', site: 'hulu.com' },
+  { id: 'com.apple.appletv', label: 'Apple TV', color: '#1c1c1e', site: 'tv.apple.com' },
+  { id: 'spotify-beehive', label: 'Spotify', color: '#1db954', site: 'spotify.com' },
+  { id: 'cdp-30', label: 'Plex', color: '#282a2d', text: '#e5a00d', site: 'plex.tv' },
   { id: 'com.webos.app.livetv', label: 'Live TV', color: '#a50034' },
   { id: 'com.webos.app.browser', label: 'Web Browser', color: '#2b6cb0' },
   { id: 'com.webos.app.discovery', label: 'LG Apps', color: '#a50034' },
@@ -92,11 +93,18 @@ async function webos(cmd, args) {
           return points.map((p) => ({
             key: `lg:${p.id}`, label: p.title, kind: 'lg', target: p.id,
             color: p.bgColor || p.iconColor || '#3a3f47',
-            icons: [fileUrl(p.largeIcon), fileUrl(p.icon)].filter(Boolean),
+            icons: [fileUrl(p.largeIcon), fileUrl(p.icon), ...siteIcon(p.id)].filter(Boolean),
           }));
         }
       } catch {
         // not allowed on this TV (it isn't a public service): look for the apps another way
+      }
+      try {
+        // WiiOS's own service (webos/service) reads the apps' folders, which this page can't.
+        const r = await luna(`luna://${SELF}.service/apps`, { builtIn: LG_APPS.map((a) => a.id) });
+        if (r.apps && r.apps.length) return withUsual(r.apps.map(appChannel));
+      } catch {
+        // the service isn't there (an older install) or isn't allowed: read the folders from here
       }
       return findApps();
     }
@@ -172,8 +180,36 @@ async function readApp(dir, id) {
   return {
     key: `lg:${info.id}`, label: known ? known.label : info.title, kind: 'lg', target: info.id,
     color: known ? known.color : info.bgColor || info.iconColor || '#3a3f47', text: known ? known.text : undefined,
-    icons: [file(info.largeIcon), file(info.icon)].filter(Boolean),
+    icons: [file(info.extraLargeIcon), file(info.largeIcon), file(info.icon), ...siteIcon(info.id)].filter(Boolean),
   };
+}
+
+/** A usual app's icon from its website, as a browser shows a site's icon: for when the TV's own can't be read. */
+const siteIcon = (id) => {
+  const known = LG_APPS.find((a) => a.id === id);
+  if (!known || !known.site) return [];
+  return [known.icon, `https://www.google.com/s2/favicons?domain=${known.site}&sz=256`].filter(Boolean);
+};
+
+/** A channel from the service's answer: the app's own name and icon, the usual colours for LG's usual apps. */
+function appChannel(a) {
+  const known = LG_APPS.find((k) => k.id === a.id);
+  return {
+    key: `lg:${a.id}`, label: known ? known.label : a.title, kind: 'lg', target: a.id,
+    color: known ? known.color : a.color || '#3a3f47', text: known ? known.text : undefined,
+    icons: [a.icon, ...siteIcon(a.id)].filter(Boolean),
+  };
+}
+
+/** Adds the usual LG apps the list doesn't have, unless the TV says they're missing. */
+async function withUsual(list) {
+  const found = new Map(list.map((c) => [c.target, c]));
+  for (const a of LG_APPS) {
+    if (found.has(a.id) || (await installed(a.id)) === false) continue;
+    found.set(a.id, { key: `lg:${a.id}`, label: a.label, kind: 'lg', target: a.id, color: a.color, text: a.text,
+      icons: siteIcon(a.id) });
+  }
+  return [...found.values()];
 }
 
 /** Whether an app is installed, by LG's public application.query service; null when it won't say. */
@@ -200,11 +236,6 @@ async function findApps() {
       // the folder can't be read from an app on this TV
     }
   }
-  for (const a of LG_APPS) {
-    if (found.has(a.id)) continue;
-    add(await readApp(BUILT_IN_APPS, a.id));
-    if (found.has(a.id) || (await installed(a.id)) === false) continue;
-    add({ key: `lg:${a.id}`, label: a.label, kind: 'lg', target: a.id, color: a.color, text: a.text });
-  }
-  return [...found.values()];
+  for (const a of LG_APPS) if (!found.has(a.id)) add(await readApp(BUILT_IN_APPS, a.id));
+  return withUsual([...found.values()]);
 }
