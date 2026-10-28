@@ -4,12 +4,13 @@ LG TVs run webOS, not Android, so they get their own WiiOS: the same channel men
 an LG app. Its channels are the TV's own apps (Netflix, YouTube, Prime Video, Live TV, the HDMI inputs and so on), and
 OK opens them. It's installed as an app, next to the TV's own home screen, which stays as it is.
 
-LG only lets apps outside its store in through its free **Developer Mode**, so installing takes a computer once.
+LG only lets apps outside its store in through its free **Developer Mode**, so installing takes a computer or a phone once.
 
 ## 1. Developer Mode on the TV
 
-1. On a phone or computer, make a free account at [webostv.developer.lge.com](https://webostv.developer.lge.com) (Sign
-   in, then create an LG account if you don't have one) and accept the developer terms once.
+1. On a phone or computer, make a free account at [webostv.developer.lge.com](https://webostv.developer.lge.com) with an
+   email and password (an account made with Google or Apple sign-in can't sign in on the TV) and accept the developer
+   terms once.
 2. On the TV, open the **LG Content Store** (Apps), search **Developer Mode** and install it.
 3. Open **Developer Mode**, sign in with that account, and switch **Dev Mode Status** on. The TV restarts.
 4. Open **Developer Mode** again and switch **Key Server** on. Leave this screen up: it shows the TV's IP address and a
@@ -32,7 +33,17 @@ either:
 
 - **An Android phone instead of a computer**: install **Termux** (from F-Droid), then in it run `pkg install nodejs`,
   `curl -LO https://github.com/BuddyCrafted/Wii-TV/releases/latest/download/WiiOS-webos.ipk`, and the three commands
-  above. (An iPhone can't run LG's tools.)
+  above.
+- **An iPhone** (no LG tools needed): install **iSH Shell** from the App Store, allow it on the local network, and
+  paste this as one line (with the TV's IP address), typing the passphrase when asked. It's done when it prints
+  `"state": "installed"`; then ctrl-c.
+
+  ```
+  apk add curl openssh-client && curl -L -o WiiOS-webos.ipk https://github.com/BuddyCrafted/Wii-TV/releases/latest/download/WiiOS-webos.ipk && curl -s -o webos_rsa http://<TV IP>:9991/webos_rsa && chmod 600 webos_rsa && eval $(ssh-agent) && ssh-add webos_rsa && cat WiiOS-webos.ipk | ssh -p 9922 -o StrictHostKeyChecking=no prisoner@<TV IP> "cat > /media/developer/temp/WiiOS-webos.ipk" && ssh -p 9922 -o StrictHostKeyChecking=no prisoner@<TV IP> 'luna-send-pub -i -f luna://com.webos.appInstallService/dev/install "{\"id\":\"com.ares.defaultName\",\"ipkUrl\":\"/media/developer/temp/WiiOS-webos.ipk\",\"subscribe\":true}"'
+  ```
+
+  (iSH's npm can't install LG's own tools, so this does what they do: fetches the TV's key, copies the app over and
+  asks the TV to install it.)
 
 WiiOS then shows up in the TV's app row. A newer version is installed the same way, over the old one.
 
