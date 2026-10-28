@@ -142,6 +142,9 @@ jobs:
         run: |
           n=${{ github.run_number }}
           cp artifacts/WiiOS-apk/app-release.apk "WiiOS-build-$n.apk"
-          gh release create "build-$n" "WiiOS-build-$n.apk" \
+          # The same APK under a fixed name, so one short link always gets the newest:
+          # https://github.com/<repo>/releases/latest/download/WiiOS.apk (for the Downloader app on a TV).
+          cp artifacts/WiiOS-apk/app-release.apk WiiOS.apk
+          gh release create "build-$n" "WiiOS-build-$n.apk" WiiOS.apk \
             artifacts/WiiOS-windows/WiiOS-windows-x64.exe artifacts/WiiOS-linux/WiiOS-linux-x86_64.AppImage \
             --target "${{ github.sha }}" --title "WiiOS $(cat VERSION) (build $n)" --notes "$(git log -1 --pretty=%B)"

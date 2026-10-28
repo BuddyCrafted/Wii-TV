@@ -41,6 +41,17 @@ This is the recommended device. On Google TV, WiiOS really replaces the home scr
 
 **Undo** (see [Undo](#undo)) turns Google's home screen back on, and the box is exactly as it came.
 
+## No computer: WiiOS as an app
+
+WiiOS installs straight on the TV as an ordinary app; the TV's own home screen stays as it is.
+
+1. From the TV's app store (Google Play, or the Amazon Appstore on Fire TV) install **Downloader** by AFTVnews.
+2. Open it, and when the TV asks, let it install apps (Settings → Apps → Security → Unknown sources → Downloader; on Fire TV, Settings → My Fire TV → Developer options → Install unknown apps).
+3. In Downloader's address box type `https://github.com/BuddyCrafted/Wii-TV/releases/latest/download/WiiOS.apk` and press Go, then **Install**. (Shorter: make a code for that link at go.aftvnews.com on a phone and type the code.)
+4. Open WiiOS from the TV's app row. The first time it asks "How should your TV look?": pick the TV's own interface (Google TV, Android TV or Fire TV) to keep it as an app, so Home goes to the normal home screen.
+
+WiiOS updates itself from then on; the first update asks once to allow WiiOS to install apps. Without a computer the helper that brings you back to WiiOS after an app (Settings → Change interface) is switched on in the TV's Settings → Accessibility instead.
+
 ## What you need
 
 - A computer (Windows, macOS or Linux) on the **same Wi-Fi** as the stick.
