@@ -17,6 +17,8 @@ execFileSync(process.execPath, [join(root, 'desktop', 'scripts', 'prepare.mjs')]
 rmSync(dist, { recursive: true, force: true });
 cpSync(join(root, 'desktop', 'web'), dist, { recursive: true });
 for (const f of ['icon.png', 'largeIcon.png']) copyFileSync(join(here, f), join(dist, f));
+// YouTubeHD's channel shows its own icon (webos/youtubehd).
+copyFileSync(join(here, 'youtubehd', 'extraLargeIcon.png'), join(dist, 'youtubehd.png'));
 
 // webOS wants a three-part number; the build number keeps each one newer than the last.
 const app = JSON.parse(readFileSync(join(here, 'appinfo.json'), 'utf8'));

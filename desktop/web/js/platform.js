@@ -45,7 +45,7 @@ const LG_APPS = [
     icon: 'https://assets.nflxext.com/en_us/layout/ecweb/netflix-app-icon_152.jpg' },
   { id: 'youtube.leanback.v4', label: 'YouTube', color: '#ff0033', site: 'youtube.com' },
   // YouTubeHD: webosbrew's ad-free YouTube with SponsorBlock, built under its own id (webos/youtubehd.sh).
-  { id: 'com.buddycrafted.youtubehd', label: 'YouTubeHD', color: '#cc0000', site: 'youtube.com' },
+  { id: 'com.buddycrafted.youtubehd', label: 'YouTubeHD', color: '#cc0000', icon: 'youtubehd.png' },
   { id: 'amazon', label: 'Prime Video', color: '#00a8e1', site: 'primevideo.com' },
   { id: 'com.disney.disneyplus-prod', label: 'Disney+', color: '#0b1d4b', site: 'disneyplus.com' },
   { id: 'hulu', label: 'Hulu', color: '#1ce783', text: '#0b0c0f', site: 'hulu.com' },
@@ -187,8 +187,8 @@ async function readApp(dir, id) {
 /** A usual app's icon from its website, as a browser shows a site's icon: for when the TV's own can't be read. */
 const siteIcon = (id) => {
   const known = LG_APPS.find((a) => a.id === id);
-  if (!known || !known.site) return [];
-  return [known.icon, `https://www.google.com/s2/favicons?domain=${known.site}&sz=256`].filter(Boolean);
+  if (!known) return [];
+  return [known.icon, known.site && `https://www.google.com/s2/favicons?domain=${known.site}&sz=256`].filter(Boolean);
 };
 
 /** A channel from the service's answer: the app's own name and icon, the usual colours for LG's usual apps. */
