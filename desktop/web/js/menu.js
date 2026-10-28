@@ -7,6 +7,8 @@
 import * as B from './base.js';
 import { drawHand } from './hand.js';
 import * as S from './audio.js';
+import * as Season from './season.js';
+import * as Island from './island.js';
 
 export const FONT = "Roboto, 'Segoe UI', 'Helvetica Neue', Arial, sans-serif";
 
@@ -53,59 +55,14 @@ function colours(t) {
     iconText: opaque(t.iconTileText) };
 }
 
-/** A small repeatable random number for scattering decorations the same way every time. */
-const rand = (i, k) => {
-  let h = (Math.imul(i + 1, 374761393) + Math.imul(k + 7, 668265263)) | 0;
-  h = Math.imul(h ^ (h >>> 13), 1274126177);
-  return ((h ^ (h >>> 16)) >>> 0) / 4294967296;
-};
-
 /**
- * Still scenery drawn once into the backdrop (the TV version animates it; a still one costs nothing per frame):
- * snowflakes for Winter, fallen leaves for Fall, a line of surf for Beach.
+ * Scenery baked into the backdrop, as WiiMenuView.drawDecorations: Beach's wave above the line, Winter's pine
+ * trees and frozen ponds, Fall's leaf piles. (Island village has a backdrop of its own.)
  */
-function drawDeco(c, deco, s) {
-  if (deco === 'SNOW') {
-    c.fillStyle = 'rgba(255,255,255,0.85)';
-    for (let i = 0; i < 140; i++) {
-      const x = rand(i, 1) * 1920, y = rand(i, 2) * 760, r = 2 + rand(i, 3) * 5;
-      c.globalAlpha = 0.45 + rand(i, 4) * 0.5;
-      c.beginPath();
-      c.arc(x * s, y * s, r * s, 0, Math.PI * 2);
-      c.fill();
-    }
-    c.globalAlpha = 1;
-  } else if (deco === 'LEAVES') {
-    const tones = ['#c8562a', '#e08a2e', '#a8432a', '#d9a441', '#8f5a2b'];
-    for (let i = 0; i < 46; i++) {
-      const x = rand(i, 1) * 1920, y = 60 + rand(i, 2) * 700, len = 16 + rand(i, 3) * 14;
-      c.save();
-      c.translate(x * s, y * s);
-      c.rotate(rand(i, 4) * Math.PI * 2);
-      c.globalAlpha = 0.55 + rand(i, 5) * 0.35;
-      c.fillStyle = tones[(rand(i, 6) * tones.length) | 0];
-      c.beginPath();
-      c.moveTo(0, -len * s);
-      c.quadraticCurveTo(len * 0.7 * s, 0, 0, len * s);
-      c.quadraticCurveTo(-len * 0.7 * s, 0, 0, -len * s);
-      c.fill();
-      c.restore();
-    }
-  } else if (deco === 'WAVE') {
-    c.strokeStyle = 'rgba(255,255,255,0.7)';
-    c.lineCap = 'round';
-    for (let row = 0; row < 3; row++) {
-      const y = 640 + row * 42;
-      c.lineWidth = (5 - row) * s;
-      c.beginPath();
-      for (let x = 0; x <= 1920; x += 20) {
-        const yy = y + Math.sin((x + row * 90) / 70) * 9;
-        if (x === 0) c.moveTo(x * s, yy * s);
-        else c.lineTo(x * s, yy * s);
-      }
-      c.stroke();
-    }
-  }
+function drawDeco(c, theme, s) {
+  if (theme.deco === 'WAVE') Season.bakeBeach(c, s, opaque(theme.accent));
+  else if (theme.deco === 'SNOW') Season.bakeWinter(c, s);
+  else if (theme.deco === 'LEAVES') Season.bakeFall(c, s);
 }
 
 const ease = (p) => {
@@ -221,6 +178,15 @@ export class WiiMenu {
     for (const ch of this.channels) ch.tile = null;
     this.rebuild();
     this.invalidate();
+  }
+
+  island() {
+    return !!this.theme && this.theme.deco === 'ISLAND';
+  }
+
+  /** Snow, leaves and the island's clouds keep moving (WiiMenuView redraws them at 25 frames a second). */
+  seasonal() {
+    return !!this.theme && (this.theme.deco === 'SNOW' || this.theme.deco === 'LEAVES' || this.theme.deco === 'ISLAND');
   }
 
   setChannels(list) {
@@ -723,12 +689,27 @@ export class WiiMenu {
         cv.getContext('2d').putImageData(new ImageData(px, cw, chh), 0, 0);
         return cv;
       };
-      this.base = toCanvas(B.backdrop(w, h, this.theme), w, h);
-      if (this.theme) drawDeco(this.base.getContext('2d'), this.theme.deco, s);
+      const blank = (cw, chh) => {
+        const cv = document.createElement('canvas');
+        cv.width = cw;
+        cv.height = chh;
+        return cv;
+      };
       const size = Math.ceil(2 * (B.BTN_RING + B.BTN_RING_HALF + 2) * s);
-      const bp = B.button(size, s, this.theme);
-      this.btnLeft = toCanvas(bp, size, size);
-      this.btnRight = toCanvas(bp.slice(), size, size);
+      if (this.island()) {
+        this.base = blank(w, h);
+        Island.backdrop(this.base.getContext('2d'), w, h, s);
+        this.btnLeft = blank(size, size);
+        this.btnRight = blank(size, size);
+        Island.button(this.btnLeft.getContext('2d'), size, s);
+        Island.button(this.btnRight.getContext('2d'), size, s);
+      } else {
+        this.base = toCanvas(B.backdrop(w, h, this.theme), w, h);
+        if (this.theme) drawDeco(this.base.getContext('2d'), this.theme, s);
+        const bp = B.button(size, s, this.theme);
+        this.btnLeft = toCanvas(bp, size, size);
+        this.btnRight = toCanvas(bp.slice(), size, size);
+      }
       this.drawWordmark(this.btnLeft.getContext('2d'), size, s, this.settingsLabel);
       this.drawEnvelope(this.btnRight.getContext('2d'), size, s);
       const tw = Math.round(TILE_W * s) + 8, th = Math.round(TILE_H * s) + 8;
@@ -856,7 +837,18 @@ export class WiiMenu {
       c.fillStyle = '#e9e9e9';
       c.fillRect(0, 0, this.w, this.h);
     }
+    const deco = this.theme ? this.theme.deco : 'NONE', s = this.s, sec = now / 1000;
+    if (deco === 'SNOW') Season.snow(c, s, sec, false);
+    else if (deco === 'LEAVES') Season.leaves(c, s, sec, false);
+    else if (deco === 'ISLAND') Island.clouds(c, s, sec);
     this.drawTiles(c);
+    if (deco === 'ISLAND') Island.butterflies(c, s, sec);
+    else if (deco === 'SNOW') {
+      Season.winterKids(c, s, sec);
+      Season.snow(c, s, sec, true);
+    } else if (deco === 'LEAVES') {
+      Season.leaves(c, s, sec, true);
+    }
     const panel = this.entering() ? this.entrance(ENTRANCE_PANEL_DELAY_MS) : 1;
     if (panel > 0) {
       // Entrance: the buttons, clock and date rise into place after the channels.
@@ -876,8 +868,15 @@ export class WiiMenu {
     drawHand(c, this.handX, this.handY, HAND_UNIT * this.s * HAND_SCALE, FONT);
     if (this.introAlpha > 0) this.withAlphaLayer(this.introAlpha, (lc) => this.drawIntro(lc));
     if (this.notice && performance.now() < this.noticeUntil) this.drawNotice(c);
-    if (animating || this.introAlpha > 0 || this.moving || this.entering()) this.invalidate();
-    else this.lastFrame = 0;
+    if (animating || this.introAlpha > 0 || this.moving || this.entering()) {
+      this.invalidate();
+    } else {
+      this.lastFrame = 0;
+      if (this.seasonal()) {
+        clearTimeout(this.sceneTimer);
+        this.sceneTimer = setTimeout(() => this.invalidate(), 40);
+      }
+    }
   }
 
   /** Android's saveLayerAlpha: draw into the layer, then put it down at the given opacity. */
@@ -975,6 +974,13 @@ export class WiiMenu {
     c.save();
     c.translate(r.l, r.t);
     const ch = slot < this.channels.length ? this.channels[slot] : null;
+    if (this.island()) {
+      // A cream signboard; its face shows the channel's banner, custom picture, or icon and name.
+      const art = ch ? this.ensureArt(ch, Island.innerW(tw, s), Island.innerH(th, s)) : null;
+      Island.sign(c, s, tw, th, art, lf, this.col.accent);
+      c.restore();
+      return;
+    }
     this.tilePath(c, tw, th, TILE_R * s, TILE_BULGE * s);
     c.save();
     c.clip();
@@ -1148,6 +1154,13 @@ export class WiiMenu {
     let hour = now.getHours() % 12;
     if (hour === 0) hour = 12;
     const minute = now.getMinutes(), pm = now.getHours() >= 12;
+    if (this.island()) {
+      // Island village: plain time and the full date on the wooden sign.
+      const date = new Intl.DateTimeFormat(navigator.language || 'en-US', { weekday: 'long', month: 'long', day: 'numeric' })
+        .format(now);
+      Island.clock(c, s, FONT, `${hour}:${minute < 10 ? '0' : ''}${minute}`, pm ? 'PM' : 'AM', date);
+      return;
+    }
     c.fillStyle = css(this.col.clock);
     if (hour >= 10) this.drawDigit(c, DIGIT_X[0], Math.floor(hour / 10));
     this.drawDigit(c, DIGIT_X[1], hour % 10);
@@ -1200,6 +1213,7 @@ export class WiiMenu {
   }
 
   drawDate(c) {
+    if (this.island()) return;   // on the clock's sign
     const s = this.s, now = new Date();
     const lang = navigator.language || 'en-US';
     let day = new Intl.DateTimeFormat(lang, { weekday: 'short' }).format(now).replace('.', '');

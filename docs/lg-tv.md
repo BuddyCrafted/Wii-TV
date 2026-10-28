@@ -87,7 +87,8 @@ keeping Developer Mode alive keeps it too.
 - The LG remote's arrows, OK and Back, and the Magic Remote's pointer; menu music and sounds.
 - Settings → **TV Settings** opens the TV's own settings; the envelope button lists the TV's inputs (HDMI 1–4, Live TV).
 - **Themes**: Settings → **Theme**, the same seven as on Android TV (Classic, Dark, Winter, Fall, Halloween, Beach,
-  Island village) in the same colours, or **Automatic** (the default here), which follows the month. Winter, Fall and
-  Beach have still scenery (snowflakes, leaves, surf); the animated scenes are on Android TV.
+  Island village) with the same scenery: falling snow and the kids' sledding, skating, hockey and snowball scenes in
+  Winter, falling leaves in Fall, the wave in Beach, and Island village's hills, trees, signboards and clock sign with
+  drifting clouds and butterflies. **Automatic** (the default here) follows the month.
 
 Not on LG: making WiiOS the TV's home screen, updating itself, the phone remote, profiles and the Shop.
