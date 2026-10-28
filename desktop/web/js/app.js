@@ -1,6 +1,7 @@
 // The desktop menu's controller, after the Android launcher's WiiMenuActivity: builds the channel list (PC
 // games and web channels, in the viewer's order), handles keyboard, mouse and game controllers, the WiiOS
 // Settings pages, the Message Board, and updates from the same GitHub releases as the TV version.
+import './compat.js';
 import { WiiMenu, FONT } from './menu.js';
 import { Audio } from './audio.js';
 import { invoke, appWindow, native, kind } from './platform.js';
@@ -420,7 +421,7 @@ const STICK = 0.6;
 function pollPads() {
   for (const gp of navigator.getGamepads ? navigator.getGamepads() : []) {
     if (!gp) continue;
-    const st = (pads[gp.index] ||= { b: [], dir: null, next: 0 });
+    const st = pads[gp.index] || (pads[gp.index] = { b: [], dir: null, next: 0 });
     const pressed = (i) => !!(gp.buttons[i] && gp.buttons[i].pressed);
     const edge = (i) => pressed(i) && !st.b[i];
     if (gp.buttons.some((b) => b.pressed)) audio.unlock();

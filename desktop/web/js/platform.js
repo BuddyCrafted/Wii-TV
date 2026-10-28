@@ -1,6 +1,8 @@
 // Calls into the app around the menu: the desktop app (src-tauri/src/main.rs), or LG's webOS on an LG TV
 // (webos/, through webOS's own PalmServiceBridge). Opened as a plain web page (for a quick look in a browser),
 // it answers with sample data instead, so the menu can be developed without building either app.
+import { load } from './compat.js';
+
 const T = window.__TAURI__;
 const W = typeof window.PalmServiceBridge === 'function';
 export const native = !!T || W;
@@ -127,7 +129,7 @@ async function webos(cmd, args) {
 async function renewDevMode() {
   let token = '';
   try {
-    token = (await (await fetch('file:///var/luna/preferences/devmode_enabled')).text()).trim();
+    token = String(await load('file:///var/luna/preferences/devmode_enabled', 'text')).trim();
   } catch {
     return false;
   }

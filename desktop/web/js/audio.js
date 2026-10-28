@@ -1,5 +1,6 @@
 // Interface sounds (the Android launcher's wii_*.wav) and the channel menu's music, synthesised here by the
 // same recipe as MenuMusic.java from the tune it defines (web/gen/menu_song.js).
+import { load } from './compat.js';
 import SONG from '../gen/menu_song.js';
 
 export const MOVE = 'move', SELECT = 'select', PAGE = 'page', BACK = 'back', MENU = 'menu', START = 'start';
@@ -26,7 +27,7 @@ export class Audio {
     }
     this.ctx = new AudioContext();
     for (const n of [MOVE, SELECT, PAGE, BACK, MENU, START]) {
-      fetch(`gen/wii_${n}.wav`).then((r) => r.arrayBuffer()).then((b) => this.ctx.decodeAudioData(b))
+      load(`gen/wii_${n}.wav`).then((b) => this.ctx.decodeAudioData(b))
         .then((buf) => { this.buffers[n] = buf; }).catch(() => {});
     }
     this.musicGain = this.ctx.createGain();

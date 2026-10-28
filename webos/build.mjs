@@ -23,8 +23,16 @@ const app = JSON.parse(readFileSync(join(here, 'appinfo.json'), 'utf8'));
 app.version = `${version.split('.').concat('0', '0').slice(0, 2).join('.')}.${build}`;
 writeFileSync(join(dist, 'appinfo.json'), JSON.stringify(app, null, 2) + '\n');
 
-// The version Settings shows (platform.js reads it).
+// One plain script for older TVs: webOS 6 (2021) runs Chromium 79, which won't load module scripts from the
+// app's own files and doesn't know newer syntax; esbuild joins the modules and writes it for Chrome 68 (webOS 5).
+execFileSync(process.platform === 'win32' ? 'npx.cmd' : 'npx', ['--yes', 'esbuild@0.24.0', join(dist, 'js', 'app.js'),
+  '--bundle', '--format=iife', '--target=chrome68', `--outfile=${join(dist, 'app.js')}`], { stdio: 'inherit' });
+rmSync(join(dist, 'js'), { recursive: true, force: true });
+
+// The version Settings shows (platform.js reads it), then the bundle as a plain script.
 const html = readFileSync(join(dist, 'index.html'), 'utf8');
 const info = `<script>window.WIIOS_INFO = ${JSON.stringify({ version, build })};</script>\n`;
-writeFileSync(join(dist, 'index.html'), html.replace('<script type="module"', info + '<script type="module"'));
+const out = html.replace('<script type="module" src="js/app.js"></script>', info + '<script src="app.js"></script>');
+if (out === html) throw new Error('index.html: the menu script tag changed; update webos/build.mjs');
+writeFileSync(join(dist, 'index.html'), out);
 console.log(`webos: ${app.id} ${app.version} -> webos/dist`);
