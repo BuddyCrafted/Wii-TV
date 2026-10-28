@@ -1,0 +1,41 @@
+name: Keep LG Developer Mode on
+
+# LG TVs remove apps installed in Developer Mode (WiiOS, YouTubeHD) when its session runs out. Once a day this
+# extends it, as the Developer Mode app's Extend button does, for each TV whose session token is in the
+# LG_DEVMODE_TOKENS secret (Settings > Secrets and variables > Actions; one token per line). A TV's token:
+#   ssh -p 9922 prisoner@<TV IP> cat /var/luna/preferences/devmode_enabled
+# A token LG turns down fails the run, and GitHub emails the owner.
+on:
+  schedule:
+    - cron: "17 9 * * *"
+  workflow_dispatch:
+
+permissions: {}
+
+jobs:
+  extend:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Extend each TV's session
+        env:
+          TOKENS: ${{ secrets.LG_DEVMODE_TOKENS }}
+        run: |
+          if [ -z "$TOKENS" ]; then
+            echo "No LG_DEVMODE_TOKENS secret yet: nothing to extend."
+            exit 0
+          fi
+          # LG answers {"result":"success",...}, or {"result":"fail","errorMsg":...} for a token it doesn't know.
+          n=0
+          printf '%s\n' "$TOKENS" | while IFS= read -r token; do
+            token=$(printf '%s' "$token" | tr -cd 'A-Za-z0-9')
+            [ -n "$token" ] || continue
+            n=$((n + 1))
+            echo "::add-mask::$token"
+            reply=$(curl -sS -m 30 --retry 3 "https://developer.lge.com/secure/ResetDevModeSession.dev?sessionToken=$token" || true)
+            left=$(curl -sS -m 30 --retry 3 "https://developer.lge.com/secure/CheckDevModeSession.dev?sessionToken=$token" || true)
+            echo "TV $n: extend -> $reply; session -> $left"
+            case "$reply" in
+              *'"result":"success"'*) ;;
+              *) echo "::error::LG didn't extend TV $n's Developer Mode"; exit 1 ;;
+            esac
+          done

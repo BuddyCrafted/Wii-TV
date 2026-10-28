@@ -49,10 +49,26 @@ WiiOS then shows up in the TV's app row. A newer version is installed the same w
 
 ## Keeping it installed
 
-Developer Mode runs for a limited time, shown in the Developer Mode app with an **Extend** button. WiiOS extends it by
-itself each time it's opened (at most twice a day), the way that button does, so using WiiOS now and then keeps it on.
-If the TV won't let WiiOS do that, press **Extend** now and then (webOS Dev Manager can too). If the time runs out, the
-TV removes apps installed this way; switching Developer Mode on again and reinstalling brings WiiOS back.
+Developer Mode runs for a limited time, shown in the Developer Mode app as **Remain Session** with an **Extend**
+button. If the time runs out, the TV removes the apps installed this way (WiiOS, YouTubeHD); switching Developer Mode
+on again and reinstalling brings them back. Three things keep it running, and any one is enough:
+
+- **WiiOS** extends it by itself each time it's opened (at most twice a day), the way the Extend button does. To see
+  whether the TV lets it, note Remain Session, open WiiOS, then look again: if it's back near the full time, it works.
+- **GitHub, once a day**, with nothing on at home: the repository's *Keep LG Developer Mode on* workflow
+  (`.github/workflows/lg-devmode.yml`) extends every TV whose session token is in the `LG_DEVMODE_TOKENS` secret
+  (Settings → Secrets and variables → Actions → New repository secret; one token per line). Get a TV's token from
+  iSH with the key from the install step loaded:
+
+  ```
+  eval $(ssh-agent) && ssh-add webos_rsa && ssh -p 9922 -o StrictHostKeyChecking=no prisoner@<TV IP> cat /var/luna/preferences/devmode_enabled
+  ```
+
+  Then run the workflow once by hand (Actions → Keep LG Developer Mode on → Run workflow): a green run means LG
+  took the token. If a run fails later, GitHub emails you, and that TV needs Developer Mode switched on again.
+- **By hand**: press **Extend** in the Developer Mode app now and then (webOS Dev Manager can too).
+
+Turning Developer Mode off, or signing out of it, removes the apps straight away, so leave it on.
 
 ## YouTubeHD
 
