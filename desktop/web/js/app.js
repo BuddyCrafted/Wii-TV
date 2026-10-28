@@ -109,7 +109,9 @@ const menu = new WiiMenu(canvas, audio, {
     const rest = prefs.get('order', []).filter((k) => !shown.includes(k));
     prefs.set('order', [...shown, ...rest]);
   },
-});
+});// LG TVs: at most 30 frames a second while something moves.
+if (kind === 'webos') menu.minFrameMs = 33;
+
 
 function toChannel(c) {
   const ch = { ...c, tile: null };
@@ -397,7 +399,9 @@ window.addEventListener('keyup', (e) => {
   if (e.key === 'Enter' || e.key === ' ') okRelease();
 });
 
-const dpr = () => window.devicePixelRatio || 1;
+// Canvas pixels per CSS pixel. An LG TV draws at two thirds of 1080p, stretched to the screen: less than half
+// the memory and work, which its small processor needs (at full size it lagged and webOS closed it).
+const dpr = () => (kind === 'webos' ? 2 / 3 : window.devicePixelRatio || 1);
 const local = (e) => {
   const r = canvas.getBoundingClientRect();
   return [(e.clientX - r.left) * dpr(), (e.clientY - r.top) * dpr()];

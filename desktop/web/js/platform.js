@@ -97,9 +97,9 @@ async function webos(cmd, args) {
           }));
         }
       } catch {
-        // not allowed on this TV: the usual apps instead
+        // not allowed on this TV (it isn't a public service): look for the apps another way
       }
-      return LG_APPS.map((a) => ({ key: `lg:${a.id}`, label: a.label, kind: 'lg', target: a.id, color: a.color, text: a.text }));
+      return findApps();
     }
     case 'launch':
       return launch(args.target).catch((e) => {
@@ -137,4 +137,69 @@ async function renewDevMode() {
   await fetch(`https://developer.lge.com/secure/ResetDevModeSession.dev?sessionToken=${encodeURIComponent(token)}`,
     { mode: 'no-cors', cache: 'no-store' });
   return true;
+}
+
+// ---- finding the TV's apps without listLaunchPoints --------------------------------------------------
+
+/** Where webOS keeps apps: the ones installed from LG's store, then the TV's own. */
+const STORE_APPS = '/media/cryptofs/apps/usr/palm/applications/';
+const BUILT_IN_APPS = '/usr/palm/applications/';
+
+/** Folder names in a directory, from the page Chromium shows for a file:// folder. */
+async function listDir(dir) {
+  const page = String(await load(`file://${dir}`, 'text'));
+  const names = [];
+  const re = /addRow\("((?:[^"\\]|\\.)*)","[^"]*",1/g;
+  let m;
+  while ((m = re.exec(page))) names.push(m[1]);
+  return names;
+}
+
+/** An app's own appinfo.json as a channel, or null for a background service or a hidden app. */
+async function readApp(dir, id) {
+  let info;
+  try {
+    info = JSON.parse(String(await load(`file://${dir}${id}/appinfo.json`, 'text')));
+  } catch {
+    return null;
+  }
+  if (!info || info.id === SELF || info.visible === false || info.noWindow || !info.title) return null;
+  const file = (f) => (f ? `file://${dir}${id}/${f}` : null);
+  const known = LG_APPS.find((a) => a.id === info.id);
+  return {
+    key: `lg:${info.id}`, label: known ? known.label : info.title, kind: 'lg', target: info.id,
+    color: known ? known.color : info.bgColor || info.iconColor || '#3a3f47', text: known ? known.text : undefined,
+    icons: [file(info.largeIcon), file(info.icon)].filter(Boolean),
+  };
+}
+
+/** Whether an app is installed, by LG's public application.query service; null when it won't say. */
+async function installed(id) {
+  try {
+    const r = await luna('luna://com.webos.applicationManager/getAppLoadStatus', { appId: id });
+    return typeof r.exist === 'boolean' ? r.exist : null;
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * The TV's apps: every app installed from LG's store (read from its folder, with its own name and icon), the
+ * usual LG apps found among the TV's own, and the rest of the usual ones unless the TV says they're missing.
+ */
+async function findApps() {
+  const found = new Map();
+  const add = (ch) => ch && !found.has(ch.target) && found.set(ch.target, ch);
+  try {
+    for (const id of await listDir(STORE_APPS)) add(await readApp(STORE_APPS, id));
+  } catch {
+    // the folder can't be read from an app on this TV
+  }
+  for (const a of LG_APPS) {
+    if (found.has(a.id)) continue;
+    add(await readApp(BUILT_IN_APPS, a.id));
+    if (found.has(a.id) || (await installed(a.id)) === false) continue;
+    add({ key: `lg:${a.id}`, label: a.label, kind: 'lg', target: a.id, color: a.color, text: a.text });
+  }
+  return [...found.values()];
 }

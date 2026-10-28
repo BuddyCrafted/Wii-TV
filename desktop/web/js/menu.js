@@ -134,6 +134,8 @@ export class WiiMenu {
     this.empty = null;
     this.lastFrame = 0;
     this.frameQueued = false;
+    /** Shortest time between frames; 0 = every display frame. TVs set more (app.js). */
+    this.minFrameMs = 0;
     setInterval(() => {
       this.colonOn = !this.colonOn;
       this.invalidate();
@@ -705,7 +707,12 @@ export class WiiMenu {
   invalidate() {
     if (this.frameQueued) return;
     this.frameQueued = true;
-    requestAnimationFrame((t) => this.frame(t));
+    if (this.minFrameMs > 0) {
+      const wait = Math.max(0, this.minFrameMs - (performance.now() - this.lastFrame));
+      setTimeout(() => requestAnimationFrame((t) => this.frame(t)), this.lastFrame === 0 ? 0 : wait);
+    } else {
+      requestAnimationFrame((t) => this.frame(t));
+    }
   }
 
   step(dt) {
