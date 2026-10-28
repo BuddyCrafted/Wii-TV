@@ -40,6 +40,74 @@ const SEGMENTS = [0x3f, 0x06, 0x5b, 0x4f, 0x66, 0x6d, 0x7d, 0x27, 0x7f, 0x6f];
 const HAND_UNIT = 1920 / 1024, HAND_SCALE = 0.8;
 const ENTRANCE_STEP_MS = 70, ENTRANCE_TILE_MS = 420, ENTRANCE_PANEL_DELAY_MS = 520, ENTRANCE_MS = 1400;
 /** Ease out with a small overshoot, so each tile pops past full size and settles. */
+const opaque = (rgb) => (0xff000000 | rgb) >>> 0;
+
+/** The menu's own colours for a theme (Theme.java's accent, clock, date, wordmark, tile frame, icon tiles). */
+function colours(t) {
+  if (!t) {
+    return { accent: BLUE, clock: CLOCK_COLOR, date: DATE_COLOR, wordmark: 0xffa4a4a4, tileBorder: TILE_BORDER_COLOR,
+      iconTop: 0xffffffff, iconBottom: 0xffe9e9e9, iconText: 0xff7a7a7a };
+  }
+  return { accent: opaque(t.accent), clock: opaque(t.clock), date: opaque(t.date), wordmark: opaque(t.wordmark),
+    tileBorder: opaque(t.tileBorder), iconTop: opaque(t.iconTileTop), iconBottom: opaque(t.iconTileBottom),
+    iconText: opaque(t.iconTileText) };
+}
+
+/** A small repeatable random number for scattering decorations the same way every time. */
+const rand = (i, k) => {
+  let h = (Math.imul(i + 1, 374761393) + Math.imul(k + 7, 668265263)) | 0;
+  h = Math.imul(h ^ (h >>> 13), 1274126177);
+  return ((h ^ (h >>> 16)) >>> 0) / 4294967296;
+};
+
+/**
+ * Still scenery drawn once into the backdrop (the TV version animates it; a still one costs nothing per frame):
+ * snowflakes for Winter, fallen leaves for Fall, a line of surf for Beach.
+ */
+function drawDeco(c, deco, s) {
+  if (deco === 'SNOW') {
+    c.fillStyle = 'rgba(255,255,255,0.85)';
+    for (let i = 0; i < 140; i++) {
+      const x = rand(i, 1) * 1920, y = rand(i, 2) * 760, r = 2 + rand(i, 3) * 5;
+      c.globalAlpha = 0.45 + rand(i, 4) * 0.5;
+      c.beginPath();
+      c.arc(x * s, y * s, r * s, 0, Math.PI * 2);
+      c.fill();
+    }
+    c.globalAlpha = 1;
+  } else if (deco === 'LEAVES') {
+    const tones = ['#c8562a', '#e08a2e', '#a8432a', '#d9a441', '#8f5a2b'];
+    for (let i = 0; i < 46; i++) {
+      const x = rand(i, 1) * 1920, y = 60 + rand(i, 2) * 700, len = 16 + rand(i, 3) * 14;
+      c.save();
+      c.translate(x * s, y * s);
+      c.rotate(rand(i, 4) * Math.PI * 2);
+      c.globalAlpha = 0.55 + rand(i, 5) * 0.35;
+      c.fillStyle = tones[(rand(i, 6) * tones.length) | 0];
+      c.beginPath();
+      c.moveTo(0, -len * s);
+      c.quadraticCurveTo(len * 0.7 * s, 0, 0, len * s);
+      c.quadraticCurveTo(-len * 0.7 * s, 0, 0, -len * s);
+      c.fill();
+      c.restore();
+    }
+  } else if (deco === 'WAVE') {
+    c.strokeStyle = 'rgba(255,255,255,0.7)';
+    c.lineCap = 'round';
+    for (let row = 0; row < 3; row++) {
+      const y = 640 + row * 42;
+      c.lineWidth = (5 - row) * s;
+      c.beginPath();
+      for (let x = 0; x <= 1920; x += 20) {
+        const yy = y + Math.sin((x + row * 90) / 70) * 9;
+        if (x === 0) c.moveTo(x * s, yy * s);
+        else c.lineTo(x * s, yy * s);
+      }
+      c.stroke();
+    }
+  }
+}
+
 const ease = (p) => {
   const q = p - 1;
   return 1 + q * q * (2.7 * q + 1.7);
@@ -136,6 +204,8 @@ export class WiiMenu {
     this.frameQueued = false;
     /** Shortest time between frames; 0 = every display frame. TVs set more (app.js). */
     this.minFrameMs = 0;
+    this.theme = null;
+    this.col = colours(null);
     setInterval(() => {
       this.colonOn = !this.colonOn;
       this.invalidate();
@@ -143,6 +213,15 @@ export class WiiMenu {
   }
 
   // ---- state ---------------------------------------------------------------------------------
+
+  /** A theme from gen/themes.js (null: classic): recolours the layers and the menu's own colours. */
+  setTheme(theme) {
+    this.theme = theme && !B.untouched(theme) ? theme : null;
+    this.col = colours(this.theme);
+    for (const ch of this.channels) ch.tile = null;
+    this.rebuild();
+    this.invalidate();
+  }
 
   setChannels(list) {
     this.channels = list.slice();
@@ -644,15 +723,16 @@ export class WiiMenu {
         cv.getContext('2d').putImageData(new ImageData(px, cw, chh), 0, 0);
         return cv;
       };
-      this.base = toCanvas(B.backdrop(w, h), w, h);
+      this.base = toCanvas(B.backdrop(w, h, this.theme), w, h);
+      if (this.theme) drawDeco(this.base.getContext('2d'), this.theme.deco, s);
       const size = Math.ceil(2 * (B.BTN_RING + B.BTN_RING_HALF + 2) * s);
-      const bp = B.button(size, s);
+      const bp = B.button(size, s, this.theme);
       this.btnLeft = toCanvas(bp, size, size);
       this.btnRight = toCanvas(bp.slice(), size, size);
       this.drawWordmark(this.btnLeft.getContext('2d'), size, s, this.settingsLabel);
       this.drawEnvelope(this.btnRight.getContext('2d'), size, s);
       const tw = Math.round(TILE_W * s) + 8, th = Math.round(TILE_H * s) + 8;
-      this.empty = toCanvas(B.emptySlot(tw, th, s), tw, th);
+      this.empty = toCanvas(B.emptySlot(tw, th, s, this.theme), tw, th);
       this.invalidate();
     }, 0);
   }
@@ -666,7 +746,7 @@ export class WiiMenu {
     const y = size / 2 + 17 * s;
     c.fillStyle = 'rgba(255,255,255,0.6)';
     c.fillText(label, size / 2, y + 2 * s);
-    c.fillStyle = '#a4a4a4';
+    c.fillStyle = css(this.col.wordmark);
     c.fillText(label, size / 2, y);
   }
 
@@ -908,12 +988,12 @@ export class WiiMenu {
     c.lineJoin = 'round';
     if (lf > 0.01) {
       for (let k = 3; k >= 1; k--) {
-        c.strokeStyle = css(withAlpha(BLUE, (lf * 64) / k));
+        c.strokeStyle = css(withAlpha(this.col.accent, (lf * 64) / k));
         c.lineWidth = (TILE_BORDER + k * 5) * s;
         c.stroke();
       }
     }
-    c.strokeStyle = css(blend(TILE_BORDER_COLOR, BLUE, lf));
+    c.strokeStyle = css(blend(this.col.tileBorder, this.col.accent, lf));
     c.lineWidth = (TILE_BORDER + 1.5 * lf) * s;
     c.stroke();
     c.restore();
@@ -938,8 +1018,8 @@ export class WiiMenu {
       c.drawImage(img, (tw - dw) / 2, (th - dh) / 2, dw, dh);
     } else {
       const g = c.createLinearGradient(0, 0, 0, th);
-      g.addColorStop(0, '#ffffff');
-      g.addColorStop(1, '#e9e9e9');
+      g.addColorStop(0, css(this.col.iconTop));
+      g.addColorStop(1, css(this.col.iconBottom));
       c.fillStyle = g;
       c.fillRect(0, 0, tw, th);
       if (ch.icon && ch.icon.complete && ch.icon.naturalWidth > 0) {
@@ -950,7 +1030,7 @@ export class WiiMenu {
         ch.draw(c, tw, th);
       }
       setFont(c, th * 0.15);
-      c.fillStyle = '#7a7a7a';
+      c.fillStyle = css(this.col.iconText);
       c.textAlign = 'center';
       c.fillText(ellipsize(c, ch.label, tw * 0.86), tw / 2, th * 0.86);
     }
@@ -1016,7 +1096,7 @@ export class WiiMenu {
     c.drawImage(bmp, cx - bmp.width / 2, cy - bmp.height / 2);
     if (lf > 0.01) {
       for (let k = 3; k >= 1; k--) {
-        c.strokeStyle = css(withAlpha(BLUE, (lf * 70) / k));
+        c.strokeStyle = css(withAlpha(this.col.accent, (lf * 70) / k));
         c.lineWidth = (3 + k * 5) * s;
         c.beginPath();
         c.arc(cx, cy, B.BTN_RING * s, 0, Math.PI * 2);
@@ -1050,7 +1130,7 @@ export class WiiMenu {
     if (lf > 0.01) {
       for (let k = 3; k >= 1; k--) {
         roundPoly(c, pts(0), 4 * s);
-        c.strokeStyle = css(withAlpha(BLUE, (lf * 80) / k));
+        c.strokeStyle = css(withAlpha(this.col.accent, (lf * 80) / k));
         c.lineWidth = (2 + k * 4) * s;
         c.stroke();
       }
@@ -1068,7 +1148,7 @@ export class WiiMenu {
     let hour = now.getHours() % 12;
     if (hour === 0) hour = 12;
     const minute = now.getMinutes(), pm = now.getHours() >= 12;
-    c.fillStyle = css(CLOCK_COLOR);
+    c.fillStyle = css(this.col.clock);
     if (hour >= 10) this.drawDigit(c, DIGIT_X[0], Math.floor(hour / 10));
     this.drawDigit(c, DIGIT_X[1], hour % 10);
     this.drawDigit(c, DIGIT_X[2], Math.floor(minute / 10));
@@ -1129,7 +1209,7 @@ export class WiiMenu {
     const size = (DATE_CAP / 0.711) * s;
     setFont(c, size);
     c.textAlign = 'left';
-    c.fillStyle = css(DATE_COLOR);
+    c.fillStyle = css(this.col.date);
     const track = DATE_TRACKING * s;
     const width = (str) => c.measureText(str).width + track * str.length;
     const gap = c.measureText(' ').width + DATE_EXTRA_SPACE * s;
@@ -1170,7 +1250,7 @@ export class WiiMenu {
       c.fill();
     }
     c.restore();
-    c.strokeStyle = css(TILE_BORDER_COLOR);
+    c.strokeStyle = css(this.col.tileBorder);
     c.lineWidth = TILE_BORDER * s;
     c.stroke();
     setFont(c, 48 * s);
@@ -1187,7 +1267,7 @@ export class WiiMenu {
       c.textAlign = 'center';
       c.fillText(ellipsize(c, this.menuItems[i].label, r.r - r.l - 70 * s), (r.l + r.r) / 2, (r.t + r.b) / 2 + 14 * s);
     }
-    c.fillStyle = css(BLUE);
+    c.fillStyle = css(this.col.accent);
     if (this.menuFirst > 0) this.chevron(c, this.w / 2, g.py + g.head - 26 * s, true);
     if (this.menuFirst + g.n < this.menuItems.length) this.chevron(c, this.w / 2, g.py + g.ph - 22 * s, false);
   }
@@ -1209,12 +1289,12 @@ export class WiiMenu {
     c.fill();
     if (lf > 0.01) {
       for (let k = 3; k >= 1; k--) {
-        c.strokeStyle = css(withAlpha(BLUE, (lf * 70) / k));
+        c.strokeStyle = css(withAlpha(this.col.accent, (lf * 70) / k));
         c.lineWidth = (4 + k * 6) * s;
         c.stroke();
       }
     }
-    c.strokeStyle = css(blend(TILE_BORDER_COLOR, BLUE, lf));
+    c.strokeStyle = css(blend(this.col.tileBorder, this.col.accent, lf));
     c.lineWidth = (TILE_BORDER + 2 * lf) * s;
     c.stroke();
     c.restore();
@@ -1283,7 +1363,7 @@ export class WiiMenu {
     g.addColorStop(1, '#d3d3d6');
     c.fillStyle = g;
     c.fillRect(0, SET_BAND_TOP * s, this.w, this.h - SET_BAND_TOP * s);
-    c.strokeStyle = css(BLUE);
+    c.strokeStyle = css(this.col.accent);
     c.lineWidth = 5 * s;
     c.beginPath();
     c.moveTo(0, SET_BAND_TOP * s);

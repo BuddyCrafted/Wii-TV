@@ -5,6 +5,7 @@ import './compat.js';
 import { WiiMenu, FONT } from './menu.js';
 import { Audio } from './audio.js';
 import { invoke, appWindow, native, kind } from './platform.js';
+import THEMES from '../gen/themes.js';
 
 const canvas = document.getElementById('menu');
 const audio = new Audio();
@@ -112,6 +113,44 @@ const menu = new WiiMenu(canvas, audio, {
 });// LG TVs: at most 30 frames a second while something moves.
 if (kind === 'webos') menu.minFrameMs = 33;
 
+// ---- themes (Theme.java, via gen/themes.js) ---------------------------------------------------
+
+const THEME_NAMES = { classic: 'Classic', dark: 'Dark', winter: 'Winter', fall: 'Fall', halloween: 'Halloween',
+  beach: 'Beach', island: 'Island village' };
+const byId = (id) => THEMES.find((t) => t.id === id) || THEMES[0];
+/** Automatic, as Theme.forMonth: Winter Dec-Feb, Island village in spring, Beach in summer, Halloween in October. */
+function forMonth(m) {
+  if (m === 11 || m <= 1) return byId('winter');
+  if (m <= 4) return byId('island');
+  if (m <= 7) return byId('beach');
+  if (m === 9) return byId('halloween');
+  return byId('fall');
+}
+/** The chosen theme's id, or 'auto' (the default on an LG TV, as the calendar themes are what it's for). */
+const themeSetting = () => prefs.get('theme', kind === 'webos' ? 'auto' : 'classic');
+const currentTheme = () => (themeSetting() === 'auto' ? forMonth(new Date().getMonth()) : byId(themeSetting()));
+let shownTheme = null;
+function applyTheme() {
+  const t = currentTheme();
+  if (shownTheme === t.id) return;
+  shownTheme = t.id;
+  menu.setTheme(t);
+}
+const themeLabel = () => (themeSetting() === 'auto'
+  ? `Automatic (${THEME_NAMES[currentTheme().id] || currentTheme().id})` : THEME_NAMES[themeSetting()] || themeSetting());
+
+function themeSettings() {
+  const pick = (id) => () => {
+    prefs.set('theme', id);
+    applyTheme();
+    menu.refreshSettings();
+  };
+  const mark = (id) => (themeSetting() === id ? 'On' : '');
+  return [{ label: 'Automatic', value: mark('auto'), action: pick('auto') },
+    ...THEMES.map((t) => ({ label: THEME_NAMES[t.id] || t.id, value: mark(t.id), action: pick(t.id) }))];
+}
+const themeItem = () => ({ label: 'Theme', value: themeLabel(), action: () => menu.pushSettings('Theme', themeSettings) });
+
 
 function toChannel(c) {
   const ch = { ...c, tile: null };
@@ -166,6 +205,7 @@ function mainSettings() {
     { label: 'Network & Internet', action: () => osSettings('network') },
     { label: 'Controllers & Bluetooth', action: () => osSettings('bluetooth') },
     { label: 'Full screen', value: onOff(fullscreen), action: () => setFullscreen(!fullscreen) },
+    themeItem(),
     { label: 'Start with this computer', value: onOff(info.autostart), action: async () => {
       try {
         await invoke('set_autostart', { on: !info.autostart });
@@ -213,6 +253,7 @@ function mainSettings() {
 function tvSettings() {
   const items = [
     { label: 'TV Settings', action: () => osSettings('') },
+    themeItem(),
     { label: 'Menu music', value: onOff(audio.musicOn), action: () => {
       audio.setMusic(!audio.musicOn);
       prefs.set('music', audio.musicOn);
@@ -455,6 +496,7 @@ requestAnimationFrame(pollPads);
 window.addEventListener('blur', () => audio.setWanted(false));
 window.addEventListener('focus', () => {
   audio.setWanted(true);
+  applyTheme();   // Automatic: a new month may bring a new look
   menu.invalidate();
 });
 document.addEventListener('visibilitychange', () => audio.setWanted(!document.hidden));
@@ -486,6 +528,7 @@ window.addEventListener('resize', layout);
   menu.setIntroText('Before you start',
     'Sit at a comfortable distance from the screen and rest your eyes now and then. Your games, apps and files are where they always were.',
     'Press OK to continue.');
+  applyTheme();
   layout();
   await reloadChannels();
   // LG: Developer Mode's clock starts again each time WiiOS opens (at most twice a day), so it doesn't run out.

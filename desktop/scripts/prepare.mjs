@@ -36,8 +36,27 @@ if (!bpm) throw new Error('MenuMusic.java: MENU not found');
 writeFileSync(join(out, 'menu_song.js'), '// Generated from MenuMusic.java by scripts/prepare.mjs; do not edit.\n'
   + `export default { bpm: ${bpm[1]}, chords: ${arr('CHORDS')}, roots: ${arr('ROOTS')}, melody: ${arr('MELODY')}, comp: ${arr('COMP')}, bass: ${arr('BASS')} };\n`);
 
+// Theme.java -> themes.js: every `static final Theme NAME = new Theme(...)`, fields in the constructor's order.
+const themeJava = readFileSync(join(android, 'java', 'com', 'gathin', 'tvhome', 'Theme.java'), 'utf8');
+const FIELDS = ['bgTopDark', 'bgTopLight', 'bgBottomDark', 'bgBottomLight', 'panelDark', 'panelLight', 'buttonDark',
+  'buttonLight', 'slotDark', 'slotLight', 'accent', 'clock', 'date', 'wordmark', 'tileBorder', 'iconTileTop',
+  'iconTileBottom', 'iconTileText'];
+const themes = [];
+const tre = /static final Theme (\w+) = new Theme\(([\s\S]*?)\);/g;
+while ((m = tre.exec(themeJava))) {
+  const args = m[2].replace(/\/\/.*$/gm, '').split(',').map((x) => x.trim());
+  if (args.length !== FIELDS.length + 3) throw new Error(`Theme.java: ${m[1]} has ${args.length} arguments`);
+  const t = { id: JSON.parse(args[0]), classic: args[1] === 'true' };
+  FIELDS.forEach((f, i) => (t[f] = Number(args[i + 2])));
+  t.deco = args[args.length - 1].replace('Deco.', '');
+  themes.push(t);
+}
+if (!themes.some((t) => t.id === 'classic')) throw new Error('Theme.java: CLASSIC not found');
+writeFileSync(join(out, 'themes.js'), '// Generated from Theme.java by scripts/prepare.mjs; do not edit.\nexport default '
+  + JSON.stringify(themes) + ';\n');
+
 for (const s of ['move', 'select', 'page', 'back', 'menu', 'start']) {
   copyFileSync(join(android, 'res', 'raw', `wii_${s}.wav`), join(out, `wii_${s}.wav`));
 }
 copyFileSync(join(android, 'res', 'font', 'outfit.ttf'), join(out, 'outfit.ttf'));
-console.log(`prepare: ${consts.length} palette constants, menu tune, 6 sounds, font -> web/gen`);
+console.log(`prepare: ${consts.length} palette constants, menu tune, ${themes.length} themes, 6 sounds, font -> web/gen`);

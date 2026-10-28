@@ -72,10 +72,12 @@ function trackDelta(y) {
   return i >= 0 && i < P.TRACK_DELTA.length ? P.TRACK_DELTA[i] : 0;
 }
 
-function socketDelta(xm, y, rightSide) {
+function socketDelta(xm, y, rightSide, tracks = true) {
   if (xm > 330 || y < 780) return 0;
   let delta = 0;
-  if (xm <= TRACK_END_X) {
+  if (!tracks) {
+    // no grooves: just the seat round the button (snow and leaves themes)
+  } else if (xm <= TRACK_END_X) {
     let dl = trackDelta(y);
     if (y < 870) dl *= clamp01((165 - xm) / 45);
     delta += dl;
@@ -96,9 +98,26 @@ function socketDelta(xm, y, rightSide) {
   return delta;
 }
 
-/** The whole backdrop as RGBA bytes, w x h screen pixels. */
-export function backdrop(w, h) {
+// ---- themes (WiiBase.java): classic keeps the measured greys, others map them onto the theme's colours ----
+
+const mixRgb = (a, b, t) => {
+  if (t <= 0) return a & 0xffffff;
+  if (t >= 1) return b & 0xffffff;
+  const ch = (sh) => Math.round(((a >> sh) & 255) + (((b >> sh) & 255) - ((a >> sh) & 255)) * t);
+  return (ch(16) << 16) | (ch(8) << 8) | ch(0);
+};
+/** Classic with its own accent: drawn exactly as measured. */
+export const untouched = (t) => !t || (t.classic && t.accent === 0x3fc0ec);
+
+/** The whole backdrop as RGBA bytes, w x h screen pixels, in a theme's colours (null: classic). */
+export function backdrop(w, h, theme = null) {
   const s = w / 1920;
+  const recolour = !!theme && !theme.classic;
+  const tracks = !theme || (theme.deco !== 'SNOW' && theme.deco !== 'LEAVES');
+  const plain = untouched(theme);
+  const lineR = plain ? LINE_R : (theme.accent >> 16) & 255;
+  const lineG = plain ? LINE_G : (theme.accent >> 8) & 255;
+  const lineB = plain ? LINE_B : theme.accent & 255;
   const out = new Uint8ClampedArray(w * h * 4);
   const colLine = new Float32Array(w), colCos = new Float32Array(w), colBase = new Float32Array(w);
   const colAmp = new Float32Array(w), colXm = new Float32Array(w), colRight = new Uint8Array(w);
@@ -132,19 +151,35 @@ export function backdrop(w, h) {
       let r, g, b;
       if (dp < 0) {
         const hd = dp - HIGHLIGHT_D;
-        r = g = b = colBase[x] + colAmp[x] * k + HIGHLIGHT_AMP * Math.exp((-hd * hd) / hl2);
+        const v = colBase[x] + colAmp[x] * k + HIGHLIGHT_AMP * Math.exp((-hd * hd) / hl2);
+        if (recolour) {
+          const fy = clamp01(ry / LINE_TOP);
+          const c = mixRgb(mixRgb(theme.bgTopDark, theme.bgBottomDark, fy),
+            mixRgb(theme.bgTopLight, theme.bgBottomLight, fy), clamp01((v - 218) / 36));
+          r = (c >> 16) & 255;
+          g = (c >> 8) & 255;
+          b = c & 255;
+        } else {
+          r = g = b = v;
+        }
       } else {
         const c = panel(colXm[x], dY);
-        const dl = socketDelta(colXm[x], ry, colRight[x] === 1);
+        const dl = socketDelta(colXm[x], ry, colRight[x] === 1, tracks);
         r = c[0] + dl;
         g = c[1] + dl;
         b = c[2] + dl;
+        if (recolour) {
+          const m = mixRgb(theme.panelDark, theme.panelLight, clamp01(((r + g + b) / 3 - 150) / 70));
+          r = (m >> 16) & 255;
+          g = (m >> 8) & 255;
+          b = m & 255;
+        }
       }
       const cov = clamp01((LINE_HALF - Math.abs(dp)) * s + 0.5);
       if (cov > 0) {
-        r += (LINE_R - r) * cov;
-        g += (LINE_G - g) * cov;
-        b += (LINE_B - b) * cov;
+        r += (lineR - r) * cov;
+        g += (lineG - g) * cov;
+        b += (lineB - b) * cov;
       }
       out[o] = clamp255(r);
       out[o + 1] = clamp255(g);
@@ -156,7 +191,11 @@ export function backdrop(w, h) {
 }
 
 /** One round button's body and blue ring in a size x size square, transparent outside the ring. */
-export function button(size, s) {
+export function button(size, s, theme = null) {
+  const plain = untouched(theme);
+  const ringR = plain ? 0x4d : (theme.accent >> 16) & 255;
+  const ringG = plain ? 0xbd : (theme.accent >> 8) & 255;
+  const ringB = plain ? 0xe3 : theme.accent & 255;
   const out = new Uint8ClampedArray(size * size * 4);
   const c = size / 2;
   for (let y = 0; y < size; y++) {
@@ -172,10 +211,16 @@ export function button(size, s) {
         + k[6] * nx * nx * nx + k[7] * ny * ny * ny + k[8] * nx * nx * ny + k[9] * nx * ny * ny
         + k[10] * r2 * r2 + k[11] * r2 * r2 * r2;
       let cr = v, cg = v, cb = v;
+      if (theme && !theme.classic) {
+        const m = mixRgb(theme.buttonDark, theme.buttonLight, clamp01((v - 175) / 75));
+        cr = (m >> 16) & 255;
+        cg = (m >> 8) & 255;
+        cb = m & 255;
+      }
       const ring = clamp01((BTN_RING_HALF - Math.abs(r - BTN_RING)) * s + 0.5);
-      cr += (0x4d - cr) * ring;
-      cg += (0xbd - cg) * ring;
-      cb += (0xe3 - cb) * ring;
+      cr += (ringR - cr) * ring;
+      cg += (ringG - cg) * ring;
+      cb += (ringB - cb) * ring;
       const o = (y * size + x) * 4;
       out[o] = clamp255(cr);
       out[o + 1] = clamp255(cg);
@@ -193,7 +238,8 @@ function hash(x, y) {
 }
 
 /** The frosted grey an empty channel slot shows: darker at the top, faint horizontal grain. */
-export function emptySlot(tw, th, s) {
+export function emptySlot(tw, th, s, theme = null) {
+  const recolour = !!theme && !theme.classic;
   const out = new Uint8ClampedArray(tw * th * 4);
   for (let y = 0; y < th; y++) {
     const t = y / Math.max(1, th - 1);
@@ -205,7 +251,14 @@ export function emptySlot(tw, th, s) {
       const n = (((hash(rx, ry) & 255) / 255) - 0.5) * 5;
       const v = clamp255(base + streak + n);
       const o = (y * tw + x) * 4;
-      out[o] = out[o + 1] = out[o + 2] = v;
+      if (recolour) {
+        const m = mixRgb(theme.slotDark, theme.slotLight, clamp01((v - 200) / 40));
+        out[o] = (m >> 16) & 255;
+        out[o + 1] = (m >> 8) & 255;
+        out[o + 2] = m & 255;
+      } else {
+        out[o] = out[o + 1] = out[o + 2] = v;
+      }
       out[o + 3] = 255;
     }
   }
