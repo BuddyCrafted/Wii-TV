@@ -15,6 +15,7 @@ This repository is [MauroProto/wii-tv](https://github.com/MauroProto/wii-tv) wit
 **→ Step-by-step setup for making it your home screen: [docs/streaming-stick-setup.md](docs/streaming-stick-setup.md)**
 
 **→ LG TV (webOS): [docs/lg-tv.md](docs/lg-tv.md)**
+
 **→ 2020–2022 Fire TV Stick (3rd Gen, Lite, 4K Max 1st Gen): [docs/fire-tv-stick-2021.md](docs/fire-tv-stick-2021.md)**
 **→ Which devices it runs on (and which it can't): [docs/devices.md](docs/devices.md)**
 **→ On a Windows or Linux computer (download, flash drive, controllers): [docs/desktop.md](docs/desktop.md)**
