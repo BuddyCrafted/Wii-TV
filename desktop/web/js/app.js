@@ -91,6 +91,14 @@ const menu = new WiiMenu(canvas, audio, {
     invoke('open_files').catch((e) => menu.showNotice(String(e)));
   },
   onInputsButton() {
+    // LG: the envelope button is the TV's inputs, as a list to pick from.
+    if (kind === 'webos') {
+      menu.showMenu('Inputs', LG_INPUTS.map(([id, label]) => ({
+        label,
+        action: () => invoke('launch', { target: id }).catch((e) => menu.showNotice(`Couldn't open ${label}: ${e.message || e}`)),
+      })));
+      return;
+    }
     const items = prefs.get('recent', []).map((k) => all.get(k)).filter(Boolean)
       .map((ch) => ({ label: ch.label, action: () => menu.listener.onChannel(ch) }));
     if (items.length) menu.showMenu('Message Board', items);
@@ -112,6 +120,10 @@ const menu = new WiiMenu(canvas, audio, {
   },
 });// LG TVs: at most 30 frames a second while something moves.
 if (kind === 'webos') menu.minFrameMs = 33;
+
+/** The LG TV's inputs, for the envelope button (webOS's own app ids for them). */
+const LG_INPUTS = [['com.webos.app.hdmi1', 'HDMI 1'], ['com.webos.app.hdmi2', 'HDMI 2'], ['com.webos.app.hdmi3', 'HDMI 3'],
+  ['com.webos.app.hdmi4', 'HDMI 4'], ['com.webos.app.livetv', 'Live TV']];
 
 // ---- themes (Theme.java, via gen/themes.js) ---------------------------------------------------
 
@@ -183,7 +195,8 @@ async function reloadChannels() {
   const hidden = new Set(prefs.get('hidden', []));
   const order = prefs.get('order', []);
   const rank = new Map(order.map((k, i) => [k, i]));
-  const shown = list.filter((c) => !hidden.has(c.key));
+  // LG: the inputs are in the envelope button's list, not among the channels.
+  const shown = list.filter((c) => !hidden.has(c.key) && !(kind === 'webos' && /^lg:com\.webos\.app\.hdmi/.test(c.key)));
   // Saved order first; channels new since then keep their default place after them.
   shown.sort((a, b) => (rank.has(a.key) ? rank.get(a.key) : 1e6 + list.indexOf(a)) - (rank.has(b.key) ? rank.get(b.key) : 1e6 + list.indexOf(b)));
   menu.setChannels(shown);

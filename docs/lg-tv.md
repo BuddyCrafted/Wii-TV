@@ -67,7 +67,7 @@ keeping Developer Mode alive keeps it too.
 - The TV's apps as channels, moved and hidden like on the other versions. When the TV won't list its apps, WiiOS shows
   LG's usual ones; one that isn't installed says so when chosen and can be hidden.
 - The LG remote's arrows, OK and Back, and the Magic Remote's pointer; menu music and sounds.
-- Settings → **TV Settings** opens the TV's own settings.
+- Settings → **TV Settings** opens the TV's own settings; the envelope button lists the TV's inputs (HDMI 1–4, Live TV).
 - **Themes**: Settings → **Theme**, the same seven as on Android TV (Classic, Dark, Winter, Fall, Halloween, Beach,
   Island village) in the same colours, or **Automatic** (the default here), which follows the month. Winter, Fall and
   Beach have still scenery (snowflakes, leaves, surf); the animated scenes are on Android TV.

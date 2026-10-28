@@ -52,9 +52,6 @@ const LG_APPS = [
   { id: 'spotify-beehive', label: 'Spotify', color: '#1db954' },
   { id: 'cdp-30', label: 'Plex', color: '#282a2d', text: '#e5a00d' },
   { id: 'com.webos.app.livetv', label: 'Live TV', color: '#a50034' },
-  { id: 'com.webos.app.hdmi1', label: 'HDMI 1', color: '#4a4f57' },
-  { id: 'com.webos.app.hdmi2', label: 'HDMI 2', color: '#4a4f57' },
-  { id: 'com.webos.app.hdmi3', label: 'HDMI 3', color: '#4a4f57' },
   { id: 'com.webos.app.browser', label: 'Web Browser', color: '#2b6cb0' },
   { id: 'com.webos.app.discovery', label: 'LG Apps', color: '#a50034' },
 ];
