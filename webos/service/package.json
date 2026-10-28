@@ -1,0 +1,6 @@
+{
+  "name": "com.buddycrafted.wiios.service",
+  "version": "1.0.0",
+  "description": "Brings WiiOS back when an app opened from it closes",
+  "main": "service.js"
+}

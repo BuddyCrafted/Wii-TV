@@ -101,9 +101,12 @@ async function webos(cmd, args) {
       return findApps();
     }
     case 'launch':
-      return launch(args.target).catch((e) => {
+      await launch(args.target).catch((e) => {
         throw new Error(/not ?found|no app|does not exist/i.test(e.message) ? 'it isn’t installed on this TV' : e.message);
       });
+      // WiiOS's service (webos/service) brings WiiOS back when that app closes, instead of Live TV.
+      luna(`luna://${SELF}.service/watch`, { target: args.target }).catch(() => {});
+      return null;
     case 'open_settings':
       return launch('com.palm.app.settings');
     case 'power':

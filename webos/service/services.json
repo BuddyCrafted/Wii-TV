@@ -1,0 +1,10 @@
+{
+  "id": "com.buddycrafted.wiios.service",
+  "description": "Brings WiiOS back when an app opened from it closes",
+  "services": [
+    {
+      "name": "com.buddycrafted.wiios.service",
+      "description": "Brings WiiOS back when an app opened from it closes"
+    }
+  ]
+}

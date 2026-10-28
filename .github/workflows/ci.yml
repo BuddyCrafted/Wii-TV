@@ -137,7 +137,7 @@ jobs:
       - name: Build and package
         run: |
           node webos/build.mjs ${{ github.run_number }}
-          npx --yes -p @webos-tools/cli@3.2.6 ares-package webos/dist -o webos/out
+          npx --yes -p @webos-tools/cli@3.2.6 ares-package webos/dist webos/service -o webos/out
           cp webos/out/*.ipk WiiOS-webos.ipk
           # YouTubeHD: webosbrew's ad-free YouTube (GPL-3.0) under its own id, next to LG's YouTube.
           sh webos/youtubehd.sh YouTubeHD-webos.ipk
